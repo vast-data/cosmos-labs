@@ -72,6 +72,14 @@ lab2:
     default_limit: 100
     max_limit: 1000
     enable_fuzzy_search: true
+  
+  vastdb:
+    host: "localhost"
+    port: 5432
+    database: "orbital_dynamics_metadata"
+    schema: "satellite_observations"
+    connection_pool_size: 10
+    query_timeout_seconds: 30
 
 # Lab 3: Pipeline Orchestration Settings
 lab3:

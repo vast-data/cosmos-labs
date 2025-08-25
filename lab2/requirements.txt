@@ -1,4 +1,4 @@
 vastpy
+vastdb
 astropy
-h5py
-pyyaml 
+h5py 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This solution demonstrates how to use `vastpy` to create a comprehensive metadata catalog system for Orbital Dynamics' satellite data. The complete implementation is organized in the `lab2/` folder.
+This solution demonstrates how to use `vastpy` for storage management and `vastdb` for metadata catalog functionality to create a comprehensive metadata system for Orbital Dynamics' satellite data. The complete implementation is organized in the `lab2/` folder.
 
 ## Solution Structure
 
@@ -73,10 +73,10 @@ python test_solution.py
 - Status-based queries (processed, raw, archived)
 - Multi-criteria advanced search
 
-### ✅ VAST Views Integration
-- Uses VAST views for data organization instead of separate database
-- Creates structured view hierarchy for different data types
-- Leverages VAST's unified storage architecture
+### ✅ VAST Database Integration
+- Uses `vastdb` for metadata catalog storage and querying
+- Creates structured metadata schema for satellite observations
+- Leverages VAST's database capabilities for fast searches
 - Integrates with existing VAST management workflows
 
 ### ✅ Real-time Query Performance
@@ -129,6 +129,13 @@ views:
   default_policy: "default"
   create_directories: true
   protocols: ["NFS", "SMB"]
+
+# VAST Database Settings (for metadata catalog)
+vastdb:
+  host: "localhost"
+  port: 5432
+  database: "orbital_dynamics_metadata"
+  schema: "satellite_observations"
 ```
 
 ### Secrets Configuration (`../secrets.yaml`)
@@ -152,10 +159,11 @@ The solution implements a comprehensive metadata management system by:
 4. **Search Interface** - Provides powerful querying capabilities for finding datasets
 
 ### VAST Integration
-Uses `vastpy` to:
-- Create and manage VAST views for different data types
-- Organize data in a hierarchical structure
-- Provide consistent access patterns across all data
+Uses both `vastpy` and `vastdb`:
+- **vastpy**: Create and manage VAST views for data organization
+- **vastdb**: Store and query metadata in VAST database
+- Organize data in a hierarchical structure with rich metadata
+- Provide fast search capabilities across all metadata fields
 - Integrate with existing VAST management workflows
 
 ### Metadata Extraction Workflows

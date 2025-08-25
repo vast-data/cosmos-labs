@@ -16,7 +16,7 @@ Alex nods slowly. "And you're thinking we need to fix this before it becomes a c
 
 ## The Technical Challenge
 
-The team needs to build a VAST Catalog-based metadata system that can handle current and future data volumes. The key technical requirements are:
+The team needs to build a VAST Database-based metadata system that can handle current and future data volumes. The key technical requirements are:
 
 ### Primary Objectives:
 1. **Design Comprehensive Metadata Schema** - Create a scalable metadata structure for satellite observation data
@@ -30,7 +30,7 @@ Sam presents his plan to Alex. "Here's what I'm thinking," he says, drawing on t
 
 **Phase 1 (Weeks 1-2): Schema Design and Core Infrastructure**
 - Design the metadata schema for satellite observations
-- Set up the VAST Catalog system
+- Set up the VAST Database system using vastdb
 - Create the basic ingest workflows
 
 **Phase 2 (Weeks 3-4): Metadata Extraction and Population**

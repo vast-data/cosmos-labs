@@ -67,8 +67,8 @@ Before starting these labs, you should have:
 
 ## Required Tools
 
-- **vastpy** - Python SDK for VAST Management System
-- **vastdb_sdk** - Python SDK for VAST Database and Catalog
+- **vastpy** - Python SDK for VAST Management System (storage, views, monitoring)
+- **vastdb** - Python SDK for VAST Database (metadata catalog, queries)
 - **Python 3.7+** - Programming language
 - **Jupyter Notebook** (optional) - For interactive development
 - **Git** - For version control
@@ -79,6 +79,7 @@ The following Python packages are required:
 
 - **pyyaml** - YAML configuration file parsing
 - **vastpy** - VAST Management System SDK (version 0.3.17+)
+- **vastdb_sdk** - VAST Database SDK for metadata catalog functionality
 - **astropy** - Astronomical data processing (for Lab 2)
 - **h5py** - HDF5 file format support (for Lab 2)
 
@@ -117,11 +118,12 @@ Each lab has its own `config_loader.py` that inherits from the centralized loade
 2. **Install Python dependencies**
    ```bash
    # Install all required packages
-   pip install pyyaml vastpy astropy h5py
+   pip install pyyaml vastpy vastdb astropy h5py
    
    # Or install individually
    pip install pyyaml      # YAML configuration parsing
    pip install vastpy      # VAST Management System SDK
+   pip install vastdb      # VAST Database SDK for metadata catalog
    pip install astropy     # Astronomical data processing
    pip install h5py        # HDF5 file format support
    ```
@@ -130,6 +132,7 @@ Each lab has its own `config_loader.py` that inherits from the centralized loade
    ```bash
    python -c "import yaml; print('pyyaml installed successfully')"
    python -c "import vastpy; print('vastpy installed successfully')"
+   python -c "import vastdb; print('vastdb installed successfully')"
    python -c "import astropy; print('astropy installed successfully')"
    python -c "import h5py; print('h5py installed successfully')"
    ```
