@@ -1,0 +1,131 @@
+# Orbital Dynamics: Centralized Configuration
+# This file contains all non-sensitive configuration settings for all labs
+
+# VAST Connection Settings (non-sensitive)
+vast:
+  user: admin
+  address: "localhost"
+  # Note: password, token, and tenant_name are stored in secrets.yaml
+
+# VAST Catalog Settings
+catalog:
+  name: "orbital_dynamics_metadata"
+  port: 8080
+  batch_size: 1000
+  timeout_seconds: 30
+  max_retries: 3
+
+# Data Directories
+data:
+  directories:
+    - "/cosmos7/raw"
+    - "/cosmos7/processed"
+    - "/mars_rover/data"
+    - "/asteroid_tracker/data"
+
+# Metadata Extraction Settings
+metadata:
+  supported_formats:
+    - ".fits"
+    - ".hdf5"
+    - ".json"
+    - ".csv"
+    - ".xml"
+    - ".txt"
+  quality_threshold: 0.7
+
+# VAST View Management (for storage organization)
+views:
+  default_policy: "default"
+  create_directories: true
+  protocols: ["NFS", "SMB"]  # Supported protocols for views
+
+# Monitoring and Metrics
+monitoring:
+  enabled: true
+  interval_seconds: 300  # 5 minutes between monitoring cycles
+  metrics:
+    - "ProtoMetrics,proto_name=ProtoCommon,iops"
+    - "ProtoMetrics,proto_name=ProtoCommon,bw"
+    - "ProtoMetrics,proto_name=NFS,iops"
+    - "ProtoMetrics,proto_name=SMB,bw"
+
+# Lab 1: Storage Automation Settings
+lab1:
+  storage:
+    auto_provision_threshold: 75  # Percentage at which to auto-provision
+    expansion_factor: 1.5  # How much to expand by
+    max_expansion_gb: 10000  # Maximum expansion in GB
+  
+  monitoring:
+    alert_threshold: 80  # Percentage at which to alert
+    critical_threshold: 90  # Percentage at which to take immediate action
+
+# Lab 2: Metadata Infrastructure Settings
+lab2:
+  catalog:
+    batch_size: 1000
+    max_concurrent_extractions: 10
+    extraction_timeout_seconds: 60
+  
+  search:
+    default_limit: 100
+    max_limit: 1000
+    enable_fuzzy_search: true
+
+# Lab 3: Pipeline Orchestration Settings
+lab3:
+  pipeline:
+    max_concurrent_jobs: 5
+    job_timeout_minutes: 120
+    retry_attempts: 3
+    retry_delay_seconds: 30
+  
+  monitoring:
+    dashboard_refresh_seconds: 60
+    enable_real_time_updates: true
+
+# Lab 4: Snapshot Strategy Settings
+lab4:
+  snapshots:
+    retention_days: 365
+    max_snapshots_per_path: 100
+    auto_cleanup: true
+    cleanup_schedule: "0 2 * * 0"  # Weekly at 2 AM Sunday
+  
+  policies:
+    critical_data_retention_days: 1095  # 3 years
+    development_data_retention_days: 90  # 3 months
+
+# Lab 5: Real-Time Alert System Settings
+lab5:
+  alerts:
+    detection_interval_seconds: 10
+    alert_cooldown_minutes: 5
+    escalation_timeout_minutes: 15
+  
+  event_types:
+    gamma_ray_burst:
+      priority: "critical"
+      notification_channels: ["email", "slack", "pagerduty"]
+    solar_flare:
+      priority: "high"
+      notification_channels: ["email", "slack"]
+    meteor_detection:
+      priority: "medium"
+      notification_channels: ["slack"]
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "/var/log/orbital-dynamics/labs.log"
+  max_size_mb: 100
+  backup_count: 5
+
+# Performance Settings
+performance:
+  max_concurrent_operations: 20
+  operation_timeout_seconds: 300
+  cache_size_mb: 500
+  enable_compression: true 

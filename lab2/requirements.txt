@@ -1,0 +1,4 @@
+vastpy
+astropy
+h5py
+pyyaml 
