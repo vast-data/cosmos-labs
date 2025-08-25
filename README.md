@@ -89,12 +89,28 @@ The following Python packages are required:
 
 This repository uses a centralized configuration approach with **strict validation**:
 
-- **`config.yaml`** - Centralized configuration for all labs (non-sensitive settings)
-- **`secrets.yaml`** - Centralized secrets for all labs (sensitive information)
+- **`config.yaml.example`** - Example configuration template for all labs (non-sensitive settings)
+- **`secrets.yaml.example`** - Example secrets template for all labs (sensitive information)
 - **`config_loader.py`** - Centralized configuration loader with lab-specific extensions
 - **`config_validator.py`** - Strict validation system that prevents dangerous default values
 
 Each lab has its own `config_loader.py` that inherits from the centralized loader and provides lab-specific configuration methods.
+
+### **Initial Setup**
+
+Before running any labs, you need to create your configuration files:
+
+```bash
+# Copy the example configuration files
+cp config.yaml.example config.yaml
+cp secrets.yaml.example secrets.yaml
+
+# Edit the files with your specific settings
+# config.yaml - Update with your environment settings
+# secrets.yaml - Update with your actual credentials
+```
+
+**Note:** Never commit your actual `config.yaml` or `secrets.yaml` files to version control. Only the `.example` files are tracked.
 
 ### **Strict Validation Philosophy**
 
@@ -138,9 +154,15 @@ Each lab has its own `config_loader.py` that inherits from the centralized loade
    ```
 
 4. **Configure your environment**
-   - Copy `secrets.yaml.example` to `secrets.yaml` (if available)
-   - Edit `secrets.yaml` with your VAST credentials
-   - Edit `config.yaml` with your environment settings
+   ```bash
+   # Copy the example configuration files
+   cp config.yaml.example config.yaml
+   cp secrets.yaml.example secrets.yaml
+   
+   # Edit the files with your specific settings
+   # config.yaml - Update with your environment settings
+   # secrets.yaml - Update with your actual VAST credentials
+   ```
 
 ## Lab Structure
 

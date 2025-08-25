@@ -33,6 +33,10 @@ pip install -r requirements.txt
 
 ### 3. Configure the Solution
 ```bash
+# Copy the example configuration files (if you haven't already)
+cp ../config.yaml.example ../config.yaml
+cp ../secrets.yaml.example ../secrets.yaml
+
 # Edit configuration files in the root directory
 # ../config.yaml - Main configuration for all labs
 # ../secrets.yaml - Sensitive data (passwords, API keys)
@@ -87,7 +91,7 @@ python test_solution.py
 
 ## Configuration
 
-### Main Configuration (`../config.yaml`)
+### Main Configuration (`../config.yaml` - copy from `../config.yaml.example`)
 ```yaml
 # Lab 2 specific settings
 lab2:
@@ -138,7 +142,7 @@ vastdb:
   schema: "satellite_observations"
 ```
 
-### Secrets Configuration (`../secrets.yaml`)
+### Secrets Configuration (`../secrets.yaml` - copy from `../config.yaml.example`)
 ```yaml
 # VAST Connection Secrets
 vast_password: "your_vast_password_here"

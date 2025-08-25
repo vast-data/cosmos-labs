@@ -22,7 +22,7 @@ By the end of this lab, you will be able to:
 - **`test_solution.py`** - Unit tests for the solution
 - **`requirements.txt`** - Python dependencies
 
-**Note:** Configuration files (`config.yaml` and `secrets.yaml`) are now centralized in the root directory for all labs.
+**Note:** Configuration files are centralized in the root directory. Copy `../config.yaml.example` to `../config.yaml` and `../secrets.yaml.example` to `../secrets.yaml`, then edit them with your settings.
 **Note:** `test_login.py` is now available in the root directory for testing VAST VMS connectivity.
 
 ## Quick Start
