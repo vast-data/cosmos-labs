@@ -99,10 +99,13 @@ class ConfigLoader:
             vast_config['password'] = self.secrets['vast_password']
         if self.secrets.get('vast_token'):
             vast_config['token'] = self.secrets['vast_token']
-        if self.secrets.get('vast_tenant_name'):
-            vast_config['tenant_name'] = self.secrets['vast_tenant_name']
-        if self.secrets.get('vast_api_version'):
-            vast_config['version'] = self.secrets['vast_api_version']
+        
+        # Note: tenant_name and version are not supported in older vastpy versions
+        # These are commented out to avoid compatibility issues
+        # if self.secrets.get('vast_tenant_name'):
+        #     vast_config['tenant_name'] = self.secrets['vast_tenant_name']
+        # if self.secrets.get('vast_api_version'):
+        #     vast_config['version'] = self.secrets['vast_api_version']
         
         # Remove empty values to avoid passing None to vastpy
         return {k: v for k, v in vast_config.items() if v}

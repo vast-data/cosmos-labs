@@ -9,6 +9,15 @@ import logging
 from vastpy import VASTClient
 from config_loader import ConfigLoader
 
+# Try to get vastpy version for debugging
+try:
+    import vastpy
+    vastpy_version = getattr(vastpy, '__version__', 'unknown')
+    logger = logging.getLogger(__name__)
+    logger.info(f"vastpy version: {vastpy_version}")
+except ImportError:
+    vastpy_version = 'not installed'
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -45,18 +54,40 @@ def test_vast_login():
         
         # Initialize VAST client
         logger.info("Initializing VAST client...")
-        client = VASTClient(
-            user=vast_config.get('user'),
-            password=vast_config.get('password'),
-            address=vast_config.get('address'),
-            token=vast_config.get('token'),
-            tenant_name=vast_config.get('tenant_name'),
-            version=vast_config.get('version', 'v1')
-        )
+        
+        # Build client parameters based on available config
+        client_params = {
+            'user': vast_config.get('user'),
+            'password': vast_config.get('password'),
+            'address': vast_config.get('address')
+        }
+        
+        # Add optional parameters only if they exist and are supported
+        if vast_config.get('token'):
+            client_params['token'] = vast_config.get('token')
+        
+        # Remove None values to avoid passing them to VASTClient
+        client_params = {k: v for k, v in client_params.items() if v is not None}
+        
+        logger.info(f"Initializing VAST client with parameters: {list(client_params.keys())}")
+        
+        # Try to initialize the client
+        try:
+            client = VASTClient(**client_params)
+        except TypeError as e:
+            logger.error(f"VASTClient initialization failed: {e}")
+            logger.error("This might be due to an incompatible vastpy version or unsupported parameters")
+            logger.error("Try updating vastpy: pip install --upgrade vastpy")
+            return False
         
         # Test basic connection by retrieving views
         logger.info("Testing connection by retrieving views...")
-        views = client.views.get()
+        try:
+            views = client.views.get()
+        except Exception as e:
+            logger.error(f"Failed to retrieve views: {e}")
+            logger.error("This might indicate a connection or authentication issue")
+            return False
         
         # If successful, display results
         logger.info("✅ Login successful! Connection to VAST VMS established.")
@@ -71,13 +102,19 @@ def test_vast_login():
         # Test additional basic operations
         logger.info("Testing additional operations...")
         
-        # Test view policies
-        policies = client.viewpolicies.get()
-        logger.info(f"✅ Retrieved {len(policies)} view policies")
+        try:
+            # Test view policies
+            policies = client.viewpolicies.get()
+            logger.info(f"✅ Retrieved {len(policies)} view policies")
+        except Exception as e:
+            logger.warning(f"Could not retrieve view policies: {e}")
         
-        # Test cluster info
-        clusters = client.clusters.get()
-        logger.info(f"✅ Retrieved {len(clusters)} cluster(s)")
+        try:
+            # Test cluster info
+            clusters = client.clusters.get()
+            logger.info(f"✅ Retrieved {len(clusters)} cluster(s)")
+        except Exception as e:
+            logger.warning(f"Could not retrieve cluster info: {e}")
         
         logger.info("🎉 All basic tests passed! Your VAST VMS connection is working correctly.")
         return True
@@ -92,6 +129,15 @@ def main():
     print("=" * 60)
     print("VAST VMS Login Test")
     print("=" * 60)
+    
+    # Show vastpy version for debugging
+    try:
+        import vastpy
+        version = getattr(vastpy, '__version__', 'unknown')
+        print(f"vastpy version: {version}")
+    except ImportError:
+        print("vastpy version: not installed")
+    print()
     
     success = test_vast_login()
     

@@ -73,6 +73,17 @@ Before starting these labs, you should have:
 - **Jupyter Notebook** (optional) - For interactive development
 - **Git** - For version control
 
+## Python Dependencies
+
+The following Python packages are required:
+
+- **pyyaml** - YAML configuration file parsing
+- **vastpy** - VAST Management System SDK (version 0.3.17+)
+- **astropy** - Astronomical data processing (for Lab 2)
+- **h5py** - HDF5 file format support (for Lab 2)
+
+**Note:** vastpy 0.3.17 supports basic authentication with `user`, `password`, and `address` parameters. Advanced features like `token`, `tenant_name`, and `version` are not yet supported in this version.
+
 ## Configuration Management
 
 This repository uses a centralized configuration approach with **strict validation**:
@@ -97,15 +108,36 @@ Each lab has its own `config_loader.py` that inherits from the centralized loade
 
 ## Installation
 
-```bash
-# Install the required SDKs
-pip install vastpy
-pip install vastdb_sdk
+1. **Clone this repository**
+   ```bash
+   git clone <repository-url>
+   cd lab-guides-2
+   ```
 
-# Verify installation
-python -c "import vastpy; print('vastpy installed successfully')"
-python -c "import vastdb; print('vastdb_sdk installed successfully')"
-```
+2. **Install Python dependencies**
+   ```bash
+   # Install all required packages
+   pip install pyyaml vastpy astropy h5py
+   
+   # Or install individually
+   pip install pyyaml      # YAML configuration parsing
+   pip install vastpy      # VAST Management System SDK
+   pip install astropy     # Astronomical data processing
+   pip install h5py        # HDF5 file format support
+   ```
+
+3. **Verify installation**
+   ```bash
+   python -c "import yaml; print('pyyaml installed successfully')"
+   python -c "import vastpy; print('vastpy installed successfully')"
+   python -c "import astropy; print('astropy installed successfully')"
+   python -c "import h5py; print('h5py installed successfully')"
+   ```
+
+4. **Configure your environment**
+   - Copy `secrets.yaml.example` to `secrets.yaml` (if available)
+   - Edit `secrets.yaml` with your VAST credentials
+   - Edit `config.yaml` with your environment settings
 
 ## Lab Structure
 
