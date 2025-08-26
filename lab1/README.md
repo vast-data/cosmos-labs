@@ -37,8 +37,17 @@ cp secrets.yaml.example secrets.yaml
 ### 3. Run the Solution
 
 ```bash
-# Start the main monitoring service
+# DRY RUN MODE (default - safe, no changes made)
 python lab1_solution.py
+
+# PRODUCTION MODE (actual changes will be made)
+python lab1_solution.py --pushtoprod
+
+# Setup only (create views, then exit)
+python lab1_solution.py --setup-only
+
+# Monitor only (skip setup, start monitoring)
+python lab1_solution.py --monitor-only
 
 # In another terminal, run the dashboard
 python monitoring_dashboard.py
@@ -97,8 +106,8 @@ pagerduty_api_key: "your_pagerduty_api_key_here"
 
 ### ✅ Real-time Monitoring
 - Continuous monitoring with configurable intervals
-- Status levels: Normal (🟢), Warning (🟡), Critical (🔴)
-- Real-time dashboard with utilization metrics
+- Status levels: Normal (🟢) vs Needs Expansion (🔴)
+- Simple 2-tier system for easy understanding
 
 ### ✅ Pipeline Integration
 - Pre-flight storage availability checks
@@ -106,9 +115,9 @@ pagerduty_api_key: "your_pagerduty_api_key_here"
 - Integration with Jordan's processing pipeline
 
 ### ✅ Alerting System
-- Multi-level alerting (Critical, Warning, Info)
-- Support for email, Slack, and PagerDuty
-- Configurable escalation times
+- Simple alerting for storage expansion needs
+- Console-based notifications (easy to understand)
+- Ready for integration with email, Slack, etc.
 
 ### ✅ Configuration Management
 - YAML-based configuration
@@ -116,12 +125,44 @@ pagerduty_api_key: "your_pagerduty_api_key_here"
 - Separate secrets management
 - Validation and error handling
 
+### ✅ Safety System
+- **Dual-Mode Operation**: Dry-run (default) vs Production mode
+- **Comprehensive Safety Checks**: Views, permissions, monitoring, quotas
+- **Production Confirmation**: Requires explicit confirmation for actual changes
+- **Audit Logging**: All operations logged with mode information
+
+## Safety System
+
+### **Dual-Mode Operation**
+
+The system operates in two modes to ensure production safety:
+
+#### **Dry Run Mode (Default)**
+- ✅ **Always Safe** - No actual changes made to your VAST system
+- ✅ **Safety Checks** - All operations validated before execution
+- ✅ **Preview Mode** - Shows exactly what would happen
+- ✅ **Testing Friendly** - Perfect for validating configuration
+
+#### **Production Mode**
+- 🚨 **Requires Flag** - Must use `--pushtoprod` flag
+- 🚨 **Confirmation Required** - User must type 'yes' to confirm
+- 🚨 **Actual Changes** - Makes real changes to your VAST system
+- 🚨 **Audit Trail** - All operations logged for compliance
+
+### **Safety Checks**
+
+Before any operation, the system validates these essential safety requirements:
+- ✅ **View Existence** - Target views must exist and be accessible
+- ✅ **Basic Permissions** - Proper access rights verified  
+- ✅ **Storage Availability** - Sufficient space for expansion
+- ✅ **Quota Limits** - Expansion requests within 10TB limit (configurable)
+
 ## Usage Examples
 
 ### Basic Monitoring
 
 ```bash
-# Start automated monitoring
+# Start automated monitoring (DRY RUN - safe)
 python lab1_solution.py
 ```
 

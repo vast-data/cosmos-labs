@@ -1,4 +1,4 @@
-# Lab 1: Proactive Satellite Data Infrastructure Planning
+# Lab 1: Satellite Data Infrastructure Planning
 
 ## Problem Statement
 

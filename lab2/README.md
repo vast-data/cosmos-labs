@@ -4,7 +4,7 @@
 
 This lab demonstrates how to build a metadata system using the VAST Management System (VMS) and the official vastpy Python SDK. You'll create a storage organization system that can handle current and future data volumes, enabling researchers to quickly locate datasets by mission parameters, timestamps, and data quality metrics.
 
-**Note:** This lab focuses on the infrastructure and workflow design. The search functionality is simplified.
+**Note:** This lab focuses on the infrastructure and workflow design.
 
 ## Learning Objectives
 
@@ -52,8 +52,17 @@ python test_login.py
 
 ### 4. Run the Solution
 ```bash
-# Create catalog schema and ingest existing data
+# DRY RUN MODE (default - no changes made)
 python lab2_solution.py
+
+# PRODUCTION MODE (actual changes - requires confirmation)
+python lab2_solution.py --pushtoprod
+
+# Setup only (create schema, skip ingestion)
+python lab2_solution.py --setup-only
+
+# Ingest only (skip schema creation)
+python lab2_solution.py --ingest-only
 
 # Test search functionality
 python search_interface.py
@@ -68,8 +77,8 @@ python test_solution.py
 The system automatically extracts and catalogs metadata from satellite data files:
 
 - **Bulk Ingest**: Scan existing directories to catalog historical data
-- **Real-time Monitoring**: Watch for new files and catalog them automatically
-- **Validation**: Ensure metadata completeness and flag issues
+- **Format Support**: FITS, JSON, and basic filename parsing
+- **Format Support**: FITS, JSON, and basic filename parsing
 
 ### 2. Search and Query Workflow
 Researchers can find data through multiple interfaces:
@@ -81,9 +90,9 @@ Researchers can find data through multiple interfaces:
 ### 3. Pipeline Integration Workflow
 Data processing pipelines can query the catalog before starting analysis:
 
-- **Pre-flight Checks**: Validate data availability and quality
+- **Pre-flight Checks**: Validate data availability
 - **Resource Validation**: Ensure sufficient storage for processing
-- **Status Tracking**: Monitor processing progress and update catalog
+- **Simple Queries**: Basic filtering by mission and time
 
 ## Configuration
 
@@ -118,14 +127,41 @@ vast_tenant_name: ""  # Optional: Tenant name for Vast 5.3+
 vast_api_version: "v1"  # Optional: API version
 ```
 
+## Safety System
+
+Lab 2 includes a comprehensive safety system to prevent accidental changes to the VAST system:
+
+### **Dry Run Mode (Default)**
+- **No actual changes** are made to the VAST system
+- **Preview operations** before execution
+- **Safety checks** run automatically
+- **Estimated results** are shown
+
+### **Production Mode**
+- **Explicit confirmation** required (`--pushtoprod`)
+- **Actual changes** made to VAST views and storage
+- **Comprehensive safety checks** before any operation
+- **User must type 'YES'** to confirm
+
+### **Safety Checks Performed**
+1. **View Policy Validation** - Check required policies exist
+2. **Storage Availability** - Ensure sufficient space
+3. **Catalog Name Conflicts** - Prevent duplicate catalogs
+4. **Directory Access** - Verify read permissions
+5. **File Count Limits** - Prevent overwhelming operations
+6. **Storage Impact Assessment** - Estimate resource usage
+
 ## Usage Examples
 
 ### Basic Catalog Operations
 ```python
 from lab2_solution import OrbitalDynamicsMetadataCatalog
 
-# Initialize the catalog system
+# Initialize the catalog system (dry run mode by default)
 catalog_system = OrbitalDynamicsMetadataCatalog(config)
+
+# For production mode, use production_mode=True
+catalog_system = OrbitalDynamicsMetadataCatalog(config, production_mode=True)
 
 # Create the catalog schema
 catalog_system.create_catalog_schema()

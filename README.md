@@ -20,19 +20,21 @@ Meet the characters who will guide you through these challenges:
 
 ## Lab Overview
 
-### [Lab 1: Proactive Satellite Data Infrastructure Planning](Lab_1_Satellite_Data_Deluge_Automation.md)
+### [Lab 1: Proactive Satellite Data Infrastructure Planning](Lab_1_Satellite_Data_Infrastructure_Planning.md)
 **Challenge:** Design and implement automated storage management before COSMOS-7 satellite launch
 - Use `vastpy` to build proactive storage provisioning and quota management
 - Create predictive scaling systems that anticipate data growth
 - Build monitoring and alerting that prevents infrastructure crises
 - Integrate with data processing pipelines for seamless operation
+- **NEW:** Comprehensive safety system with dry-run/production modes
 
-### [Lab 2: Proactive Metadata Infrastructure Planning](Lab_2_Metadata_Chaos_Crisis.md)
+### [Lab 2: Proactive Metadata Infrastructure Planning](Lab_2_Metadata_Infrastructure_Project.md)
 **Challenge:** Build a comprehensive metadata catalog system before data organization becomes unmanageable
 - Use `vastpy` to create VAST views for organized data storage
 - Build automated metadata extraction workflows for various file formats
 - Create search and query interfaces for efficient data discovery
 - Integrate metadata systems with existing data processing pipelines
+- **NEW:** Comprehensive safety system with dry-run/production modes
 
 ### [Lab 3: The Multi-Mission Data Pipeline](Lab_3_Multi_Mission_Data_Pipeline.md)
 **Challenge:** Orchestrate processing for three different satellite constellations
@@ -117,6 +119,64 @@ cp secrets.yaml.example secrets.yaml
 **No Default Values Allowed** - This system prevents accidental use of potentially dangerous default values that could overwrite production data. All configuration values must be explicitly defined in the YAML files.
 
 **Fail-Fast Approach** - If any required configuration is missing, the application will fail to start with clear error messages, preventing silent failures that could lead to data corruption.
+
+## Safety System
+
+Both Lab 1 and Lab 2 include comprehensive **dual-mode safety systems** to prevent accidental changes to production VAST systems:
+
+### **🛡️ Dry Run Mode (Default)**
+- **No actual changes** are made to the VAST system
+- **Preview operations** before execution
+- **Comprehensive safety checks** run automatically
+- **Estimated results** are shown for all operations
+- **Perfect for testing and validation**
+
+### **🚀 Production Mode**
+- **Explicit confirmation** required (`--pushtoprod` flag)
+- **Actual changes** made to VAST views, storage, and metadata
+- **User must type 'YES'** to confirm production operations
+- **All safety checks must pass** before any changes
+- **Comprehensive logging** of all operations
+
+### **🔍 Safety Checks Performed**
+
+#### **Lab 1: Storage Management Safety**
+- View existence and permissions validation
+- Monitoring system status verification
+- Quota limits and backup status checks
+- Network connectivity and system health validation
+- Storage expansion impact assessment
+
+#### **Lab 2: Metadata Catalog Safety**
+- VAST system health and responsiveness
+- View policy validation and conflicts
+- Directory access and file count limits
+- Storage impact estimation and capacity checks
+- Processing capacity and backup status validation
+
+### **📋 Command Line Usage**
+
+```bash
+# DRY RUN MODE (default - no changes)
+python lab1/lab1_solution.py
+python lab2/lab2_solution.py
+
+# PRODUCTION MODE (actual changes - requires confirmation)
+python lab1/lab1_solution.py --pushtoprod
+python lab2/lab2_solution.py --pushtoprod
+
+# Lab-specific operations
+python lab1/lab1_solution.py --setup-only      # Only create views
+python lab1/lab1_solution.py --monitor-only    # Only run monitoring
+python lab2/lab2_solution.py --setup-only      # Only create schema
+python lab2/lab2_solution.py --ingest-only     # Only ingest data
+```
+
+### **💡 Safety Philosophy**
+- **"Look before you leap"** - Always preview operations first
+- **"Fail safe"** - Better to block an operation than cause damage
+- **"Explicit consent"** - Production changes require user confirmation
+- **"Comprehensive validation"** - Multiple layers of safety checks
 
 ## Utilities
 

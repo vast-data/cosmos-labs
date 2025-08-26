@@ -1,10 +1,12 @@
 # lab1_solution.py
 import time
 import logging
+import sys
 from datetime import datetime, timedelta
 from vastpy import VASTClient
 from typing import Dict, List, Optional
 from config_loader import Lab1ConfigLoader
+from safety_checker import SafetyChecker, SafetyCheckFailed
 
 # Configure logging
 logging.basicConfig(
@@ -14,13 +16,15 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class OrbitalDynamicsStorageManager:
-    def __init__(self, config: ConfigLoader):
+    def __init__(self, config: Lab1ConfigLoader, production_mode: bool = False):
         """
         Initialize the storage manager for Orbital Dynamics
         
         Args:
-            config: ConfigLoader instance with loaded configuration
+            config: Lab1ConfigLoader instance with loaded configuration
+            production_mode: If True, allows actual changes. If False, dry-run only.
         """
+        self.production_mode = production_mode
         # Load VAST configuration
         vast_config = config.get_vast_config()
         
@@ -50,47 +54,60 @@ class OrbitalDynamicsStorageManager:
         # Monitoring settings - ALL VALUES MUST BE EXPLICITLY CONFIGURED
         self.monitoring_interval = config.get('monitoring.interval_seconds')
         
-        logger.info("Orbital Dynamics Storage Manager initialized")
+        # Initialize safety checker
+        self.safety_checker = SafetyChecker(config, self.client)
+        
+        # Log mode information
+        mode_str = "PRODUCTION" if self.production_mode else "DRY RUN"
+        logger.info(f"Orbital Dynamics Storage Manager initialized in {mode_str} mode")
+        if not self.production_mode:
+            logger.info("⚠️  DRY RUN MODE: No actual changes will be made")
+        else:
+            logger.warning("🚨 PRODUCTION MODE: Actual changes will be made to your VAST system")
     
     def create_initial_views(self):
         """Create the initial storage views for different data types"""
         try:
+            logger.info("Setting up initial storage views...")
+            
             # Get default policy for views
             policies = self.client.viewpolicies.get(name='default')
-            default_policy = policies[0] if policies else None
-            
-            if not default_policy:
-                logger.error("No default view policy found")
+            if not policies:
+                logger.error("No default view policy found - please create one in VAST")
                 return False
             
-            # Create raw data view for incoming telescope data
-            raw_view = self.client.views.post(
-                path=self.raw_data_path,
-                policy_id=default_policy['id'],
-                create_dir=True,
-                protocols=['NFS', 'SMB']  # Support both protocols
-            )
-            logger.info(f"Created raw data view: {raw_view['id']}")
+            default_policy = policies[0]
+            view_paths = [self.raw_data_path, self.processed_data_path, self.temp_data_path]
             
-            # Create processed data view for Jordan's pipeline output
-            processed_view = self.client.views.post(
-                path=self.processed_data_path,
-                policy_id=default_policy['id'],
-                create_dir=True,
-                protocols=['NFS', 'SMB']
-            )
-            logger.info(f"Created processed data view: {processed_view['id']}")
-            
-            # Create temporary data view for intermediate processing
-            temp_view = self.client.views.post(
-                path=self.temp_data_path,
-                policy_id=default_policy['id'],
-                create_dir=True,
-                protocols=['NFS', 'SMB']
-            )
-            logger.info(f"Created temp data view: {temp_view['id']}")
-            
-            return True
+            if self.production_mode:
+                # Actually create the views
+                logger.info("🚨 PRODUCTION MODE: Creating actual views...")
+                
+                for view_path in view_paths:
+                    try:
+                        view = self.client.views.post(
+                            path=view_path,
+                            policy_id=default_policy['id'],
+                            create_dir=True,
+                            protocols=['NFS', 'SMB']
+                        )
+                        logger.info(f"✅ Created view: {view_path}")
+                    except Exception as e:
+                        if "already exists" in str(e).lower():
+                            logger.info(f"ℹ️  View already exists: {view_path}")
+                        else:
+                            logger.error(f"Failed to create view {view_path}: {e}")
+                            return False
+                
+                logger.info("✅ All views created successfully")
+                return True
+            else:
+                # Dry run - show what would happen
+                logger.info("⚠️  DRY RUN MODE: Would create the following views:")
+                for view_path in view_paths:
+                    logger.info(f"  📁 {view_path}")
+                logger.info("  (No actual views were created)")
+                return True
             
         except Exception as e:
             logger.error(f"Failed to create initial views: {e}")
@@ -126,8 +143,17 @@ class OrbitalDynamicsStorageManager:
             return None
     
     def expand_view_quota(self, view_path: str, additional_size_tb: int):
-        """Expand the quota for a view by the specified amount"""
+        """Expand the quota for a view by the specified amount with comprehensive safety checks"""
         try:
+            logger.info(f"Requesting quota expansion: {view_path} (+{additional_size_tb}TB)")
+            
+            # Convert TB to GB for safety checks
+            additional_size_gb = additional_size_tb * 1024
+            
+            # ALWAYS run safety checks (regardless of mode)
+            if not self.safety_checker.validate_storage_expansion(view_path, additional_size_gb):
+                raise SafetyCheckFailed("Quota expansion safety checks failed")
+            
             views = self.client.views.get(path=view_path)
             if not views:
                 logger.error(f"No view found for path: {view_path}")
@@ -140,12 +166,28 @@ class OrbitalDynamicsStorageManager:
             current_quota = view.get('quota', 0)
             new_quota = current_quota + (additional_size_tb * 1024 * 1024 * 1024)  # Convert TB to bytes
             
-            # Update the view with new quota
-            updated_view = self.client.views[view_id].patch(quota=new_quota)
+            if self.production_mode:
+                # Actually perform the expansion
+                logger.info("🚨 PRODUCTION MODE: Expanding view quota...")
+                
+                # Update the view with new quota
+                updated_view = self.client.views[view_id].patch(quota=new_quota)
+                
+                logger.info(f"✅ Successfully expanded quota for {view_path}: {current_quota} → {new_quota} bytes")
+                return True
+            else:
+                # Dry run - show what would happen
+                logger.info("⚠️  DRY RUN MODE: Would expand view quota:")
+                logger.info(f"  📊 View: {view_path}")
+                logger.info(f"  📊 Current quota: {current_quota} bytes")
+                logger.info(f"  📊 Additional size: +{additional_size_tb}TB")
+                logger.info(f"  📊 New quota: {new_quota} bytes")
+                logger.info("  (No actual quota changes were made)")
+                return True
             
-            logger.info(f"Expanded quota for {view_path}: {current_quota} -> {new_quota} bytes")
-            return True
-            
+        except SafetyCheckFailed as e:
+            logger.error(f"Safety check failed: {e}")
+            return False
         except Exception as e:
             logger.error(f"Failed to expand quota for {view_path}: {e}")
             return False
@@ -179,9 +221,7 @@ class OrbitalDynamicsStorageManager:
         if utilization is None:
             return 'UNKNOWN'
         elif utilization >= self.critical_threshold:
-            return 'CRITICAL'
-        elif utilization >= self.warning_threshold:
-            return 'WARNING'
+            return 'NEEDS_EXPANSION'
         else:
             return 'NORMAL'
     
@@ -190,33 +230,26 @@ class OrbitalDynamicsStorageManager:
         expanded_views = []
         
         for view_path, view_status in status.items():
-            if view_status['needs_expansion']:
-                logger.warning(f"Auto-expanding quota for {view_path} (utilization: {view_status['utilization']:.1f}%)")
+            if view_status['status'] == 'NEEDS_EXPANSION':
+                logger.info(f"Auto-expanding quota for {view_path} (utilization: {view_status['utilization']:.1f}%)")
                 
-                if self.expand_view_quota(view_path, self.auto_expand_size):
+                # Use a simple 1TB expansion
+                expansion_size_tb = 1
+                if self.expand_view_quota(view_path, expansion_size_tb):
                     expanded_views.append(view_path)
-                    logger.info(f"Successfully expanded {view_path}")
+                    logger.info(f"✅ Successfully expanded {view_path} by {expansion_size_tb}TB")
                 else:
-                    logger.error(f"Failed to expand {view_path}")
+                    logger.error(f"❌ Failed to expand {view_path}")
         
         return expanded_views
     
     def send_alert(self, message: str, level: str = 'INFO'):
-        """Send alert notification (placeholder for integration with alerting system)"""
+        """Send alert notification"""
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        alert_msg = f"[{timestamp}] [{level}] {message}"
+        logger.info(f"🔔 ALERT [{level}]: {message}")
         
-        # In a real implementation, this would integrate with:
-        # - Email notifications
-        # - Slack/Teams webhooks
-        # - PagerDuty alerts
-        # - SMS notifications
-        
-        logger.info(f"ALERT: {alert_msg}")
-        
-        # For demo purposes, we'll just log the alert
-        # TODO: Integrate with actual alerting system
-        pass
+        # In production, this would integrate with email, Slack, etc.
+        # For learning purposes, we just log to console
     
     def run_monitoring_cycle(self):
         """Run one complete monitoring cycle"""
@@ -225,17 +258,12 @@ class OrbitalDynamicsStorageManager:
         # Get current status of all views
         status = self.monitor_all_views()
         
-        # Check for critical conditions and send alerts
+        # Check for views that need expansion and send alerts
         for view_path, view_status in status.items():
-            if view_status['status'] == 'CRITICAL':
+            if view_status['status'] == 'NEEDS_EXPANSION':
                 self.send_alert(
-                    f"CRITICAL: {view_path} at {view_status['utilization']:.1f}% utilization",
-                    'CRITICAL'
-                )
-            elif view_status['status'] == 'WARNING':
-                self.send_alert(
-                    f"WARNING: {view_path} at {view_status['utilization']:.1f}% utilization",
-                    'WARNING'
+                    f"Storage expansion needed: {view_path} at {view_status['utilization']:.1f}% utilization",
+                    'INFO'
                 )
         
         # Auto-expand if needed
@@ -252,6 +280,35 @@ class OrbitalDynamicsStorageManager:
 def main():
     """Main function to run the storage automation"""
     
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Orbital Dynamics Storage Automation')
+    parser.add_argument('--pushtoprod', action='store_true', 
+                       help='Enable production mode (actual changes will be made)')
+    parser.add_argument('--dry-run', action='store_true', 
+                       help='Run in dry-run mode (default, no changes made)')
+    parser.add_argument('--setup-only', action='store_true',
+                       help='Only set up initial views, then exit')
+    parser.add_argument('--monitor-only', action='store_true',
+                       help='Only run monitoring, skip setup')
+    
+    args = parser.parse_args()
+    
+    # Determine production mode
+    production_mode = args.pushtoprod
+    
+    if production_mode:
+        # Require explicit confirmation for production mode
+        print("🚨 WARNING: PRODUCTION MODE ENABLED")
+        print("This will make actual changes to your VAST system!")
+        confirm = input("Type 'YES' to confirm: ")
+        if confirm != 'YES':
+            print("Production mode cancelled. Exiting.")
+            return
+        print("✅ Production mode confirmed. Proceeding with actual changes...")
+    else:
+        print("⚠️  DRY RUN MODE: No actual changes will be made")
+        print("💡 Use --pushtoprod to enable production mode")
+    
     try:
         # Load configuration
         config = Lab1ConfigLoader()
@@ -261,14 +318,28 @@ def main():
             logger.error("Configuration validation failed")
             return
         
-        # Initialize storage manager
-        storage_manager = OrbitalDynamicsStorageManager(config)
+        # Initialize storage manager with production mode
+        storage_manager = OrbitalDynamicsStorageManager(config, production_mode=production_mode)
         
-        # Create initial views if they don't exist
-        logger.info("Setting up initial storage views...")
-        if not storage_manager.create_initial_views():
-            logger.error("Failed to create initial views")
+        # Handle different operation modes
+        if args.setup_only:
+            # Only set up initial views
+            logger.info("Setting up initial storage views...")
+            if not storage_manager.create_initial_views():
+                logger.error("Failed to create initial views")
+                return
+            logger.info("✅ Setup complete. Exiting.")
             return
+        
+        elif args.monitor_only:
+            # Skip setup, go straight to monitoring
+            logger.info("Skipping setup, starting monitoring...")
+        else:
+            # Normal mode: setup + monitoring
+            logger.info("Setting up initial storage views...")
+            if not storage_manager.create_initial_views():
+                logger.error("Failed to create initial views")
+                return
         
         # Run continuous monitoring
         logger.info("Starting continuous monitoring...")
@@ -276,10 +347,9 @@ def main():
             status = storage_manager.run_monitoring_cycle()
             
             # Log summary
-            critical_count = sum(1 for s in status.values() if s['status'] == 'CRITICAL')
-            warning_count = sum(1 for s in status.values() if s['status'] == 'WARNING')
+            needs_expansion_count = sum(1 for s in status.values() if s['status'] == 'NEEDS_EXPANSION')
             
-            logger.info(f"Monitoring cycle complete - Critical: {critical_count}, Warnings: {warning_count}")
+            logger.info(f"Monitoring cycle complete - Views needing expansion: {needs_expansion_count}")
             
             # Wait before next cycle
             time.sleep(storage_manager.monitoring_interval)

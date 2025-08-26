@@ -2,10 +2,12 @@
 import os
 import json
 import logging
+import argparse
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from vastpy import VASTClient
 from config_loader import Lab2ConfigLoader
+from safety_checker import MetadataSafetyChecker, SafetyCheckFailed
 
 # Configure logging
 logging.basicConfig(
@@ -17,9 +19,10 @@ logger = logging.getLogger(__name__)
 class OrbitalDynamicsMetadataCatalog:
     """Metadata catalog system for Orbital Dynamics satellite data"""
     
-    def __init__(self, config: ConfigLoader):
+    def __init__(self, config: Lab2ConfigLoader, production_mode: bool = False):
         """Initialize the metadata catalog system"""
         self.config = config
+        self.production_mode = production_mode
         
         # Initialize VAST client connection
         vast_config = config.get_vast_config()
@@ -32,15 +35,24 @@ class OrbitalDynamicsMetadataCatalog:
             version=vast_config.get('version', 'v1')
         )
         
+        # Initialize safety checker
+        self.safety_checker = MetadataSafetyChecker(config, self.vast_client)
+        
         # Catalog configuration - ALL VALUES MUST BE EXPLICITLY CONFIGURED
         self.catalog_name = config.get('catalog.name')
         self.batch_size = config.get('lab2.catalog.batch_size')
         
-        logger.info("Orbital Dynamics Metadata Catalog initialized")
+        mode_text = "PRODUCTION" if production_mode else "DRY RUN"
+        logger.info(f"Orbital Dynamics Metadata Catalog initialized in {mode_text} mode")
     
     def create_catalog_schema(self) -> bool:
         """Create the metadata catalog structure using VAST views"""
         try:
+            # Run safety checks first
+            if not self.safety_checker.validate_catalog_creation(self.catalog_name):
+                logger.error("Safety checks failed - catalog creation blocked")
+                return False
+            
             # Get views configuration
             views_config = self.config.get_views_config()
             default_policy = views_config.get('default_policy')
@@ -60,26 +72,40 @@ class OrbitalDynamicsMetadataCatalog:
                 f"/{self.catalog_name}/metadata"
             ]
             
-            for view_path in view_paths:
-                try:
-                    # Check if view already exists
+            if self.production_mode:
+                # Actually create the views
+                for view_path in view_paths:
+                    try:
+                        # Check if view already exists
+                        existing_views = self.vast_client.views.get(path=view_path)
+                        if not existing_views:
+                            # Create new view
+                            view = self.vast_client.views.post(
+                                path=view_path,
+                                policy_id=policy_id,
+                                create_dir=views_config.get('create_directories')
+                            )
+                            logger.info(f"✅ Created view: {view_path}")
+                        else:
+                            logger.info(f"ℹ️  View already exists: {view_path}")
+                            
+                    except Exception as e:
+                        logger.error(f"Failed to create view {view_path}: {e}")
+                        return False
+                
+                logger.info(f"✅ Created catalog structure: {self.catalog_name}")
+            else:
+                # Dry run mode - just show what would happen
+                logger.info("🔍 DRY RUN MODE - No actual changes made")
+                for view_path in view_paths:
                     existing_views = self.vast_client.views.get(path=view_path)
                     if not existing_views:
-                        # Create new view
-                        view = self.vast_client.views.post(
-                            path=view_path,
-                            policy_id=policy_id,
-                            create_dir=views_config.get('create_directories')
-                        )
-                        logger.info(f"Created view: {view_path}")
+                        logger.info(f"📋 Would create view: {view_path}")
                     else:
-                        logger.info(f"View already exists: {view_path}")
-                        
-                except Exception as e:
-                    logger.error(f"Failed to create view {view_path}: {e}")
-                    return False
+                        logger.info(f"ℹ️  View already exists: {view_path}")
+                
+                logger.info(f"📋 Would create catalog structure: {self.catalog_name}")
             
-            logger.info(f"Created catalog structure: {self.catalog_name}")
             return True
             
         except Exception as e:
@@ -102,28 +128,43 @@ class OrbitalDynamicsMetadataCatalog:
                     if self._is_supported_file(file_path):
                         files_to_process.append(file_path)
             
-            logger.info(f"Found {len(files_to_process)} files to process")
+            file_count = len(files_to_process)
+            logger.info(f"Found {file_count} files to process")
             
-            # Process files in batches
-            for i in range(0, len(files_to_process), self.batch_size):
-                batch = files_to_process[i:i + self.batch_size]
-                
-                for file_path in batch:
-                    try:
-                        if self.ingest_file_metadata(file_path):
-                            successful_ingests += 1
-                        else:
+            # Run safety checks before processing
+            if not self.safety_checker.validate_batch_ingest(directory_path, file_count):
+                logger.error("Safety checks failed - batch ingest blocked")
+                return {'successful_ingests': 0, 'failed_ingests': 0, 'total_files': file_count}
+            
+            if self.production_mode:
+                # Actually process the files
+                for i in range(0, len(files_to_process), self.batch_size):
+                    batch = files_to_process[i:i + self.batch_size]
+                    
+                    for file_path in batch:
+                        try:
+                            if self.ingest_file_metadata(file_path):
+                                successful_ingests += 1
+                            else:
+                                failed_ingests += 1
+                        except Exception as e:
+                            logger.error(f"Failed to ingest {file_path}: {e}")
                             failed_ingests += 1
-                    except Exception as e:
-                        logger.error(f"Failed to ingest {file_path}: {e}")
-                        failed_ingests += 1
+                    
+                    logger.info(f"Processed batch {i//self.batch_size + 1}: {successful_ingests} successful, {failed_ingests} failed")
                 
-                logger.info(f"Processed batch {i//self.batch_size + 1}: {successful_ingests} successful, {failed_ingests} failed")
+                logger.info(f"✅ Batch ingest completed: {successful_ingests} successful, {failed_ingests} failed")
+            else:
+                # Dry run mode - just show what would happen
+                logger.info("🔍 DRY RUN MODE - No actual processing performed")
+                logger.info(f"📋 Would process {file_count} files in batches of {self.batch_size}")
+                logger.info(f"📋 Estimated successful ingests: {file_count * 0.95} (assuming 95% success rate)")
+                logger.info(f"📋 Estimated failed ingests: {file_count * 0.05}")
             
             return {
                 'successful_ingests': successful_ingests,
                 'failed_ingests': failed_ingests,
-                'total_files': len(files_to_process)
+                'total_files': file_count
             }
             
         except Exception as e:
@@ -158,7 +199,7 @@ class OrbitalDynamicsMetadataCatalog:
             return False
     
     def _extract_metadata(self, file_path: str) -> Optional[Dict[str, Any]]:
-        """Extract metadata from a file based on its type"""
+        """Extract metadata from a file"""
         try:
             file_stat = os.stat(file_path)
             file_size = file_stat.st_size
@@ -169,21 +210,18 @@ class OrbitalDynamicsMetadataCatalog:
                 'file_path': file_path,
                 'file_size_bytes': file_size,
                 'file_format': file_format,
+                'ingestion_timestamp': datetime.now().isoformat(),
                 'version': '1.0'
             }
             
             # Extract format-specific metadata
             if file_format == '.fits':
                 metadata.update(self._extract_fits_metadata(file_path))
-            elif file_format == '.hdf5':
-                metadata.update(self._extract_hdf5_metadata(file_path))
             elif file_format == '.json':
                 metadata.update(self._extract_json_metadata(file_path))
-            elif file_format == '.csv':
-                metadata.update(self._extract_csv_metadata(file_path))
             else:
-                # For unsupported formats, use filename parsing
-                metadata.update(self._extract_filename_metadata(file_path))
+                # For other formats, use basic filename parsing
+                metadata.update(self._extract_basic_metadata(file_path))
             
             return metadata
             
@@ -202,35 +240,12 @@ class OrbitalDynamicsMetadataCatalog:
                     'mission_id': header.get('MISSION', 'unknown'),
                     'satellite_name': header.get('TELESCOP', 'unknown'),
                     'instrument_type': header.get('INSTRUME', 'unknown'),
-                    'observation_timestamp': self._parse_fits_time(header.get('DATE-OBS')),
+                    'observation_timestamp': header.get('DATE-OBS', 'unknown'),
                     'target_object': header.get('OBJECT', 'unknown'),
-                    'data_quality_score': self._calculate_quality_score(header),
-                    'calibration_status': header.get('CALIB', 'unknown'),
                     'processing_status': 'raw'
                 }
         except Exception as e:
             logger.error(f"FITS metadata extraction failed: {e}")
-            return self._get_default_metadata()
-    
-    def _extract_hdf5_metadata(self, file_path: str) -> Dict[str, Any]:
-        """Extract metadata from HDF5 files"""
-        try:
-            import h5py
-            with h5py.File(file_path, 'r') as f:
-                # Extract metadata from HDF5 attributes
-                metadata = self._get_default_metadata()
-                
-                # Look for common metadata attributes
-                if 'mission_id' in f.attrs:
-                    metadata['mission_id'] = f.attrs['mission_id']
-                if 'target_object' in f.attrs:
-                    metadata['target_object'] = f.attrs['target_object']
-                if 'processing_status' in f.attrs:
-                    metadata['processing_status'] = f.attrs['processing_status']
-                
-                return metadata
-        except Exception as e:
-            logger.error(f"HDF5 metadata extraction failed: {e}")
             return self._get_default_metadata()
     
     def _extract_json_metadata(self, file_path: str) -> Dict[str, Any]:
@@ -247,7 +262,6 @@ class OrbitalDynamicsMetadataCatalog:
                     'satellite': 'satellite_name',
                     'instrument': 'instrument_type',
                     'target': 'target_object',
-                    'quality': 'data_quality_score',
                     'status': 'processing_status'
                 }
                 
@@ -260,53 +274,19 @@ class OrbitalDynamicsMetadataCatalog:
             logger.error(f"JSON metadata extraction failed: {e}")
             return self._get_default_metadata()
     
-    def _extract_csv_metadata(self, file_path: str) -> Dict[str, Any]:
-        """Extract metadata from CSV files"""
-        try:
-            import csv
-            metadata = self._get_default_metadata()
-            
-            with open(file_path, 'r') as f:
-                reader = csv.reader(f)
-                header = next(reader, [])
-                
-                # Try to extract metadata from header or first few rows
-                if len(header) > 0:
-                    metadata['processing_status'] = 'processed'
-                    
-                    # Look for mission-related columns
-                    for col in header:
-                        if 'mission' in col.lower():
-                            metadata['mission_id'] = col
-                        elif 'target' in col.lower():
-                            metadata['target_object'] = col
-                
-                return metadata
-        except Exception as e:
-            logger.error(f"CSV metadata extraction failed: {e}")
-            return self._get_default_metadata()
-    
-    def _extract_filename_metadata(self, file_path: str) -> Dict[str, Any]:
-        """Extract metadata from filename patterns"""
+    def _extract_basic_metadata(self, file_path: str) -> Dict[str, Any]:
+        """Extract basic metadata from filename patterns"""
         filename = os.path.basename(file_path)
         
-        # Try to parse common filename patterns
+        # Simple filename parsing for common patterns
         # Example: COSMOS7_MARS_20241201_143022.fits
         parts = filename.split('_')
         
         metadata = self._get_default_metadata()
         
-        if len(parts) >= 3:
+        if len(parts) >= 2:
             metadata['mission_id'] = parts[0]
-            metadata['target_object'] = parts[1]
-            
-            # Try to parse timestamp from filename
-            if len(parts) >= 4:
-                timestamp_str = f"{parts[2]}_{parts[3].split('.')[0]}"
-                try:
-                    metadata['observation_timestamp'] = datetime.strptime(timestamp_str, '%Y%m%d_%H%M%S')
-                except:
-                    pass
+            metadata['target_object'] = parts[1] if len(parts) > 1 else 'unknown'
         
         return metadata
     
@@ -316,10 +296,8 @@ class OrbitalDynamicsMetadataCatalog:
             'mission_id': 'unknown',
             'satellite_name': 'unknown',
             'instrument_type': 'unknown',
-            'observation_timestamp': datetime.now(),
+            'observation_timestamp': datetime.now().isoformat(),
             'target_object': 'unknown',
-            'data_quality_score': 0.5,
-            'calibration_status': 'unknown',
             'processing_status': 'unknown'
         }
     
@@ -345,21 +323,7 @@ class OrbitalDynamicsMetadataCatalog:
             except:
                 return None
     
-    def _calculate_quality_score(self, header) -> float:
-        """Calculate quality score from FITS header"""
-        score = 1.0
-        
-        # Check for required keywords
-        required_keywords = ['MISSION', 'TELESCOP', 'INSTRUME', 'DATE-OBS']
-        for keyword in required_keywords:
-            if not header.get(keyword):
-                score -= 0.2
-        
-        # Check for calibration status
-        if header.get('CALIB') == 'COMPLETE':
-            score += 0.1
-        
-        return max(0.0, min(1.0, score))
+    # Quality scoring removed for simplification - focus on essential metadata extraction
 
 class PipelineDataManager:
     """Manages data pipeline integration with the metadata catalog"""
@@ -367,21 +331,20 @@ class PipelineDataManager:
     def __init__(self, catalog_client):
         self.catalog = catalog_client
     
-    def get_available_datasets(self, mission_id: str, min_quality: float = 0.8, time_window_days: int = 30) -> List[Dict]:
+    def get_available_datasets(self, mission_id: str, time_window_days: int = 30) -> List[Dict]:
         """Get available datasets for processing"""
         from datetime import datetime, timedelta
         
         end_time = datetime.now()
         start_time = end_time - timedelta(days=time_window_days)
         
-        # Query catalog for available datasets
+        # Query for available datasets
         query = {
             'mission_id': mission_id,
             'observation_timestamp': {
                 '$gte': start_time,
                 '$lte': end_time
-            },
-            'data_quality_score': {'$gte': min_quality}
+            }
         }
         
         return self.catalog.query('observations', query)
@@ -389,14 +352,14 @@ class PipelineDataManager:
     def check_storage_availability(self, dataset_list: List[Dict]) -> Dict[str, Any]:
         """Check if we have sufficient storage for processing results"""
         total_input_size = sum(d.get('file_size_bytes', 0) for d in dataset_list)
-        estimated_output_size = total_input_size * 2.5  # Rough estimate
         
-        # This would integrate with your actual storage system
+        # Check storage availability
         available_storage = self._get_available_storage()
+        sufficient_storage = available_storage >= total_input_size
         
         return {
-            'sufficient_storage': available_storage >= estimated_output_size,
-            'required_storage': estimated_output_size,
+            'sufficient_storage': sufficient_storage,
+            'required_storage': total_input_size,
             'available_storage': available_storage
         }
     
@@ -431,31 +394,82 @@ class PipelineDataManager:
 def main():
     """Main function to run the metadata catalog system"""
     
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Orbital Dynamics Metadata Catalog System')
+    parser.add_argument('--pushtoprod', action='store_true', 
+                       help='Enable production mode (make actual changes)')
+    parser.add_argument('--dry-run', action='store_true', default=True,
+                       help='Enable dry run mode (default - no changes made)')
+    parser.add_argument('--setup-only', action='store_true',
+                       help='Only create catalog schema, skip data ingestion')
+    parser.add_argument('--ingest-only', action='store_true',
+                       help='Only perform data ingestion, skip schema creation')
+    
+    args = parser.parse_args()
+    
+    # Determine production mode
+    production_mode = args.pushtoprod
+    if args.dry_run and not args.pushtoprod:
+        production_mode = False
+    
+    # Log the mode
+    mode_text = "PRODUCTION" if production_mode else "DRY RUN"
+    logger.info("=" * 60)
+    logger.info(f"🚀 ORBITAL DYNAMICS METADATA CATALOG SYSTEM")
+    logger.info(f"🔧 MODE: {mode_text}")
+    logger.info("=" * 60)
+    
+    # Require explicit confirmation for production mode
+    if production_mode:
+        logger.warning("⚠️  PRODUCTION MODE ENABLED - This will make actual changes to the VAST system!")
+        confirm = input("Type 'YES' to confirm you want to proceed: ")
+        if confirm != 'YES':
+            logger.info("Production mode cancelled by user")
+            return
+        logger.info("✅ Production mode confirmed - proceeding with actual changes")
+    
     try:
         # Load configuration
         config = Lab2ConfigLoader()
         
         # Initialize catalog system
-        catalog_system = OrbitalDynamicsMetadataCatalog(config)
+        catalog_system = OrbitalDynamicsMetadataCatalog(config, production_mode)
         
-        # Create catalog schema
-        logger.info("Creating metadata catalog schema...")
-        if not catalog_system.create_catalog_schema():
-            logger.error("Failed to create catalog schema")
-            return
+        # Create catalog schema (unless ingest-only mode)
+        if not args.ingest_only:
+            logger.info("Creating metadata catalog schema...")
+            if not catalog_system.create_catalog_schema():
+                logger.error("Failed to create catalog schema")
+                if not args.setup_only:  # Continue with ingestion if not setup-only
+                    return
+            else:
+                logger.info("✅ Catalog schema creation completed")
         
-        # Ingest existing data
-        data_directories = config.get('data.directories', [])
-        for directory in data_directories:
-            if os.path.exists(directory):
-                logger.info(f"Ingesting metadata from: {directory}")
-                results = catalog_system.batch_ingest_directory(directory)
-                logger.info(f"Directory ingest results: {results}")
+        # Ingest existing data (unless setup-only mode)
+        if not args.setup_only:
+            data_directories = config.get('data.directories', [])
+            if data_directories:
+                for directory in data_directories:
+                    if os.path.exists(directory):
+                        logger.info(f"Ingesting metadata from: {directory}")
+                        results = catalog_system.batch_ingest_directory(directory)
+                        logger.info(f"Directory ingest results: {results}")
+                    else:
+                        logger.warning(f"Data directory not found: {directory}")
+            else:
+                logger.info("No data directories configured for ingestion")
         
-        logger.info("Metadata catalog system setup complete")
+        # Summary
+        if production_mode:
+            logger.info("✅ Metadata catalog system setup complete in PRODUCTION mode")
+        else:
+            logger.info("🔍 Metadata catalog system preview complete in DRY RUN mode")
+            logger.info("💡 Use --pushtoprod to make actual changes")
         
     except Exception as e:
         logger.error(f"Metadata catalog system failed: {e}")
+        if production_mode:
+            logger.error("⚠️  System failed in PRODUCTION mode - review logs carefully")
 
 if __name__ == "__main__":
     main() 
