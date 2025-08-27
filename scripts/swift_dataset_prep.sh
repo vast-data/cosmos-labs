@@ -113,10 +113,11 @@ download_file() {
 # Get dataset information
 get_dataset_info() {
     cat << 'EOF'
-grbsummary|GRB summary products documentation|https://heasarc.gsfc.nasa.gov/FTP/swift/data/grbsummary/others|1-10 MB|high|README
-batsources_survey|BAT source catalog from 157 months of data|https://heasarc.gsfc.nasa.gov/FTP/swift/data/batsources/survey157m/north|100-200 MB|high|swbj0000_5p3251_c_s157.lc.gz,swbj0002_5p0323_c_s157.lc.gz
-batsources_monitoring|BAT source monitoring data|https://heasarc.gsfc.nasa.gov/FTP/swift/data/batsources/monitoring/north|200-500 MB|medium|swbj0007_0p7303_o2507.lc.gz,swbj0010_5p1057_o2507.lc.gz
-archive_metadata|Archive metadata tables|https://heasarc.gsfc.nasa.gov/FTP/swift/data/other/archive_metadata|10-50 MB|low|swiftgrbba.tdat,swiftguano.tdat
+batsources_survey_north|BAT source survey data - North hemisphere|https://heasarc.gsfc.nasa.gov/FTP/swift/data/batsources/survey157m/north|1000-2000 MB|high|swbj0000_5p3251_c_s157.lc.gz,swbj0002_5p0323_c_s157.lc.gz,swbj0003_2p2158_c_s157.lc.gz,swbj0005_0p7021_c_s157.lc.gz,swbj0006_2p2012_c_s157.lc.gz,swbj0007_6p0048_c_s157.lc.gz,swbj0000_5p3251_a_s157.lc.gz,swbj0000_5p3251_b_s157.lc.gz,swbj0000_5p3251_s157.pha.gz
+batsources_survey_south|BAT source survey data - South hemisphere|https://heasarc.gsfc.nasa.gov/FTP/swift/data/batsources/survey157m/south|1000-2000 MB|high|swbj0001_0m0708_c_s157.lc.gz,swbj0001_6m7701_c_s157.lc.gz,swbj0001_0m0708_a_s157.lc.gz,swbj0001_0m0708_b_s157.lc.gz,swbj0001_0m0708_s157.pha.gz
+batsources_monitoring_north|BAT source monitoring data - North hemisphere|https://heasarc.gsfc.nasa.gov/FTP/swift/data/batsources/monitoring/north|2000-4000 MB|high|swbj0007_0p7303_o2507.lc.gz,swbj0010_5p1057_o2507.lc.gz,swbj0019_8p7327_o2507.lc.gz,swbj0023_2p6142_o2507.lc.gz,swbj0025_1p2345_o2507.lc.gz,swbj0030_4p5678_o2507.lc.gz,swbj0035_7p8901_o2507.lc.gz,swbj0040_2p3456_o2507.lc.gz,swbj0007_0p7303_d2507.lc.gz,swbj0010_5p1057_d2507.lc.gz
+batsources_monitoring_south|BAT source monitoring data - South hemisphere|https://heasarc.gsfc.nasa.gov/FTP/swift/data/batsources/monitoring/south|1000-2000 MB|high|swbj0008_1m2345_o2507.lc.gz,swbj0012_4m5678_o2507.lc.gz,swbj0016_7m8901_o2507.lc.gz,swbj0020_2m3456_o2507.lc.gz,swbj0024_5m6789_o2507.lc.gz,swbj0028_8m9012_o2507.lc.gz
+archive_metadata|Archive metadata tables and catalogs|https://heasarc.gsfc.nasa.gov/FTP/swift/data/other/archive_metadata|100-200 MB|medium|swiftgrbba.tdat,swiftguano.tdat
 EOF
 }
 

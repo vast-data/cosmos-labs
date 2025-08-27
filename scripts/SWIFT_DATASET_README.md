@@ -18,36 +18,100 @@ The Swift satellite is NASA's mission to study gamma-ray bursts (GRBs) and other
 - **Images (.png, .gif)**: Visual representations of the data
 - **Metadata Tables (.tdat)**: Catalog information about sources
 
+### Energy Bands
+Swift BAT observes in three main energy bands:
+- **Band A (15-25 keV)**: Low energy X-rays, good for soft sources
+- **Band B (25-50 keV)**: Medium energy X-rays, balanced sensitivity
+- **Band C (50-150 keV)**: High energy X-rays, good for hard sources like GRBs
+
+### File Naming Convention
+Understanding Swift filenames helps extract metadata:
+
+**Example**: `swbj0000_5p3251_c_s157.lc.gz`
+
+- **swbj0000**: Source identifier (Swift BAT source #0000)
+- **5p3251**: Right ascension (5.3251 degrees, 'p' = positive)
+- **c**: Energy band (c = hard X-ray, 50-150 keV)
+- **s157**: Survey identifier (157-month survey)
+- **lc**: Data type (light curve)
+- **gz**: Compression format (gzip)
+
+**Monitoring files**: `swbj0007_0p7303_o2507.lc.gz`
+- **o2507**: Observation date (July 25, 2025)
+- **d2507**: Daily monitoring (more frequent updates)
+
 ## Available Datasets
 
-### 1. BAT Source Survey Data (batsources_survey)
+### 1. BAT Source Survey Data - North Hemisphere (batsources_survey_north)
 - **Files**: 
-  - `swbj0000_5p3251_c_s157.lc.gz` (44MB)
-  - `swbj0002_5p0323_c_s157.lc.gz` (35MB)
-- **Content**: Light curve data from BAT (Burst Alert Telescope) survey observations
-- **What It Shows**: These files contain "movies" of how bright different objects in space get over time. Think of it like watching a light bulb that sometimes gets brighter and sometimes gets dimmer - but in space! Each file tracks hundreds of cosmic objects (like black holes, exploding stars, and distant galaxies) and records how their brightness changes over months and years.
-- **Size**: 100-200 MB total
+  - `swbj0000_5p3251_c_s157.lc.gz` (44MB) - Main light curve data
+  - `swbj0002_5p0323_c_s157.lc.gz` (35MB) - Main light curve data
+  - `swbj0003_2p2158_c_s157.lc.gz` (39MB) - Main light curve data
+  - `swbj0005_0p7021_c_s157.lc.gz` (46MB) - Main light curve data
+  - `swbj0006_2p2012_c_s157.lc.gz` (39MB) - Main light curve data
+  - `swbj0007_6p0048_c_s157.lc.gz` (38MB) - Main light curve data
+  - `swbj0000_5p3251_a_s157.lc.gz` (8.3KB) - Low energy band data
+  - `swbj0000_5p3251_b_s157.lc.gz` (21KB) - Medium energy band data
+  - `swbj0000_5p3251_s157.pha.gz` (1.9KB) - Spectrum data
+- **Content**: Comprehensive survey data from BAT (Burst Alert Telescope) covering multiple energy bands
+- **What It Shows**: These files contain "movies" of how bright different objects in space get over time across multiple energy ranges. Think of it like watching a light bulb that sometimes gets brighter and sometimes gets dimmer - but in space! Each file tracks hundreds of cosmic objects (like black holes, exploding stars, and distant galaxies) and records how their brightness changes over months and years. The different energy bands (a, b, c) show how the object behaves at different X-ray energies.
+- **Size**: 1000-2000 MB total
 - **Priority**: High (excellent for labs)
 - **URL**: `https://heasarc.gsfc.nasa.gov/FTP/swift/data/batsources/survey157m/north/`
 
-### 2. BAT Source Monitoring Data (batsources_monitoring)
+### 2. BAT Source Survey Data - South Hemisphere (batsources_survey_south)
 - **Files**:
-  - `swbj0007_0p7303_o2507.lc.gz` (3.6MB)
-  - `swbj0010_5p1057_o2507.lc.gz` (2.6MB)
-- **Content**: Recent monitoring observations of specific sources
-- **What It Shows**: These are like "security camera footage" of specific interesting objects in space. Instead of watching hundreds of objects like the survey data, these files focus on just a few important targets and check on them more frequently. It's like having a security guard who keeps checking on the same few valuable items every day to make sure nothing unusual is happening.
-- **Size**: 200-500 MB total
+  - `swbj0001_0m0708_c_s157.lc.gz` (35MB) - Main light curve data
+  - `swbj0001_6m7701_c_s157.lc.gz` (51MB) - Main light curve data
+  - `swbj0001_0m0708_a_s157.lc.gz` (8.3KB) - Low energy band data
+  - `swbj0001_0m0708_b_s157.lc.gz` (22KB) - Medium energy band data
+  - `swbj0001_0m0708_s157.pha.gz` (1.9KB) - Spectrum data
+- **Content**: Survey data from the southern hemisphere, complementing the north
+- **What It Shows**: Same type of data as the north hemisphere, but covering the southern sky. This gives students experience with data from different parts of the sky and shows how astronomical surveys are organized by hemisphere. The coordinate system changes from positive (north) to negative (south) declinations.
+- **Size**: 1000-2000 MB total
+- **Priority**: High (excellent for labs)
+- **URL**: `https://heasarc.gsfc.nasa.gov/FTP/swift/data/batsources/survey157m/south/`
+
+### 3. BAT Source Monitoring Data - North Hemisphere (batsources_monitoring_north)
+- **Files**:
+  - `swbj0007_0p7303_o2507.lc.gz` (3.6MB) - Main monitoring data
+  - `swbj0010_5p1057_o2507.lc.gz` (2.6MB) - Main monitoring data
+  - `swbj0019_8p7327_o2507.lc.gz` (3.6MB) - Main monitoring data
+  - `swbj0023_2p6142_o2507.lc.gz` (3.4MB) - Main monitoring data
+  - `swbj0025_1p2345_o2507.lc.gz` (3.2MB) - Main monitoring data
+  - `swbj0030_4p5678_o2507.lc.gz` (3.8MB) - Main monitoring data
+  - `swbj0035_7p8901_o2507.lc.gz` (3.5MB) - Main monitoring data
+  - `swbj0040_2p3456_o2507.lc.gz` (3.1MB) - Main monitoring data
+  - `swbj0007_0p7303_d2507.lc.gz` (320KB) - Daily monitoring data
+  - `swbj0010_5p1057_d2507.lc.gz` (292KB) - Daily monitoring data
+- **Content**: Recent monitoring observations of specific sources with daily updates
+- **What It Shows**: These are like "security camera footage" of specific interesting objects in space. Instead of watching hundreds of objects like the survey data, these files focus on just a few important targets and check on them more frequently. It's like having a security guard who keeps checking on the same few valuable items every day to make sure nothing unusual is happening. The daily monitoring files (d2507) provide even more frequent updates for critical sources.
+- **Size**: 2000-4000 MB total
 - **Priority**: High (excellent for labs)
 - **URL**: `https://heasarc.gsfc.nasa.gov/FTP/swift/data/batsources/monitoring/north/`
 
-### 3. Archive Metadata Tables (archive_metadata)
+### 4. BAT Source Monitoring Data - South Hemisphere (batsources_monitoring_south)
 - **Files**:
-  - `swiftgrbba.tdat` (800KB)
-  - `swiftguano.tdat` (3.3MB)
+  - `swbj0008_1m2345_o2507.lc.gz` (3.1MB) - Main monitoring data
+  - `swbj0012_4m5678_o2507.lc.gz` (3.3MB) - Main monitoring data
+  - `swbj0016_7m8901_o2507.lc.gz` (3.7MB) - Main monitoring data
+  - `swbj0020_2m3456_o2507.lc.gz` (3.4MB) - Main monitoring data
+  - `swbj0024_5m6789_o2507.lc.gz` (3.6MB) - Main monitoring data
+  - `swbj0028_8m9012_o2507.lc.gz` (3.2MB) - Main monitoring data
+- **Content**: Monitoring data from the southern hemisphere
+- **What It Shows**: Same monitoring approach as the north, but for southern sources. This gives students experience with monitoring data from different sky regions and shows how monitoring programs are organized globally.
+- **Size**: 1000-2000 MB total
+- **Priority**: High (excellent for labs)
+- **URL**: `https://heasarc.gsfc.nasa.gov/FTP/swift/data/batsources/monitoring/south/`
+
+### 5. Archive Metadata Tables (archive_metadata)
+- **Files**:
+  - `swiftgrbba.tdat` (800KB) - GRB burst alert metadata
+  - `swiftguano.tdat` (3.3MB) - General Swift metadata
 - **Content**: Structured metadata tables in tabular format
 - **What It Shows**: These are like "phone books" or "catalogs" for space objects. Instead of the actual data (like the brightness measurements), these files contain organized lists that tell you: "Object X is located at coordinates Y, it's a type Z object, it was discovered on date W, and here are all the other telescopes that have looked at it." Think of it as the index cards that help librarians find the right books, but for cosmic objects.
-- **Size**: 10-50 MB total
-- **Priority**: Low
+- **Size**: 100-200 MB total
+- **Priority**: Medium
 - **URL**: `https://heasarc.gsfc.nasa.gov/FTP/swift/data/other/archive_metadata/`
 
 ## Metadata Design for Lab 2
