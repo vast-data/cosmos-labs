@@ -53,33 +53,24 @@ monitoring:
 # Lab 1: Storage Automation Settings
 lab1:
   storage:
-    auto_provision_threshold: 75  # Percentage at which to auto-provision
-    expansion_factor: 1.5  # How much to expand by
-    max_expansion_gb: 10000  # Maximum expansion in GB
+    max_expansion_gb: 10240  # Maximum expansion in GB (10TB default)
   
   monitoring:
-    alert_threshold: 80  # Percentage at which to alert
-    critical_threshold: 90  # Percentage at which to take immediate action
+    critical_threshold: 85  # Percentage at which to expand storage
 
 # Lab 2: Metadata Infrastructure Settings
 lab2:
   catalog:
     batch_size: 1000
-    max_concurrent_extractions: 10
-    extraction_timeout_seconds: 60
   
-  search:
-    default_limit: 100
-    max_limit: 1000
-    enable_fuzzy_search: true
+  safety:
+    max_files_per_batch: 10000
+    max_storage_impact_gb: 100
   
   vastdb:
     host: "localhost"
     port: 5432
     database: "orbital_dynamics_metadata"
-    schema: "satellite_observations"
-    connection_pool_size: 10
-    query_timeout_seconds: 30
 
 # Lab 3: Pipeline Orchestration Settings
 lab3:
