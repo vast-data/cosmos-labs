@@ -2,14 +2,14 @@
 import unittest
 from unittest.mock import Mock, patch
 from lab1_solution import OrbitalDynamicsStorageManager
-from config_loader import ConfigLoader
+from lab1_config import Lab1ConfigLoader
 
 class TestOrbitalDynamicsStorageManager(unittest.TestCase):
     """Test cases for the storage manager"""
     
     def setUp(self):
         """Set up test fixtures"""
-        self.mock_config = Mock(spec=ConfigLoader)
+        self.mock_config = Mock(spec=Lab1ConfigLoader)
         
         # Mock configuration values
         self.mock_config.get.side_effect = lambda key, default=None: {
@@ -91,14 +91,14 @@ class TestConfigLoader(unittest.TestCase):
             }
         }
         
-        config = ConfigLoader('test_config.yaml', 'test_secrets.yaml')
+        config = Lab1ConfigLoader()
         
         self.assertEqual(config.get('vast.user'), 'test_user')
         self.assertEqual(config.get('vast.password'), 'test_password')
     
     def test_dot_notation_access(self):
         """Test dot notation configuration access"""
-        config = ConfigLoader()
+        config = Lab1ConfigLoader()
         config.config = {
             'vast': {
                 'user': 'test_user',

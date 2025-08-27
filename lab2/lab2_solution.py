@@ -6,7 +6,7 @@ import argparse
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from vastpy import VASTClient
-from config_loader import Lab2ConfigLoader
+from lab2_config import Lab2ConfigLoader
 from safety_checker import MetadataSafetyChecker, SafetyCheckFailed
 
 # Configure logging

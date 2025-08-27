@@ -3,13 +3,13 @@ import time
 import json
 from datetime import datetime
 from vastpy import VASTClient
-from config_loader import ConfigLoader
+from lab1_config import Lab1ConfigLoader
 
 class StorageDashboard:
     """Real-time storage monitoring dashboard"""
     
     def __init__(self):
-        self.config = ConfigLoader()
+        self.config = Lab1ConfigLoader()
         self.client = VASTClient(**self.config.get_vast_config())
         self.view_paths = [
             self.config.get('storage.raw_data_path', '/cosmos7/raw'),

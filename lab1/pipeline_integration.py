@@ -2,7 +2,7 @@
 import sys
 import logging
 from vastpy import VASTClient
-from config_loader import ConfigLoader
+from lab1_config import Lab1ConfigLoader
 
 logger = logging.getLogger(__name__)
 
@@ -10,7 +10,7 @@ class PipelineStorageChecker:
     """Integration script for Jordan's processing pipeline"""
     
     def __init__(self):
-        self.config = ConfigLoader()
+        self.config = Lab1ConfigLoader()
         self.client = VASTClient(**self.config.get_vast_config())
     
     def check_storage_availability(self, required_space_tb: float) -> bool:

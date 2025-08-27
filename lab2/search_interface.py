@@ -3,7 +3,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 from vastpy import VASTClient
-from config_loader import Lab2ConfigLoader
+from lab2_config import Lab2ConfigLoader
 
 logger = logging.getLogger(__name__)
 

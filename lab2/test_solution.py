@@ -4,14 +4,14 @@ from unittest.mock import Mock, patch
 from lab2_solution import OrbitalDynamicsMetadataCatalog
 from metadata_extractor import MetadataExtractor
 from search_interface import MetadataSearchInterface
-from config_loader import ConfigLoader
+from lab2_config import Lab2ConfigLoader
 
 class TestOrbitalDynamicsMetadataCatalog(unittest.TestCase):
     """Test cases for the metadata catalog system"""
     
     def setUp(self):
         """Set up test fixtures"""
-        self.mock_config = Mock(spec=ConfigLoader)
+        self.mock_config = Mock(spec=Lab2ConfigLoader)
         
         # Mock configuration values
         self.mock_config.get.side_effect = lambda key, default=None: {
@@ -148,7 +148,7 @@ class TestMetadataSearchInterface(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures"""
-        self.mock_config = Mock(spec=ConfigLoader)
+        self.mock_config = Mock(spec=Lab2ConfigLoader)
         
         # Mock configuration values
         self.mock_config.get.side_effect = lambda key, default=None: {
@@ -234,7 +234,7 @@ class TestConfigLoader(unittest.TestCase):
             }
         }
         
-        config = ConfigLoader('test_config.yaml', 'test_secrets.yaml')
+        config = Lab2ConfigLoader()
         
         self.assertEqual(config.get('vast.user'), 'test_user')
         self.assertEqual(config.get('catalog.name'), 'test_catalog')
@@ -242,7 +242,7 @@ class TestConfigLoader(unittest.TestCase):
     
     def test_dot_notation_access(self):
         """Test dot notation configuration access"""
-        config = ConfigLoader()
+        config = Lab2ConfigLoader()
         config.config = {
             'vast': {
                 'user': 'test_user',

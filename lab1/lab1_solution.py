@@ -5,7 +5,7 @@ import sys
 from datetime import datetime, timedelta
 from vastpy import VASTClient
 from typing import Dict, List, Optional
-from config_loader import Lab1ConfigLoader
+from lab1_config import Lab1ConfigLoader
 from safety_checker import SafetyChecker, SafetyCheckFailed
 
 # Configure logging
