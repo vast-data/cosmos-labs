@@ -2,6 +2,7 @@
 import time
 import logging
 import sys
+import argparse
 from datetime import datetime, timedelta
 from vastpy import VASTClient
 from typing import Dict, List, Optional
@@ -28,14 +29,37 @@ class OrbitalDynamicsStorageManager:
         # Load VAST configuration
         vast_config = config.get_vast_config()
         
-        self.client = VASTClient(
-            user=vast_config['user'],
-            password=vast_config['password'],
-            address=vast_config['address'],
-            token=vast_config.get('token'),  # Optional for Vast 5.3+
-            tenant_name=vast_config.get('tenant_name'),  # Optional for Vast 5.3+
-            version=vast_config.get('version', 'v1')  # API version
-        )
+        # Build VAST client parameters dynamically based on what's available
+        client_params = {
+            'user': vast_config['user'],
+            'password': vast_config['password'],
+            'address': vast_config['address']
+        }
+        
+        # Add optional parameters only if they exist and are supported
+        if vast_config.get('token'):
+            client_params['token'] = vast_config['token']
+        if vast_config.get('version'):
+            client_params['version'] = vast_config['version']
+        
+        # Note: tenant_name is not supported in vastpy 0.3.17
+        # It will be ignored if not supported by the version
+        
+        try:
+            self.client = VASTClient(**client_params)
+            logger.info("✅ VAST client initialized successfully")
+        except TypeError as e:
+            # Handle unsupported parameters gracefully
+            if "tenant_name" in str(e):
+                logger.warning("⚠️  tenant_name parameter not supported in this vastpy version, retrying without it")
+                # Remove tenant_name and retry
+                if 'tenant_name' in client_params:
+                    del client_params['tenant_name']
+                self.client = VASTClient(**client_params)
+                logger.info("✅ VAST client initialized successfully (without tenant_name)")
+            else:
+                # Re-raise other TypeError exceptions
+                raise
         
         # Load configuration values
         self.config = config
@@ -65,6 +89,52 @@ class OrbitalDynamicsStorageManager:
         else:
             logger.warning("🚨 PRODUCTION MODE: Actual changes will be made to your VAST system")
     
+    def show_current_view_status(self):
+        """Display current status of all target views"""
+        logger.info("\n" + "="*60)
+        logger.info("🔍 CURRENT VIEW STATUS")
+        logger.info("="*60)
+        
+        view_paths = [path for path in [self.raw_data_path, self.processed_data_path, self.temp_data_path] if path]
+        
+        if not view_paths:
+            logger.warning("⚠️  No view paths configured")
+            return
+        
+        for view_path in view_paths:
+            try:
+                existing = self.client.views.get(path=view_path)
+                if existing:
+                    view = existing[0]
+                    view_id = view['id']
+                    
+                    # Get detailed view information
+                    try:
+                        view_details = self.client.views[view_id].get()
+                        size_gb = view_details.get('size', 0) / (1024**3) if view_details.get('size') else 0
+                        quota_gb = view_details.get('quota', 0) / (1024**3) if view_details.get('quota') else 0
+                        
+                        if quota_gb > 0:
+                            utilization = (size_gb / quota_gb) * 100
+                            status_icon = "🟢" if utilization < self.warning_threshold else "🟡" if utilization < self.critical_threshold else "🔴"
+                            logger.info(f"{status_icon} {view_path}")
+                            logger.info(f"    📊 Size: {size_gb:.2f} GB / {quota_gb:.2f} GB ({utilization:.1f}%)")
+                            logger.info(f"    🆔 View ID: {view_id}")
+                        else:
+                            logger.info(f"📁 {view_path}")
+                            logger.info(f"    📊 Size: {size_gb:.2f} GB (no quota set)")
+                            logger.info(f"    🆔 View ID: {view_id}")
+                    except Exception as e:
+                        logger.info(f"📁 {view_path}")
+                        logger.info(f"    ⚠️  Could not get detailed info: {e}")
+                        logger.info(f"    🆔 View ID: {view_id}")
+                else:
+                    logger.info(f"❌ {view_path} - NOT FOUND")
+            except Exception as e:
+                logger.warning(f"⚠️  {view_path} - Could not check status: {e}")
+        
+        logger.info("="*60)
+    
     def create_initial_views(self):
         """Create the initial storage views for different data types"""
         try:
@@ -77,40 +147,92 @@ class OrbitalDynamicsStorageManager:
                 return False
             
             default_policy = policies[0]
-            view_paths = [self.raw_data_path, self.processed_data_path, self.temp_data_path]
+            logger.info(f"📋 Using view policy: {default_policy.get('name', 'default')} (ID: {default_policy['id']})")
+            
+            # Filter out None paths and show what we're working with
+            view_paths = [path for path in [self.raw_data_path, self.processed_data_path, self.temp_data_path] if path]
+            logger.info(f"🎯 Target view paths: {len(view_paths)} directories")
+            
+            # Check existing views first
+            existing_views = []
+            missing_views = []
+            
+            for view_path in view_paths:
+                try:
+                    existing = self.client.views.get(path=view_path)
+                    if existing:
+                        existing_views.append(view_path)
+                        logger.info(f"✅ View already exists: {view_path}")
+                    else:
+                        missing_views.append(view_path)
+                        logger.info(f"📁 View does not exist: {view_path}")
+                except Exception as e:
+                    logger.warning(f"⚠️  Could not check view {view_path}: {e}")
+                    missing_views.append(view_path)
+            
+            # Summary of current state
+            logger.info(f"\n📊 VIEW STATUS SUMMARY:")
+            logger.info(f"  ✅ Existing views: {len(existing_views)}")
+            logger.info(f"  📁 Missing views: {len(missing_views)}")
+            
+            if existing_views:
+                logger.info(f"  📋 Existing: {', '.join(existing_views)}")
+            if missing_views:
+                logger.info(f"  🔨 To create: {', '.join(missing_views)}")
+            
+            if not missing_views:
+                logger.info("🎉 All required views already exist!")
+                return True
             
             if self.production_mode:
-                # Actually create the views
-                logger.info("🚨 PRODUCTION MODE: Creating actual views...")
+                # Actually create the missing views
+                logger.info(f"\n🚨 PRODUCTION MODE: Creating {len(missing_views)} missing views...")
                 
-                for view_path in view_paths:
+                created_count = 0
+                failed_count = 0
+                
+                for view_path in missing_views:
                     try:
+                        logger.info(f"🔨 Creating view: {view_path}")
                         view = self.client.views.post(
                             path=view_path,
                             policy_id=default_policy['id'],
                             create_dir=True,
                             protocols=['NFS', 'SMB']
                         )
-                        logger.info(f"✅ Created view: {view_path}")
+                        logger.info(f"✅ Successfully created view: {view_path}")
+                        created_count += 1
                     except Exception as e:
-                        if "already exists" in str(e).lower():
-                            logger.info(f"ℹ️  View already exists: {view_path}")
+                        error_msg = str(e)
+                        if "already exists" in error_msg.lower():
+                            logger.info(f"ℹ️  View was created by another process: {view_path}")
+                            created_count += 1
                         else:
-                            logger.error(f"Failed to create view {view_path}: {e}")
-                            return False
+                            logger.error(f"❌ Failed to create view {view_path}: {error_msg}")
+                            failed_count += 1
                 
-                logger.info("✅ All views created successfully")
-                return True
+                # Final summary
+                logger.info(f"\n📊 VIEW CREATION SUMMARY:")
+                logger.info(f"  ✅ Successfully created: {created_count}")
+                logger.info(f"  ❌ Failed to create: {failed_count}")
+                
+                if failed_count == 0:
+                    logger.info("🎉 All missing views created successfully!")
+                    return True
+                else:
+                    logger.error(f"⚠️  {failed_count} views failed to create")
+                    return False
+                    
             else:
                 # Dry run - show what would happen
-                logger.info("⚠️  DRY RUN MODE: Would create the following views:")
-                for view_path in view_paths:
+                logger.info(f"\n⚠️  DRY RUN MODE: Would create the following views:")
+                for view_path in missing_views:
                     logger.info(f"  📁 {view_path}")
-                logger.info("  (No actual views were created)")
+                logger.info(f"  (No actual views were created - {len(missing_views)} views would be created)")
                 return True
             
         except Exception as e:
-            logger.error(f"Failed to create initial views: {e}")
+            logger.error(f"❌ Failed to setup initial views: {e}")
             return False
     
     def get_view_utilization(self, view_path: str) -> Optional[float]:
@@ -320,6 +442,9 @@ def main():
         
         # Initialize storage manager with production mode
         storage_manager = OrbitalDynamicsStorageManager(config, production_mode=production_mode)
+        
+        # Show current view status before any operations
+        storage_manager.show_current_view_status()
         
         # Handle different operation modes
         if args.setup_only:

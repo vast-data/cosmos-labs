@@ -40,6 +40,26 @@ views:
   create_directories: true
   protocols: ["NFS", "SMB"]  # Supported protocols for views
 
+# S3 Configuration for VAST Data Platform
+s3:
+  # S3 endpoint configuration
+  endpoint_url: "http://172.200.202.4"  # VAST S3 API endpoint
+  bucket: "cosmos-lab-raw"               # Default bucket for raw data
+  prefix: "swift"                        # Default prefix for Swift datasets
+  
+  # Connection settings
+  verify_ssl: false                      # Disable SSL verification for internal endpoints
+  connect_timeout: 10                    # Connection timeout in seconds
+  read_timeout: 30                       # Read timeout in seconds
+  
+  # Retry configuration
+  max_attempts: 3                        # Maximum retry attempts
+  retry_delay: 1                         # Delay between retries in seconds
+  
+  # Upload settings
+  multipart_threshold_mb: 100            # Use multipart upload for files larger than this
+  max_concurrent_uploads: 5              # Maximum concurrent upload operations
+
 # Monitoring and Metrics
 monitoring:
   enabled: true

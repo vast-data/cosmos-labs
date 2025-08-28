@@ -11,15 +11,34 @@ class StorageDashboard:
     def __init__(self):
         self.config = Lab1ConfigLoader()
         self.client = VASTClient(**self.config.get_vast_config())
-        self.view_paths = [
-            self.config.get('storage.raw_data_path', '/cosmos7/raw'),
-            self.config.get('storage.processed_data_path', '/cosmos7/processed'),
-            self.config.get('storage.temp_data_path', '/cosmos7/temp')
-        ]
+        
+        # Get view paths from the correct config structure
+        view_paths = self.config.get_data_directories()
+        if not view_paths:
+            # Fallback to default paths if config is missing
+            self.view_paths = ['/cosmos7/raw', '/cosmos7/processed', '/cosmos7/temp']
+            print("⚠️  Warning: No data directories configured, using defaults")
+        else:
+            # Use first 3 directories from config, or all if less than 3
+            self.view_paths = view_paths[:3] if len(view_paths) >= 3 else view_paths
+        
+        print(f"📁 Monitoring {len(self.view_paths)} view paths: {', '.join(self.view_paths)}")
     
     def get_view_status(self, view_path: str) -> dict:
         """Get detailed status for a specific view"""
         try:
+            # Check if we can connect to VAST
+            if not hasattr(self.client, 'views') or self.client.views is None:
+                return {
+                    'path': view_path,
+                    'status': 'CONNECTION_ERROR',
+                    'error': 'VAST client not properly initialized',
+                    'utilization': 0,
+                    'size': 0,
+                    'quota': 0,
+                    'available': 0
+                }
+            
             views = self.client.views.get(path=view_path)
             if not views:
                 return {
@@ -37,8 +56,44 @@ class StorageDashboard:
             # Get detailed information
             view_details = self.client.views[view_id].get()
             
-            size = view_details.get('size', 0)
-            quota = view_details.get('quota', 0)
+            # Debug: Let's see what the VAST API actually returns
+            print(f"🔍 VAST API response for view {view_path}:")
+            print(f"   View ID: {view_id}")
+            print(f"   Available fields: {list(view_details.keys())}")
+            print(f"   Raw size value: {view_details.get('size')}")
+            print(f"   Raw quota value: {view_details.get('quota')}")
+            print(f"   Physical capacity: {view_details.get('physical_capacity')}")
+            print(f"   Logical capacity: {view_details.get('logical_capacity')}")
+            
+            # Try different possible field names for size and quota
+            size = 0
+            quota = 0
+            
+            # Common field names for size (try VAST-specific fields first)
+            size_fields = ['logical_capacity', 'physical_capacity', 'size', 'used_size', 'used_bytes', 'bytes_used', 'storage_used']
+            for field in size_fields:
+                if field in view_details and view_details[field] is not None:
+                    size = view_details[field]
+                    print(f"   Found size in field '{field}': {size}")
+                    break
+            
+            # Common field names for quota (try VAST-specific fields first)
+            quota_fields = ['quota', 'quota_size', 'quota_bytes', 'max_size', 'max_bytes', 'storage_limit']
+            for field in quota_fields:
+                if field in view_details and view_details[field] is not None:
+                    quota = view_details[field]
+                    print(f"   Found quota in field '{field}': {quota}")
+                    break
+            
+            # Convert to int if they're strings or floats
+            try:
+                size = int(float(size)) if size is not None else 0
+                quota = int(float(quota)) if quota is not None else 0
+            except (ValueError, TypeError):
+                size = 0
+                quota = 0
+            
+            print(f"   Final values - Size: {size} bytes, Quota: {quota} bytes")
             
             if quota > 0:
                 utilization = (size / quota) * 100
@@ -67,9 +122,9 @@ class StorageDashboard:
     
     def _get_status_level(self, utilization: float) -> str:
         """Determine status level based on utilization"""
-        if utilization >= self.config.get('quotas.critical_threshold', 85):
+        if utilization >= self.config.get_critical_threshold():
             return 'CRITICAL'
-        elif utilization >= self.config.get('quotas.warning_threshold', 75):
+        elif utilization >= self.config.get_alert_threshold():
             return 'WARNING'
         else:
             return 'NORMAL'
@@ -123,7 +178,8 @@ class StorageDashboard:
                 'WARNING': '🟡',
                 'CRITICAL': '🔴',
                 'ERROR': '⚫',
-                'NOT_FOUND': '❓'
+                'NOT_FOUND': '❓',
+                'CONNECTION_ERROR': '🔌'
             }.get(view_data['status'], '❓')
             
             print(f"{status_icon} {view_path}")
@@ -132,7 +188,7 @@ class StorageDashboard:
                 print(f"   Utilization: {view_data['utilization']}%")
                 print(f"   Size: {view_data['size_tb']} TB / {view_data['quota_tb']} TB")
                 print(f"   Available: {view_data['available_tb']} TB")
-            elif view_data['status'] == 'ERROR':
+            elif view_data['status'] in ['ERROR', 'CONNECTION_ERROR']:
                 print(f"   Error: {view_data.get('error', 'Unknown error')}")
             else:
                 print(f"   Status: {view_data['status']}")
@@ -143,7 +199,7 @@ class StorageDashboard:
 
 def main():
     """Main function for dashboard"""
-    config = ConfigLoader()
+    config = Lab1ConfigLoader()
     dashboard = StorageDashboard()
     
     try:

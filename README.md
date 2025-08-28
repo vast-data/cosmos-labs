@@ -193,24 +193,27 @@ python lab2/lab2_solution.py --ingest-only     # Only ingest data
 
 2. **Install Python dependencies**
    ```bash
-   # Install all required packages
-   pip install pyyaml vastpy vastdb astropy h5py
+   # Install all dependencies (recommended)
+   pip install -r requirements.txt
+   
+   # Or use the helper script
+   python3 install_dependencies.py
    
    # Or install individually
    pip install pyyaml      # YAML configuration parsing
    pip install vastpy      # VAST Management System SDK
    pip install vastdb      # VAST Database SDK for metadata catalog
-   pip install astropy     # Astronomical data processing
-   pip install h5py        # HDF5 file format support
    ```
 
 3. **Verify installation**
    ```bash
+   # Test basic imports
+   python3 lab1/test_basic_imports.py
+   
+   # Or test individually
    python -c "import yaml; print('pyyaml installed successfully')"
    python -c "import vastpy; print('vastpy installed successfully')"
    python -c "import vastdb; print('vastdb installed successfully')"
-   python -c "import astropy; print('astropy installed successfully')"
-   python -c "import h5py; print('h5py installed successfully')"
    ```
 
 4. **Configure your environment**

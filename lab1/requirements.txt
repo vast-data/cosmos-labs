@@ -1,2 +1,11 @@
-vastpy>=1.0.0
-pyyaml>=6.0 
+# Lab 1: Satellite Data Infrastructure Planning
+# Core dependencies for storage automation and monitoring
+
+# VAST Data Platform integration
+vastpy>=0.3.17
+
+# Configuration management
+pyyaml>=6.0
+
+# Note: Install full dependencies with: pip install -r ../requirements.txt
+# This file contains only the minimal dependencies needed for Lab 1 

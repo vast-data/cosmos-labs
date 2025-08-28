@@ -7,7 +7,7 @@ This solution demonstrates how to use `vastpy` to automate storage provisioning,
 ## Files
 
 - **`lab1_solution.py`** - Main storage automation script
-- **`config_loader.py`** - Lab-specific configuration loader (inherits from centralized config)
+- **`lab1_config.py`** - Lab-specific configuration loader (inherits from centralized config)
 - **`pipeline_integration.py`** - Integration script for Jordan's processing pipeline
 - **`monitoring_dashboard.py`** - Real-time monitoring dashboard
 - **`test_solution.py`** - Unit tests for the solution
@@ -178,7 +178,7 @@ python monitoring_dashboard.py
 ```python
 # In Jordan's processing script
 from pipeline_integration import PipelineStorageChecker
-from config_loader import ConfigLoader
+from lab1_config import Lab1ConfigLoader
 
 def run_processing_pipeline(processing_type: str = "default"):
     # Load configuration

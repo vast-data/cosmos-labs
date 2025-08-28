@@ -14,9 +14,10 @@ class Lab1ConfigLoader(ConfigLoader):
     
     def __init__(self):
         # Use centralized config files from parent directory
+        project_root = Path(__file__).parent.parent
         super().__init__(
-            config_path="../config.yaml",
-            secrets_path="../secrets.yaml"
+            config_path=str(project_root / "config.yaml"),
+            secrets_path=str(project_root / "secrets.yaml")
         )
     
     def get_storage_config(self):
