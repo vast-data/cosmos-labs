@@ -43,8 +43,8 @@ views:
 # S3 Configuration for VAST Data Platform
 s3:
   # S3 endpoint configuration
-  endpoint_url: "http://172.200.202.4"  # VAST S3 API endpoint
-  bucket: "cosmos-lab-raw"               # Default bucket for raw data
+  endpoint_url: "http://YOUR.END.POINT.HERE"  # VAST S3 API endpoint
+  bucket: "your-bucket"               # Default bucket for raw data
   prefix: "swift"                        # Default prefix for Swift datasets
   
   # Connection settings
