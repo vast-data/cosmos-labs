@@ -29,7 +29,8 @@ class VASTDatabaseManager:
     def __init__(self, config):
         """Initialize the database manager"""
         self.config = config
-        self.database_name = config.get('lab2.vastdb.database', 'orbital_dynamics_metadata')
+        # Use the same bucket as S3, with a schema for metadata
+        self.bucket_name = config.get('lab2.vastdb.bucket', 'cosmos-lab-raw')
         self.schema_name = config.get('lab2.vastdb.schema', 'satellite_observations')
         
         # Database connection parameters for vastdb (using S3 credentials)
@@ -75,13 +76,13 @@ class VASTDatabaseManager:
             # Check if bucket exists using VAST DB API
             with self.connection.transaction() as tx:
                 try:
-                    bucket = tx.bucket(self.database_name)
+                    bucket = tx.bucket(self.bucket_name)
                     # Try to list schemas to verify bucket exists
                     schemas = bucket.schemas()
-                    logger.info(f"✅ Bucket '{self.database_name}' exists with {len(schemas)} schemas")
+                    logger.info(f"✅ Bucket '{self.bucket_name}' exists with {len(schemas)} schemas")
                     return True
                 except Exception:
-                    logger.info(f"ℹ️  Bucket '{self.database_name}' does not exist")
+                    logger.info(f"ℹ️  Bucket '{self.bucket_name}' does not exist")
                     return False
             
         except Exception as e:
@@ -97,12 +98,12 @@ class VASTDatabaseManager:
             
             # Use VAST DB transaction to create schema and table
             with self.connection.transaction() as tx:
-                # Get or create bucket (using database name as bucket)
-                bucket = tx.bucket(self.database_name)
+                # Get or create bucket (using the same bucket as S3)
+                bucket = tx.bucket(self.bucket_name)
                 
                 # Create schema
                 schema = bucket.create_schema(self.schema_name)
-                logger.info(f"✅ Created schema '{self.schema_name}' in bucket '{self.database_name}'")
+                logger.info(f"✅ Created schema '{self.schema_name}' in bucket '{self.bucket_name}'")
                 
                 # Create table with metadata columns (matching the insert_metadata method)
                 import pyarrow as pa
@@ -291,7 +292,7 @@ class VASTDatabaseManager:
             
             # Use VAST DB transaction to insert metadata
             with self.connection.transaction() as tx:
-                bucket = tx.bucket(self.database_name)
+                bucket = tx.bucket(self.bucket_name)
                 schema = bucket.schema(self.schema_name)
                 table = schema.table("swift_metadata")
                 
