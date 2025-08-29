@@ -7,8 +7,21 @@ Based on VAST Data boto3 documentation
 import boto3
 import logging
 import time
+import os
+import sys
 from pathlib import Path
 from botocore.exceptions import ClientError, NoCredentialsError
+
+# Add parent directory to path for config imports
+sys.path.append(str(Path(__file__).parent.parent))
+
+try:
+    from config_loader import ConfigLoader
+except ImportError as e:
+    print(f"❌ Import error: {e}")
+    print("💡 Make sure you're in the root directory and have installed dependencies:")
+    print("   pip install -r requirements.txt")
+    sys.exit(1)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
