@@ -42,8 +42,12 @@ class Lab2CompleteSolution:
         if config_path is None:
             project_root = Path(__file__).parent.parent
             config_path = str(project_root / "config.yaml")
+            secrets_path = str(project_root / "secrets.yaml")
+        else:
+            # If config_path is provided, assume secrets.yaml is in the same directory
+            secrets_path = str(Path(config_path).parent / "secrets.yaml")
         
-        self.config = ConfigLoader(config_path)
+        self.config = ConfigLoader(config_path, secrets_path)
         
         # Initialize components
         self.db_manager = VASTDatabaseManager(self.config)
