@@ -93,16 +93,25 @@ class SwiftUploader:
         return s3_config
     
     def _initialize_s3_client(self):
-        """Initialize the S3 client following VAST Data documentation"""
+        """Initialize the S3 client with VAST-compatible configuration"""
         try:
             # Create S3 client with custom endpoint if specified
             if self.s3_config.get('endpoint_url'):
+                # Use minimal S3 client configuration for VAST compatibility
                 s3_client = boto3.client(
                     's3',
                     endpoint_url=self.s3_config['endpoint_url'],
                     aws_access_key_id=self.s3_config['aws_access_key_id'],
                     aws_secret_access_key=self.s3_config['aws_secret_access_key'],
-                    verify=False  # Disable SSL verification for internal endpoints
+                    verify=False,  # Disable SSL verification for internal endpoints
+                    # VAST-specific configuration to avoid unsupported features
+                    config=boto3.session.Config(
+                        s3={'addressing_style': 'path'},  # Use path-style addressing
+                        signature_version='s3',            # Use S3v2 signatures (more compatible)
+                        parameter_validation=False,        # Skip parameter validation
+                        # Disable features that cause header issues
+                        user_agent_extra='VASTCompatible'
+                    )
                 )
             else:
                 # Use default AWS S3
@@ -171,15 +180,36 @@ class SwiftUploader:
             
             logger.info(f"📤 Uploading: {local_file.name} ({file_size_mb:.2f} MB)")
             
-            # Simple upload using upload_file
-            self.s3_client.upload_file(
-                str(local_file),
-                self.s3_config['bucket'],
-                s3_key
-            )
-            
-            logger.info(f"✅ Successfully uploaded: {local_file.name}")
-            return True
+            # Try simple upload first
+            try:
+                self.s3_client.upload_file(
+                    str(local_file),
+                    self.s3_config['bucket'],
+                    s3_key
+                )
+                logger.info(f"✅ Successfully uploaded: {local_file.name}")
+                return True
+                
+            except Exception as upload_error:
+                # If upload_file fails, try put_object with minimal parameters
+                logger.warning(f"⚠️  upload_file failed, trying put_object: {upload_error}")
+                
+                try:
+                    with open(local_file, 'rb') as file_data:
+                        self.s3_client.put_object(
+                            Bucket=self.s3_config['bucket'],
+                            Key=s3_key,
+                            Body=file_data
+                            # No extra parameters to avoid header issues
+                        )
+                    logger.info(f"✅ Successfully uploaded using put_object: {local_file.name}")
+                    return True
+                    
+                except Exception as put_error:
+                    logger.error(f"❌ Both upload methods failed:")
+                    logger.error(f"   upload_file: {upload_error}")
+                    logger.error(f"   put_object: {put_error}")
+                    raise put_error
             
         except Exception as e:
             logger.error(f"❌ Failed to upload {local_file.name}: {e}")
