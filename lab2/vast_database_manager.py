@@ -505,8 +505,9 @@ class VASTDatabaseManager:
     def close(self):
         """Close database connection"""
         if self.connection and VASTDB_AVAILABLE:
-            self.connection.close()
-            logger.info("🔌 Closed database connection")
+            # VAST DB Sessions don't have a close() method, just set to None
+            self.connection = None
+            logger.info("🔌 Closed VAST Database connection")
         elif self.connection == "MOCK_CONNECTION":
             logger.info("🔌 Closed mock database connection")
     
