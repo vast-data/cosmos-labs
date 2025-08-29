@@ -43,16 +43,16 @@ class SwiftUploader:
         self.config = ConfigLoader(config_path, secrets_path)
         
         # Get upload configuration
-        self.raw_data_path = self.config.get_data_directories()[0]  # First directory is raw data
+        # Note: We don't need raw_data_path for S3 uploads - that's for VAST file system
         self.swift_datasets_dir = Path(__file__).parent / "swift_datasets"
         
         # S3 configuration
         self.s3_config = self._get_s3_config()
         
         logger.info(f"✅ Configuration loaded successfully")
-        logger.info(f"📁 Raw data view: {self.raw_data_path}")
         logger.info(f"📁 Swift datasets directory: {self.swift_datasets_dir}")
         logger.info(f"🌐 S3 endpoint: {self.s3_config.get('endpoint_url', 'Default AWS')}")
+        logger.info(f"📦 S3 bucket: {self.s3_config.get('bucket', 'Default')}")
         
         # Initialize S3 client
         self.s3_client = self._initialize_s3_client()
