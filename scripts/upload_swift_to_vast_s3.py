@@ -12,6 +12,10 @@ import sys
 from pathlib import Path
 from botocore.exceptions import ClientError, NoCredentialsError
 
+# Fix for modern boto3 versions - only calculate checksums when required
+# This prevents problematic headers that VAST S3 doesn't support
+os.environ['AWS_REQUEST_CHECKSUM_CALCULATION'] = 'when_required'
+
 # Add parent directory to path for config imports
 sys.path.append(str(Path(__file__).parent.parent))
 
@@ -48,12 +52,6 @@ class SwiftUploader:
         
         # S3 configuration
         self.s3_config = self._get_s3_config()
-        
-        # Debug: Show exactly what config was loaded
-        logger.info(f"🔍 DEBUG: Config file path: {config_path}")
-        logger.info(f"🔍 DEBUG: Raw S3 config from file: {self.config.get('s3')}")
-        logger.info(f"🔍 DEBUG: S3 endpoint from dot notation: {self.config.get('s3.endpoint_url')}")
-        logger.info(f"🔍 DEBUG: Final S3 config: {self.s3_config}")
         
         logger.info(f"✅ Configuration loaded successfully")
         logger.info(f"📁 Swift datasets directory: {self.swift_datasets_dir}")
@@ -173,7 +171,7 @@ class SwiftUploader:
         return sorted(datasets, key=lambda x: x['size_gb'], reverse=True)
     
     def upload_file_s3(self, local_file: Path, s3_key: str, dry_run: bool = True) -> bool:
-        """Upload a single file to S3 using direct HTTP to avoid boto3 header issues"""
+        """Upload a single file to S3 using boto3 (with modern boto3 compatibility fix)"""
         try:
             file_size_mb = local_file.stat().st_size / (1024**2)
             
@@ -183,116 +181,15 @@ class SwiftUploader:
             
             logger.info(f"📤 Uploading: {local_file.name} ({file_size_mb:.2f} MB)")
             
-            # Try boto3 first, fallback to direct HTTP if it fails
-            try:
-                with open(local_file, 'rb') as file_data:
-                    self.s3_client.put_object(
-                        Bucket=self.s3_config['bucket'],
-                        Key=s3_key,
-                        Body=file_data
-                    )
-                logger.info(f"✅ Successfully uploaded via boto3: {local_file.name}")
-                return True
-                
-            except Exception as boto_error:
-                logger.warning(f"⚠️  boto3 put_object failed, trying direct HTTP: {boto_error}")
-                
-                # Fallback: Direct HTTP PUT request with AWS Signature V4
-                try:
-                    import requests
-                    from datetime import datetime, timezone
-                    import hashlib
-                    import hmac
-                    
-                    # Parse endpoint URL
-                    endpoint = self.s3_config['endpoint_url'].rstrip('/')
-                    url = f"{endpoint}/{self.s3_config['bucket']}/{s3_key}"
-                    
-                    # Read file data
-                    with open(local_file, 'rb') as f:
-                        file_data = f.read()
-                    
-                    # AWS Signature V4 requires specific datetime format
-                    now = datetime.now(timezone.utc)
-                    amz_date = now.strftime('%Y%m%dT%H%M%SZ')
-                    date_stamp = now.strftime('%Y%m%d')
-                    
-                    # Parse host from endpoint
-                    host = self.s3_config['endpoint_url'].replace('http://', '').replace('https://', '')
-                    
-                    # Create minimal headers for S3
-                    headers = {
-                        'Content-Type': 'application/octet-stream',
-                        'Content-Length': str(len(file_data)),
-                        'Host': host,
-                        'X-Amz-Date': amz_date,
-                        'X-Amz-Content-Sha256': hashlib.sha256(file_data).hexdigest()
-                    }
-                    
-                    # Create canonical request for AWS Signature V4
-                    canonical_uri = f"/{self.s3_config['bucket']}/{s3_key}"
-                    canonical_querystring = ""
-                    canonical_headers = '\n'.join([f"{k.lower()}:{v}" for k, v in sorted(headers.items())]) + '\n'
-                    signed_headers = ';'.join([k.lower() for k in sorted(headers.keys())])
-                    
-                    # Create payload hash
-                    payload_hash = hashlib.sha256(file_data).hexdigest()
-                    
-                    # Create canonical request
-                    canonical_request = '\n'.join([
-                        'PUT',
-                        canonical_uri,
-                        canonical_querystring,
-                        canonical_headers,
-                        signed_headers,
-                        payload_hash
-                    ])
-                    
-                    # Create string to sign
-                    algorithm = 'AWS4-HMAC-SHA256'
-                    credential_scope = f"{date_stamp}/us-east-1/s3/aws4_request"
-                    string_to_sign = '\n'.join([
-                        algorithm,
-                        amz_date,
-                        credential_scope,
-                        hashlib.sha256(canonical_request.encode('utf-8')).hexdigest()
-                    ])
-                    
-                    # Calculate signature
-                    def sign(key, msg):
-                        return hmac.new(key, msg.encode('utf-8'), hashlib.sha256).digest()
-                    
-                    date_key = sign(f"AWS4{self.s3_config['aws_secret_access_key']}".encode('utf-8'), date_stamp)
-                    date_region_key = sign(date_key, 'us-east-1')
-                    date_region_service_key = sign(date_region_key, 's3')
-                    signing_key = sign(date_region_service_key, 'aws4_request')
-                    signature = hmac.new(signing_key, string_to_sign.encode('utf-8'), hashlib.sha256).hexdigest()
-                    
-                    # Add authorization header
-                    authorization_header = f"{algorithm} Credential={self.s3_config['aws_access_key_id']}/{credential_scope}, SignedHeaders={signed_headers}, Signature={signature}"
-                    headers['Authorization'] = authorization_header
-                    
-                    # Make direct HTTP PUT request with AWS Signature V4
-                    response = requests.put(
-                        url,
-                        data=file_data,
-                        headers=headers,
-                        verify=False,
-                        timeout=30
-                    )
-                    
-                    if response.status_code in [200, 201]:
-                        logger.info(f"✅ Successfully uploaded via direct HTTP: {local_file.name}")
-                        return True
-                    else:
-                        logger.error(f"❌ HTTP upload failed with status {response.status_code}: {response.text}")
-                        return False
-                        
-                except Exception as http_error:
-                    logger.error(f"❌ Both boto3 and HTTP methods failed:")
-                    logger.error(f"   boto3: {boto_error}")
-                    logger.error(f"   HTTP: {http_error}")
-                    raise http_error
+            # Upload using boto3 put_object (should work with AWS_REQUEST_CHECKSUM_CALCULATION fix)
+            with open(local_file, 'rb') as file_data:
+                self.s3_client.put_object(
+                    Bucket=self.s3_config['bucket'],
+                    Key=s3_key,
+                    Body=file_data
+                )
+            logger.info(f"✅ Successfully uploaded: {local_file.name}")
+            return True
             
         except Exception as e:
             logger.error(f"❌ Failed to upload {local_file.name}: {e}")
