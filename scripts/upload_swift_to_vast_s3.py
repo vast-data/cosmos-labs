@@ -49,6 +49,12 @@ class SwiftUploader:
         # S3 configuration
         self.s3_config = self._get_s3_config()
         
+        # Debug: Show exactly what config was loaded
+        logger.info(f"🔍 DEBUG: Config file path: {config_path}")
+        logger.info(f"🔍 DEBUG: Raw S3 config from file: {self.config.get('s3')}")
+        logger.info(f"🔍 DEBUG: S3 endpoint from dot notation: {self.config.get('s3.endpoint_url')}")
+        logger.info(f"🔍 DEBUG: Final S3 config: {self.s3_config}")
+        
         logger.info(f"✅ Configuration loaded successfully")
         logger.info(f"📁 Swift datasets directory: {self.swift_datasets_dir}")
         logger.info(f"🌐 S3 endpoint: {self.s3_config.get('endpoint_url', 'Default AWS')}")
