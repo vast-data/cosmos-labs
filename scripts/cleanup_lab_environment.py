@@ -76,7 +76,7 @@ class LabEnvironmentCleaner:
     
     def _should_cleanup_db(self) -> bool:
         """Check if database cleanup is configured"""
-        return bool(self.config.get('lab2.vastdb.host'))
+        return bool(self.config.get('lab2.vastdb.endpoint'))
     
     def _initialize_s3_client(self):
         """Initialize S3 client for cleanup operations"""
