@@ -331,81 +331,119 @@ class VASTDatabaseManager:
             return False
     
     def search_metadata(self, search_criteria: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Search metadata based on criteria"""
+        """Search metadata based on criteria using VAST DB"""
+        if not VASTDB_AVAILABLE:
+            logger.warning("⚠️  vastdb not available - mock metadata search")
+            return []
+            
         try:
-            cursor = self.connection.cursor()
+            if not self.connection:
+                if not self.connect():
+                    return []
             
-            # Build dynamic search query
-            where_conditions = []
-            search_values = []
-            
-            for key, value in search_criteria.items():
-                if value is not None:
-                    where_conditions.append(f"{key} = %s")
-                    search_values.append(value)
-            
-            if not where_conditions:
-                # No search criteria, return all
-                search_sql = f"SELECT * FROM {self.schema_name}.swift_metadata ORDER BY created_at DESC"
-                cursor.execute(search_sql)
-            else:
-                where_clause = " AND ".join(where_conditions)
-                search_sql = f"""
-                    SELECT * FROM {self.schema_name}.swift_metadata 
-                    WHERE {where_clause} 
-                    ORDER BY created_at DESC
-                """
-                cursor.execute(search_sql, search_values)
-            
-            # Fetch results
-            columns = [desc[0] for desc in cursor.description]
-            results = []
-            
-            for row in cursor.fetchall():
-                result = dict(zip(columns, row))
-                results.append(result)
-            
-            cursor.close()
-            
-            logger.info(f"🔍 Found {len(results)} metadata records")
-            return results
+            # Use VAST DB transaction to search metadata
+            with self.connection.transaction() as tx:
+                bucket = tx.bucket(self.bucket_name)
+                
+                # Check if schema and table exist
+                try:
+                    schema = bucket.schema(self.schema_name)
+                    table = schema.table("swift_metadata")
+                    
+                    # For now, return all records (VAST DB predicate pushdown can be implemented later)
+                    # This is a simplified search that gets all records and filters in Python
+                    reader = table.select()
+                    results = []
+                    
+                    for batch in reader:
+                        for i in range(len(batch)):
+                            record = {}
+                            # Convert PyArrow record to Python dict
+                            for col_name in batch.column_names:
+                                value = batch[col_name][i]
+                                if value is not None:
+                                    record[col_name] = value.as_py()
+                                else:
+                                    record[col_name] = None
+                            
+                            # Apply search criteria
+                            matches = True
+                            for key, value in search_criteria.items():
+                                if key in record and record[key] != value:
+                                    matches = False
+                                    break
+                            
+                            if matches:
+                                results.append(record)
+                    
+                    logger.info(f"🔍 Found {len(results)} metadata records")
+                    return results
+                    
+                except Exception:
+                    # Schema or table doesn't exist yet
+                    logger.info(f"ℹ️  Schema '{self.schema_name}' or table 'swift_metadata' doesn't exist yet")
+                    return []
             
         except Exception as e:
             logger.error(f"❌ Search failed: {e}")
             return []
     
     def get_metadata_stats(self) -> Dict[str, Any]:
-        """Get statistics about the metadata catalog"""
-        try:
-            cursor = self.connection.cursor()
-            
-            # Total count
-            cursor.execute(f"SELECT COUNT(*) FROM {self.schema_name}.swift_metadata")
-            total_count = cursor.fetchone()[0]
-            
-            # Count by mission
-            cursor.execute(f"""
-                SELECT mission_id, COUNT(*) as count 
-                FROM {self.schema_name}.swift_metadata 
-                GROUP BY mission_id
-            """)
-            mission_counts = dict(cursor.fetchall())
-            
-            # Count by dataset
-            cursor.execute(f"""
-                SELECT dataset_name, COUNT(*) as count 
-                FROM {self.schema_name}.swift_metadata 
-                GROUP BY dataset_name
-            """)
-            dataset_counts = dict(cursor.fetchall())
-            
-            cursor.close()
-            
+        """Get statistics about the metadata catalog using VAST DB"""
+        if not VASTDB_AVAILABLE:
+            logger.warning("⚠️  vastdb not available - mock metadata stats")
             return {
-                'total_files': total_count,
-                'mission_counts': mission_counts,
-                'dataset_counts': dataset_counts
+                'total_files': 0,
+                'mission_counts': {},
+                'dataset_counts': {}
             }
+            
+        try:
+            if not self.connection:
+                if not self.connect():
+                    return {}
+            
+            # Use VAST DB transaction to get statistics
+            with self.connection.transaction() as tx:
+                bucket = tx.bucket(self.bucket_name)
+                
+                # Check if schema and table exist
+                try:
+                    schema = bucket.schema(self.schema_name)
+                    table = schema.table("swift_metadata")
+                    
+                    # Get total count using select()
+                    reader = table.select()
+                    total_count = 0
+                    mission_counts = {}
+                    dataset_counts = {}
+                    
+                    # Process all records to count them
+                    for batch in reader:
+                        total_count += len(batch)
+                        
+                        # Count by mission and dataset
+                        for i in range(len(batch)):
+                            mission_id = batch['mission_id'][i].as_py() if batch['mission_id'][i] is not None else 'unknown'
+                            dataset_name = batch['dataset_name'][i].as_py() if batch['dataset_name'][i] is not None else 'unknown'
+                            
+                            mission_counts[mission_id] = mission_counts.get(mission_id, 0) + 1
+                            dataset_counts[dataset_name] = dataset_counts.get(dataset_name, 0) + 1
+                    
+                    return {
+                        'total_files': total_count,
+                        'mission_counts': mission_counts,
+                        'dataset_counts': dataset_counts
+                    }
+                    
+                except Exception:
+                    # Schema or table doesn't exist yet
+                    logger.info(f"ℹ️  Schema '{self.schema_name}' or table 'swift_metadata' doesn't exist yet")
+                    return {
+                        'total_files': 0,
+                        'mission_counts': {},
+                        'dataset_counts': {}
+                    }
             
         except Exception as e:
             logger.error(f"❌ Failed to get metadata stats: {e}")

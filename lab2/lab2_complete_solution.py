@@ -65,32 +65,22 @@ class Lab2CompleteSolution:
                 logger.error("❌ Failed to connect to VAST Database server")
                 return False
             
-            # Step 2: Check if database exists, create if needed
+            # Step 2: Check if bucket exists, create schema and table if needed
             if not self.db_manager.database_exists():
                 if self.production_mode:
-                    if not self.db_manager.create_database():
-                        logger.error("❌ Failed to create database")
+                    if not self.db_manager.create_schema_and_table():
+                        logger.error("❌ Failed to create schema and table")
                         return False
                 else:
-                    logger.info("🔍 DRY RUN: Would create database")
-            
-            # Step 3: Check if schema exists, create if needed
-            if not self.db_manager.schema_exists():
+                    logger.info("🔍 DRY RUN: Would create schema and table")
+            else:
+                # Bucket exists, check if we need to create schema and table
                 if self.production_mode:
-                    if not self.db_manager.create_schema():
-                        logger.error("❌ Failed to create schema")
+                    if not self.db_manager.create_schema_and_table():
+                        logger.error("❌ Failed to create schema and table")
                         return False
                 else:
-                    logger.info("🔍 DRY RUN: Would create schema")
-            
-            # Step 4: Check if metadata table exists, create if needed
-            if not self.db_manager.table_exists('swift_metadata'):
-                if self.production_mode:
-                    if not self.db_manager.create_metadata_table():
-                        logger.error("❌ Failed to create metadata table")
-                        return False
-                else:
-                    logger.info("🔍 DRY RUN: Would create metadata table")
+                    logger.info("🔍 DRY RUN: Would create schema and table")
             
             logger.info("✅ Database infrastructure setup completed")
             return True
