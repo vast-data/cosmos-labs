@@ -6,11 +6,11 @@ Based on VAST Data boto3 documentation
 
 import boto3
 import logging
-import time
 import os
 import sys
 from pathlib import Path
 from botocore.exceptions import ClientError, NoCredentialsError
+
 
 # Fix for modern boto3 versions - only calculate checksums when required
 # This prevents problematic headers that VAST S3 doesn't support
@@ -34,9 +34,8 @@ logger = logging.getLogger(__name__)
 class SwiftUploader:
     """Simple S3 uploader for Swift datasets to VAST Data Platform"""
     
-    def __init__(self, config_path: str = None, production_mode: bool = False):
+    def __init__(self, config_path: str = None):
         """Initialize the S3 uploader with configuration"""
-        self.production_mode = production_mode
         
         # Load configuration
         if config_path is None:
@@ -65,7 +64,7 @@ class SwiftUploader:
         """Get S3 configuration from config and secrets"""
         s3_config = {}
         
-        # Try to get S3 settings from config
+        # Get S3 settings from config
         if self.config.get('s3'):
             s3_config.update(self.config.get('s3'))
         
@@ -75,52 +74,43 @@ class SwiftUploader:
         if self.config.get_secret('s3_secret_key'):
             s3_config['aws_secret_access_key'] = self.config.get_secret('s3_secret_key')
         
-        # Use environment variables as fallback
-        if not s3_config.get('aws_access_key_id'):
-            s3_config['aws_access_key_id'] = os.getenv('AWS_ACCESS_KEY_ID')
-        if not s3_config.get('aws_secret_access_key'):
-            s3_config['aws_secret_access_key'] = os.getenv('AWS_SECRET_ACCESS_KEY')
-        
         # S3 bucket and prefix
         s3_config['bucket'] = self.config.get('s3.bucket', 'cosmos-lab-raw')
-        s3_config['prefix'] = f"swift"
+        s3_config['prefix'] = "swift"
         
-        # Use explicitly configured S3 endpoint if provided
-        if self.config.get('s3.endpoint_url'):
-            s3_config['endpoint_url'] = self.config.get('s3.endpoint_url')
-            logger.info(f"🔧 Using configured S3 endpoint: {s3_config['endpoint_url']}")
-        else:
-            # Fallback: use default endpoint (avoid recursion)
-            s3_config['endpoint_url'] = "http://localhost:9000"
-            logger.info(f"🔧 Using fallback S3 endpoint: {s3_config['endpoint_url']}")
+        # Validate that credentials were loaded
+        if not s3_config.get('aws_access_key_id'):
+            raise ValueError("S3 access key not found in secrets.yaml")
+        if not s3_config.get('aws_secret_access_key'):
+            raise ValueError("S3 secret key not found in secrets.yaml")
+        if not s3_config.get('endpoint_url'):
+            raise ValueError("S3 endpoint URL not found in config.yaml")
         
         return s3_config
     
     def _initialize_s3_client(self):
         """Initialize the S3 client with VAST-compatible configuration"""
         try:
-            # Create S3 client with custom endpoint if specified
-            if self.s3_config.get('endpoint_url'):
-                # Use official VAST-recommended boto3 configuration
-                s3_client = boto3.client(
-                    's3',
-                    use_ssl=False,  # VAST docs specify use_ssl=False, not verify=False
-                    endpoint_url=self.s3_config['endpoint_url'],
-                    aws_access_key_id=self.s3_config['aws_access_key_id'],
-                    aws_secret_access_key=self.s3_config['aws_secret_access_key'],
-                    region_name='us-east-1',  # VAST docs require region_name
-                    config=boto3.session.Config(
-                        signature_version='s3v4',
-                        s3={'addressing_style': 'path'}
-                    )
+            # Validate required S3 configuration
+            required_keys = ['endpoint_url', 'aws_access_key_id', 'aws_secret_access_key', 'bucket']
+            missing_keys = [key for key in required_keys if not self.s3_config.get(key)]
+            
+            if missing_keys:
+                raise ValueError(f"Missing required S3 configuration: {missing_keys}")
+            
+            # Create S3 client with VAST-recommended configuration
+            s3_client = boto3.client(
+                's3',
+                use_ssl=False,
+                endpoint_url=self.s3_config['endpoint_url'],
+                aws_access_key_id=self.s3_config['aws_access_key_id'],
+                aws_secret_access_key=self.s3_config['aws_secret_access_key'],
+                region_name='us-east-1',
+                config=boto3.session.Config(
+                    signature_version='s3v4',
+                    s3={'addressing_style': 'path'}
                 )
-            else:
-                # Use default AWS S3
-                s3_client = boto3.client(
-                    's3',
-                    aws_access_key_id=self.s3_config['aws_access_key_id'],
-                    aws_secret_access_key=self.s3_config['aws_secret_access_key']
-                )
+            )
             
             # Test connection
             s3_client.head_bucket(Bucket=self.s3_config['bucket'])
@@ -131,16 +121,19 @@ class SwiftUploader:
             
         except NoCredentialsError:
             logger.error("❌ S3 credentials not found")
-            logger.error("💡 Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables")
+            logger.error("💡 Check your secrets.yaml file for s3_access_key and s3_secret_key")
             raise
         except ClientError as e:
-            if e.response['Error']['Code'] == '404':
+            error_code = e.response['Error']['Code']
+            if error_code == '404':
                 logger.error(f"❌ S3 bucket not found: {self.s3_config['bucket']}")
+            elif error_code == '403':
+                logger.error(f"❌ Access denied to bucket: {self.s3_config['bucket']}")
             else:
                 logger.error(f"❌ S3 connection failed: {e}")
             raise
         except Exception as e:
-            logger.error(f"❌ Unexpected error during S3 client initialization: {e}")
+            logger.error(f"❌ S3 client initialization failed: {e}")
             raise
     
     def get_available_datasets(self) -> list:
@@ -232,8 +225,7 @@ class SwiftUploader:
                 else:
                     failed_count += 1
                 
-                # Small delay between uploads
-                time.sleep(0.1)
+
                 
             except Exception as e:
                 logger.error(f"❌ Error processing {file_path}: {e}")
@@ -327,10 +319,8 @@ def main():
         dry_run = True
     
     try:
-        # Create uploader
-        uploader = SwiftUploader(config_path=args.config, production_mode=args.pushtoprod)
-        
-        # Upload all datasets
+        # Create uploader and upload all datasets
+        uploader = SwiftUploader(config_path=args.config)
         result = uploader.upload_all_datasets(dry_run=dry_run)
         
         if result['failed'] == 0:
