@@ -1,43 +1,21 @@
 #!/usr/bin/env python3
 """
-Swift Dataset S3 Upload Script for VAST Data Platform
-Actually uploads files using S3 multipart uploads
+Simple S3 upload script for VAST Data Platform
+Based on VAST Data boto3 documentation
 """
 
-import os
-import sys
-import argparse
-import logging
-from pathlib import Path
-from datetime import datetime
-import time
 import boto3
+import logging
+import time
+from pathlib import Path
 from botocore.exceptions import ClientError, NoCredentialsError
 
-# Add parent directory to path for config imports
-sys.path.append(str(Path(__file__).parent.parent))
-
-try:
-    from config_loader import ConfigLoader
-except ImportError as e:
-    print(f"❌ Import error: {e}")
-    print("💡 Make sure you're in the root directory and have installed dependencies:")
-    print("   pip install -r requirements.txt")
-    sys.exit(1)
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('swift_s3_upload.log')
-    ]
-)
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-class SwiftS3Uploader:
-    """Handles S3-based upload of Swift datasets to VAST Data Platform"""
+class SwiftUploader:
+    """Simple S3 uploader for Swift datasets to VAST Data Platform"""
     
     def __init__(self, config_path: str = None, production_mode: bool = False):
         """Initialize the S3 uploader with configuration"""
@@ -102,120 +80,29 @@ class SwiftS3Uploader:
         return s3_config
     
     def _initialize_s3_client(self):
-        """Initialize the S3 client"""
+        """Initialize the S3 client following VAST Data documentation"""
         try:
-            logger.info(f"🔧 Creating S3 client...")
-            logger.info(f"   Endpoint: {self.s3_config.get('endpoint_url', 'Default AWS')}")
-            logger.info(f"   Bucket: {self.s3_config['bucket']}")
-            logger.info(f"   Access Key: {self.s3_config['aws_access_key_id'][:8]}...")
-            
-            # Test basic network connectivity first
-            if self.s3_config.get('endpoint_url'):
-                endpoint = self.s3_config['endpoint_url']
-                logger.info(f"🔧 Testing network connectivity to: {endpoint}")
-                
-                try:
-                    import socket
-                    from urllib.parse import urlparse
-                    
-                    parsed = urlparse(endpoint)
-                    host = parsed.hostname
-                    port = parsed.port or (443 if parsed.scheme == 'https' else 80)
-                    
-                    # Test DNS resolution first
-                    logger.info(f"🔧 Testing DNS resolution for: {host}")
-                    try:
-                        # Try to resolve hostname
-                        resolved_ip = socket.gethostbyname(host)
-                        logger.info(f"✅ DNS resolution successful: {host} -> {resolved_ip}")
-                    except socket.gaierror as dns_error:
-                        logger.warning(f"⚠️  DNS resolution failed for {host}: {dns_error}")
-                        logger.warning(f"💡 This might be a DNS configuration issue")
-                        
-                        # Try alternative DNS resolution if configured
-                        if self.s3_config.get('dns', {}).get('servers'):
-                            logger.info(f"🔧 Trying custom DNS servers...")
-                            for dns_server in self.s3_config['dns']['servers']:
-                                try:
-                                    # This is a simplified approach - in practice you'd need a custom resolver
-                                    logger.info(f"   Trying DNS server: {dns_server}")
-                                except Exception as alt_dns_error:
-                                    logger.warning(f"   Failed with {dns_server}: {alt_dns_error}")
-                    
-                    logger.info(f"🔧 Testing connection to {host}:{port}")
-                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    sock.settimeout(5)  # 5 second timeout
-                    result = sock.connect_ex((host, port))
-                    sock.close()
-                    
-                    if result == 0:
-                        logger.info(f"✅ Network connectivity test passed")
-                    else:
-                        logger.warning(f"⚠️  Network connectivity test failed (error code: {result})")
-                        logger.warning(f"💡 This might indicate network issues")
-                        
-                except Exception as net_error:
-                    logger.warning(f"⚠️  Could not test network connectivity: {net_error}")
-            
             # Create S3 client with custom endpoint if specified
             if self.s3_config.get('endpoint_url'):
-                logger.info(f"🔧 Using custom S3 endpoint: {self.s3_config['endpoint_url']}")
-                # Create custom session with DNS configuration
-                session = boto3.Session()
-                
-                # Create S3 client specifically configured for VAST Data compatibility
-                s3_client = session.client(
+                s3_client = boto3.client(
                     's3',
                     endpoint_url=self.s3_config['endpoint_url'],
                     aws_access_key_id=self.s3_config['aws_access_key_id'],
                     aws_secret_access_key=self.s3_config['aws_secret_access_key'],
-                    verify=self.s3_config.get('verify_ssl', False),
-                    use_ssl=self.s3_config.get('use_ssl', False),
-                    # VAST-specific configuration
-                    region_name='us-east-1',  # Required for S3v4 signatures
-                    config=boto3.session.Config(
-                        connect_timeout=self.s3_config.get('connect_timeout', 10),
-                        read_timeout=self.s3_config.get('read_timeout', 30),
-                        retries={'max_attempts': self.s3_config.get('max_attempts', 1)},
-                        # VAST S3 compatibility settings
-                        s3={
-                            'addressing_style': 'path',           # Use path-style addressing
-                            'payload_signing_enabled': False,      # Disable payload signing
-                            'use_accelerate_endpoint': False,      # Disable acceleration
-                            'use_dualstack_endpoint': False,      # Disable dual-stack
-                        },
-                        # Use S3v2 signatures for better compatibility
-                        signature_version='s3',                   # Use S3v2 instead of S3v4
-                        # Disable problematic features
-                        parameter_validation=False,               # Skip parameter validation
-                        user_agent_extra='VASTDataCompatible',   # Identify as VAST-compatible
-                    )
+                    verify=False  # Disable SSL verification for internal endpoints
                 )
             else:
                 # Use default AWS S3
-                logger.info(f"🔧 Using default AWS S3 endpoint")
                 s3_client = boto3.client(
                     's3',
                     aws_access_key_id=self.s3_config['aws_access_key_id'],
                     aws_secret_access_key=self.s3_config['aws_secret_access_key']
                 )
             
-            logger.info(f"🔧 S3 client created, testing connection...")
-            logger.info(f"🔧 Testing bucket access: {self.s3_config['bucket']}")
-            
-            # Test connection with timeout
-            try:
-                s3_client.head_bucket(Bucket=self.s3_config['bucket'])
-                logger.info(f"✅ S3 client initialized successfully")
-                logger.info(f"📦 Connected to bucket: {self.s3_config['bucket']}")
-            except Exception as bucket_error:
-                logger.error(f"❌ Failed to access bucket {self.s3_config['bucket']}: {bucket_error}")
-                logger.error(f"💡 This could mean:")
-                logger.error(f"   - The bucket doesn't exist")
-                logger.error(f"   - The endpoint is not responding")
-                logger.error(f"   - Network connectivity issues")
-                logger.error(f"   - Invalid credentials")
-                raise
+            # Test connection
+            s3_client.head_bucket(Bucket=self.s3_config['bucket'])
+            logger.info(f"✅ S3 client initialized successfully")
+            logger.info(f"📦 Connected to bucket: {self.s3_config['bucket']}")
             
             return s3_client
             
@@ -231,10 +118,6 @@ class SwiftS3Uploader:
             raise
         except Exception as e:
             logger.error(f"❌ Unexpected error during S3 client initialization: {e}")
-            logger.error(f"💡 Check your network connection and S3 endpoint configuration")
-            raise
-        except Exception as e:
-            logger.error(f"❌ Failed to initialize S3 client: {e}")
             raise
     
     def get_available_datasets(self) -> list:
@@ -248,56 +131,20 @@ class SwiftS3Uploader:
         
         for dataset_dir in self.swift_datasets_dir.iterdir():
             if dataset_dir.is_dir():
-                logger.info(f"📁 Found dataset directory: {dataset_dir.name}")
-                
-                # Get all files in the dataset
-                all_files = list(dataset_dir.rglob('*'))
-                data_files = [f for f in all_files if f.is_file()]
-                
                 # Calculate total size
-                total_size = sum(f.stat().st_size for f in data_files)
+                total_size = sum(f.stat().st_size for f in dataset_dir.rglob('*') if f.is_file())
                 total_size_gb = total_size / (1024**3)
                 
-                # Show file breakdown by type
-                file_extensions = {}
-                for file_path in data_files:
-                    ext = file_path.suffix.lower()
-                    file_extensions[ext] = file_extensions.get(ext, 0) + 1
-                
-                logger.info(f"   📊 Dataset: {dataset_dir.name}")
-                logger.info(f"   📁 Total files: {len(data_files)}")
-                logger.info(f"   💾 Total size: {total_size_gb:.2f} GB")
-                
-                # Show file type breakdown
-                if file_extensions:
-                    logger.info(f"   📋 File types:")
-                    for ext, count in sorted(file_extensions.items()):
-                        ext_display = ext if ext else "no extension"
-                        logger.info(f"      {ext_display}: {count} files")
-                
-                # Show sample files (first 5)
-                if data_files:
-                    logger.info(f"   📄 Sample files:")
-                    for file_path in data_files[:5]:
-                        file_size_mb = file_path.stat().st_size / (1024**2)
-                        relative_path = file_path.relative_to(dataset_dir)
-                        logger.info(f"      {relative_path} ({file_size_mb:.2f} MB)")
-                    
-                    if len(data_files) > 5:
-                        logger.info(f"      ... and {len(data_files) - 5} more files")
+                # Count files
+                file_count = sum(1 for f in dataset_dir.rglob('*') if f.is_file())
                 
                 datasets.append({
                     'name': dataset_dir.name,
                     'path': str(dataset_dir),
                     'size_gb': round(total_size_gb, 2),
-                    'file_count': len(data_files),
-                    'file_extensions': file_extensions
+                    'file_count': file_count
                 })
-                
-                logger.info(f"   ✅ Dataset {dataset_dir.name} ready for upload")
-                logger.info("")  # Empty line for readability
         
-        logger.info(f"🎯 Found {len(datasets)} datasets ready for upload")
         return sorted(datasets, key=lambda x: x['size_gb'], reverse=True)
     
     def upload_file_s3(self, local_file: Path, s3_key: str, dry_run: bool = True) -> bool:
@@ -307,170 +154,20 @@ class SwiftS3Uploader:
             
             if dry_run:
                 logger.info(f"📤 [DRY RUN] Would upload: {local_file.name} ({file_size_mb:.2f} MB)")
-                logger.info(f"   To S3 key: {s3_key}")
                 return True
             
             logger.info(f"📤 Uploading: {local_file.name} ({file_size_mb:.2f} MB)")
             
-            # Try multiple upload methods for compatibility
-            upload_success = False
-            
-            # Method 1: put_object with minimal headers
-            try:
-                with open(local_file, 'rb') as file_data:
-                    # Use minimal put_object with only essential parameters
-                    self.s3_client.put_object(
-                        Bucket=self.s3_config['bucket'],
-                        Key=s3_key,
-                        Body=file_data
-                        # Removed ContentType to avoid header issues
-                    )
-                upload_success = True
-                logger.info(f"✅ Upload successful using put_object method")
-                
-            except Exception as method1_error:
-                logger.warning(f"⚠️  Method 1 (put_object) failed: {method1_error}")
-                
-                # Method 2: upload_file with minimal config
-                try:
-                    logger.info(f"🔄 Trying alternative upload method...")
-                    self.s3_client.upload_file(
-                        str(local_file),
-                        self.s3_config['bucket'],
-                        s3_key
-                        # Removed ExtraArgs to avoid header issues
-                    )
-                    upload_success = True
-                    logger.info(f"✅ Upload successful using upload_file method")
-                    
-                except Exception as method2_error:
-                    logger.error(f"❌ All upload methods failed:")
-                    logger.error(f"   Method 1 (put_object): {method1_error}")
-                    logger.error(f"   Method 2 (upload_file): {method2_error}")
-                    
-                    # Method 3: Try with VAST-compatible S3 client
-                    logger.info(f"🔄 Trying VAST-compatible S3 client method...")
-                    try:
-                        # Create a VAST-compatible S3 client
-                        vast_s3 = boto3.client(
-                            's3',
-                            endpoint_url=self.s3_config['endpoint_url'],
-                            aws_access_key_id=self.s3_config['aws_access_key_id'],
-                            aws_secret_access_key=self.s3_config['aws_secret_access_key'],
-                            use_ssl=False,
-                            verify=False,
-                            region_name='us-east-1',
-                            config=boto3.session.Config(
-                                connect_timeout=10,
-                                read_timeout=30,
-                                retries={'max_attempts': 1},
-                                s3={
-                                    'addressing_style': 'path',
-                                    'payload_signing_enabled': False,
-                                    'use_accelerate_endpoint': False,
-                                    'use_dualstack_endpoint': False,
-                                },
-                                signature_version='s3',  # Use S3v2 for better compatibility
-                                parameter_validation=False
-                            )
-                        )
-                        
-                        # Try upload with VAST-compatible client
-                        with open(local_file, 'rb') as file_data:
-                            vast_s3.put_object(
-                                Bucket=self.s3_config['bucket'],
-                                Key=s3_key,
-                                Body=file_data
-                            )
-                        
-                        upload_success = True
-                        logger.info(f"✅ Upload successful using minimal S3 client method")
-                        
-                    except Exception as method3_error:
-                        logger.error(f"   Method 3 (VAST-compatible S3 client): {method3_error}")
-                        
-                        # Method 4: Try direct HTTP upload as absolute last resort
-                        logger.info(f"🔄 Trying direct HTTP upload method (last resort)...")
-                        try:
-                            import requests
-                            import hashlib
-                            import hmac
-                            from datetime import datetime
-                            
-                            # Generate AWS signature manually
-                            timestamp = datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
-                            date = datetime.utcnow().strftime('%Y%m%d')
-                            
-                            # Read file content
-                            with open(local_file, 'rb') as file_data:
-                                file_content = file_data.read()
-                            
-                            # Create canonical request
-                            canonical_uri = f"/{self.s3_config['bucket']}/{s3_key}"
-                            canonical_querystring = ""
-                            canonical_headers = f"host:{self.s3_config['endpoint_url'].replace('http://', '')}\nx-amz-date:{timestamp}\n"
-                            signed_headers = "host;x-amz-date"
-                            
-                            # Create payload hash
-                            payload_hash = hashlib.sha256(file_content).hexdigest()
-                            
-                            canonical_request = f"PUT\n{canonical_uri}\n{canonical_querystring}\n{canonical_headers}\n{signed_headers}\n{payload_hash}"
-                            
-                            # Create string to sign
-                            algorithm = "AWS4-HMAC-SHA256"
-                            credential_scope = f"{date}/us-east-1/s3/aws4_request"
-                            string_to_sign = f"{algorithm}\n{timestamp}\n{credential_scope}\n{hashlib.sha256(canonical_request.encode()).hexdigest()}"
-                            
-                            # Calculate signature
-                            def sign(key, msg):
-                                return hmac.new(key, msg.encode('utf-8'), hashlib.sha256).digest()
-                            
-                            k_date = sign(f"AWS4{self.s3_config['aws_secret_access_key']}".encode('utf-8'), date)
-                            k_region = sign(k_date, 'us-east-1')
-                            k_service = sign(k_region, 's3')
-                            k_signing = sign(k_service, 'aws4_request')
-                            signature = hmac.new(k_signing, string_to_sign.encode('utf-8'), hashlib.sha256).hexdigest()
-                            
-                            # Create authorization header
-                            authorization_header = f"{algorithm} Credential={self.s3_config['aws_access_key_id']}/{credential_scope}, SignedHeaders={signed_headers}, Signature={signature}"
-                            
-                            # Make HTTP request
-                            s3_url = f"{self.s3_config['endpoint_url']}/{self.s3_config['bucket']}/{s3_key}"
-                            headers = {
-                                'Authorization': authorization_header,
-                                'x-amz-date': timestamp,
-                                'x-amz-content-sha256': payload_hash,
-                                'Content-Length': str(len(file_content))
-                            }
-                            
-                            response = requests.put(s3_url, data=file_content, headers=headers, timeout=30)
-                            
-                            if response.status_code in [200, 201]:
-                                upload_success = True
-                                logger.info(f"✅ Upload successful using direct HTTP method")
-                            else:
-                                logger.error(f"❌ Direct HTTP upload failed: {response.status_code} - {response.text}")
-                                
-                        except Exception as method4_error:
-                            logger.error(f"   Method 4 (direct HTTP): {method4_error}")
-                            raise method3_error
-            
-            if not upload_success:
-                raise Exception("All upload methods failed")
+            # Simple upload using upload_file
+            self.s3_client.upload_file(
+                str(local_file),
+                self.s3_config['bucket'],
+                s3_key
+            )
             
             logger.info(f"✅ Successfully uploaded: {local_file.name}")
             return True
             
-        except ClientError as e:
-            error_code = e.response['Error']['Code']
-            if error_code == 'NotImplemented':
-                logger.error(f"❌ Failed to upload {local_file.name}: S3 endpoint doesn't support required functionality")
-                logger.error(f"   Error details: {e}")
-                logger.error(f"   This might be due to unsupported S3 headers or features")
-                return False
-            else:
-                logger.error(f"❌ Failed to upload {local_file.name}: S3 error {error_code}: {e}")
-                return False
         except Exception as e:
             logger.error(f"❌ Failed to upload {local_file.name}: {e}")
             return False
@@ -492,59 +189,32 @@ class SwiftS3Uploader:
         
         if dry_run:
             logger.info("⚠️  DRY RUN MODE: No actual uploads performed")
-            logger.info("📋 Would upload the following files:")
-            
-            # Show detailed file list in dry run mode
-            for i, file_path in enumerate(data_files, 1):
-                relative_path = file_path.relative_to(dataset_path)
-                file_size_mb = file_path.stat().st_size / (1024**2)
-                s3_key = f"{s3_prefix}/{relative_path}"
-                
-                logger.info(f"   {i:3d}. {relative_path}")
-                logger.info(f"       Size: {file_size_mb:.2f} MB")
-                logger.info(f"       S3 Key: {s3_key}")
-            
-            logger.info(f"📊 Total: {len(data_files)} files would be uploaded")
             return {'uploaded': 0, 'failed': 0, 'total': len(data_files)}
         
         # PRODUCTION MODE: Actually upload files
         logger.info(f"🚨 PRODUCTION MODE: Starting actual upload of {len(data_files)} files")
-        logger.info(f"⏱️  Estimated time: {len(data_files) * 0.1:.1f} seconds (with 0.1s delay between files)")
         
         uploaded_count = 0
         failed_count = 0
         
-        # Show progress header
-        logger.info(f"\n📤 UPLOAD PROGRESS:")
-        logger.info(f"{'='*80}")
-        
-        for i, file_path in enumerate(data_files, 1):
+        for file_path in data_files:
             try:
                 # Create S3 key (path in S3)
                 relative_path = file_path.relative_to(dataset_path)
                 s3_key = f"{s3_prefix}/{relative_path}"
-                file_size_mb = file_path.stat().st_size / (1024**2)
-                
-                # Show progress
-                logger.info(f"[{i:3d}/{len(data_files)}] 📤 Uploading: {relative_path}")
-                logger.info(f"       Size: {file_size_mb:.2f} MB | S3 Key: {s3_key}")
                 
                 # Upload file
                 if self.upload_file_s3(file_path, s3_key, dry_run=False):
                     uploaded_count += 1
-                    logger.info(f"       ✅ SUCCESS")
                 else:
                     failed_count += 1
-                    logger.info(f"       ❌ FAILED")
                 
                 # Small delay between uploads
                 time.sleep(0.1)
                 
             except Exception as e:
-                logger.error(f"       ❌ ERROR: {e}")
+                logger.error(f"❌ Error processing {file_path}: {e}")
                 failed_count += 1
-        
-        logger.info(f"{'='*80}")
         
         return {
             'uploaded': uploaded_count,
@@ -553,29 +223,26 @@ class SwiftS3Uploader:
         }
     
     def upload_all_datasets(self, dry_run: bool = True) -> dict:
-        """Upload all available Swift datasets via S3"""
-        logger.info("🚀 Starting Swift dataset S3 upload process...")
+        """Upload all available Swift datasets"""
+        logger.info("🚀 Starting Swift datasets upload process")
         
         # Get available datasets
         datasets = self.get_available_datasets()
+        
         if not datasets:
             logger.warning("⚠️  No datasets found for upload")
             return {'success': 0, 'failed': 0, 'total': 0}
         
-        logger.info(f"📊 Found {len(datasets)} datasets for upload:")
-        for dataset in datasets:
-            logger.info(f"  📁 {dataset['name']}: {dataset['file_count']} files, {dataset['size_gb']} GB")
+        logger.info(f"📊 Found {len(datasets)} datasets ready for upload")
         
         # Upload each dataset
         success_count = 0
         failed_count = 0
-        total_files = 0
-        total_size_gb = 0
         
         for dataset in datasets:
-            logger.info(f"\n{'='*80}")
-            logger.info(f"📤 PROCESSING DATASET: {dataset['name']}")
-            logger.info(f"{'='*80}")
+            logger.info(f"\n{'='*60}")
+            logger.info(f"📤 Processing: {dataset['name']}")
+            logger.info(f"{'='*60}")
             
             # Upload dataset
             result = self.upload_dataset_s3(dataset['path'], dry_run=dry_run)
@@ -588,42 +255,22 @@ class SwiftS3Uploader:
                 logger.error(f"❌ Dataset processing failed: {dataset['name']}")
             
             # Summary for this dataset
-            logger.info(f"\n📊 DATASET SUMMARY: {dataset['name']}")
-            logger.info(f"  ✅ Successfully processed: {result['uploaded']}")
+            logger.info(f"📊 Upload Summary for {dataset['name']}:")
+            logger.info(f"  ✅ Successfully uploaded: {result['uploaded']}")
             logger.info(f"  ❌ Failed: {result['failed']}")
-            logger.info(f"  📊 Total files: {result['total']}")
-            logger.info(f"  💾 Dataset size: {dataset['size_gb']} GB")
-            
-            # Accumulate totals
-            total_files += result['total']
-            total_size_gb += dataset['size_gb']
+            logger.info(f"  📊 Total: {result['total']}")
         
         # Final summary
-        logger.info(f"\n{'='*80}")
-        logger.info("🎯 OVERALL UPLOAD SUMMARY")
-        logger.info(f"{'='*80}")
-        logger.info(f"  📁 Datasets:")
-        logger.info(f"    ✅ Successful: {success_count}")
-        logger.info(f"    ❌ Failed: {failed_count}")
-        logger.info(f"    📊 Total: {len(datasets)}")
-        logger.info(f"  📄 Files:")
-        logger.info(f"    📊 Total files: {total_files}")
-        logger.info(f"    💾 Total size: {total_size_gb:.2f} GB")
-        logger.info(f"  🌐 S3 Details:")
-        logger.info(f"    📦 Bucket: {self.s3_config['bucket']}")
-        logger.info(f"    🔗 Endpoint: {self.s3_config['endpoint_url']}")
-        logger.info(f"    📁 Prefix: {self.s3_config['prefix']}")
+        logger.info(f"\n{'='*60}")
+        logger.info("📊 OVERALL UPLOAD SUMMARY")
+        logger.info(f"{'='*60}")
+        logger.info(f"  ✅ Successful datasets: {success_count}")
+        logger.info(f"  ❌ Failed datasets: {failed_count}")
+        logger.info(f"  📊 Total datasets: {len(datasets)}")
         
         if dry_run:
-            logger.info(f"\n⚠️  This was a DRY RUN - no actual uploads were performed")
-            logger.info(f"💡 Use --pushtoprod to perform actual uploads")
-            logger.info(f"💡 Files would be uploaded to: s3://{self.s3_config['bucket']}/{self.s3_config['prefix']}/")
-        else:
-            logger.info(f"\n🎉 Upload process completed!")
-            if failed_count == 0:
-                logger.info(f"✅ All {len(datasets)} datasets uploaded successfully!")
-            else:
-                logger.info(f"⚠️  {failed_count} datasets had issues")
+            logger.info("⚠️  This was a DRY RUN - no actual uploads were performed")
+            logger.info("💡 Use --pushtoprod to perform actual uploads")
         
         return {
             'success': success_count,
@@ -633,68 +280,46 @@ class SwiftS3Uploader:
 
 def main():
     """Main function"""
-    parser = argparse.ArgumentParser(
-        description='Upload Swift datasets to VAST Data Platform via S3',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Dry run (safe, no actual uploads)
-  python3 upload_swift_to_vast_s3.py
-  
-  # Production mode (actual uploads)
-  python3 upload_swift_to_vast_s3.py --pushtoprod
-  
-  # Custom config file
-  python3 upload_swift_to_vast_s3.py --config my_config.yaml
-        """
-    )
+    import argparse
     
-    parser.add_argument('--pushtoprod', action='store_true',
-                       help='Enable production mode (actual uploads will be performed)')
-    parser.add_argument('--config', type=str, default=None,
-                       help='Path to configuration file (default: config.yaml)')
-    parser.add_argument('--dry-run', action='store_true', default=True,
-                       help='Run in dry-run mode (default: True)')
+    parser = argparse.ArgumentParser(description='Upload Swift datasets to VAST Data Platform via S3')
+    parser.add_argument('--pushtoprod', action='store_true', help='Enable production mode (actual uploads)')
+    parser.add_argument('--config', type=str, help='Path to config file')
     
     args = parser.parse_args()
     
-    # Determine production mode
-    production_mode = args.pushtoprod
-    dry_run = not production_mode
-    
-    if production_mode:
+    if args.pushtoprod:
         print("🚨 WARNING: PRODUCTION MODE ENABLED")
         print("This will perform actual S3 uploads to your VAST system!")
         confirm = input("Type 'YES' to confirm: ")
+        
         if confirm != 'YES':
-            print("Production mode cancelled. Exiting.")
+            print("❌ Production mode not confirmed. Exiting.")
             return
+        
         print("✅ Production mode confirmed. Proceeding with actual S3 uploads...")
+        dry_run = False
     else:
         print("⚠️  DRY RUN MODE: No actual uploads will be performed")
-        print("💡 Use --pushtoprod to enable production mode")
+        dry_run = True
     
     try:
-        # Initialize S3 uploader
-        uploader = SwiftS3Uploader(args.config, production_mode)
+        # Create uploader
+        uploader = SwiftUploader(config_path=args.config, production_mode=args.pushtoprod)
         
-        # Perform uploads
-        results = uploader.upload_all_datasets(dry_run=dry_run)
+        # Upload all datasets
+        result = uploader.upload_all_datasets(dry_run=dry_run)
         
-        if results['failed'] == 0:
-            print(f"\n🎉 S3 upload process completed successfully!")
-            print(f"   Processed: {results['total']} datasets")
+        if result['failed'] == 0:
+            print(f"🎉 Upload process completed successfully!")
         else:
-            print(f"\n⚠️  S3 upload process completed with {results['failed']} failures")
-            print(f"   Successful: {results['success']}")
-            print(f"   Failed: {results['failed']}")
-            print(f"   Total: {results['total']}")
-        
-    except KeyboardInterrupt:
-        print("\n⚠️  Upload process interrupted by user")
+            print(f"⚠️  Upload process completed with {result['failed']} failures")
+            
     except Exception as e:
         logger.error(f"❌ S3 upload process failed: {e}")
-        sys.exit(1)
+        return 1
+    
+    return 0
 
 if __name__ == "__main__":
-    main()
+    exit(main())
