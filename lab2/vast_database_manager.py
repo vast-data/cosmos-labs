@@ -62,7 +62,7 @@ class VASTDatabaseManager:
             return False
     
     def database_exists(self) -> bool:
-        """Check if the target database exists"""
+        """Check if the target bucket exists in VAST DB"""
         if not VASTDB_AVAILABLE:
             logger.warning("⚠️  vastdb not available - mock database exists check")
             return False  # Mock: database doesn't exist
@@ -72,25 +72,20 @@ class VASTDatabaseManager:
                 if not self.connect():
                     return False
             
-            # Query to check if database exists
-            cursor = self.connection.cursor()
-            cursor.execute("""
-                SELECT 1 FROM pg_database 
-                WHERE datname = %s
-            """, (self.database_name,))
-            
-            exists = cursor.fetchone() is not None
-            cursor.close()
-            
-            if exists:
-                logger.info(f"✅ Database '{self.database_name}' exists")
-            else:
-                logger.info(f"ℹ️  Database '{self.database_name}' does not exist")
-            
-            return exists
+            # Check if bucket exists using VAST DB API
+            with self.connection.transaction() as tx:
+                try:
+                    bucket = tx.bucket(self.database_name)
+                    # Try to list schemas to verify bucket exists
+                    schemas = bucket.schemas()
+                    logger.info(f"✅ Bucket '{self.database_name}' exists with {len(schemas)} schemas")
+                    return True
+                except Exception:
+                    logger.info(f"ℹ️  Bucket '{self.database_name}' does not exist")
+                    return False
             
         except Exception as e:
-            logger.error(f"❌ Error checking database existence: {e}")
+            logger.error(f"❌ Error checking bucket existence: {e}")
             return False
     
     def create_schema_and_table(self) -> bool:
