@@ -113,7 +113,7 @@ class SwiftUploader:
                     # VAST-specific configuration to avoid unsupported features
                     config=boto3.session.Config(
                         s3={'addressing_style': 'path'},  # Use path-style addressing
-                        signature_version='s3',            # Use S3v2 signatures (more compatible)
+                        signature_version='s3v4',          # Use S3v4 signatures (more compatible)
                         parameter_validation=False,        # Skip parameter validation
                         # Disable features that cause header issues
                         user_agent_extra='VASTCompatible'
