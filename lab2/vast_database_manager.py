@@ -35,8 +35,8 @@ class VASTDatabaseManager:
         
         # Database connection parameters for vastdb (using S3 credentials)
         self.db_config = {
-            'access': config.get('s3.access_key') or config.get_secret('s3_access_key'),
-            'secret': config.get('s3.secret_key') or config.get_secret('s3_secret_key'),
+            'access': config.get_secret('s3_access_key'),
+            'secret': config.get_secret('s3_secret_key'),
             'endpoint': config.get('lab2.vastdb.endpoint', 'http://localhost:8080'),
             'ssl_verify': config.get('lab2.vastdb.ssl_verify', True),
             'timeout': config.get('lab2.vastdb.timeout', 30)
