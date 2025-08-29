@@ -103,14 +103,18 @@ class SwiftUploader:
         try:
             # Create S3 client with custom endpoint if specified
             if self.s3_config.get('endpoint_url'):
-                # Use absolute minimal configuration - no custom config at all
+                # Use official VAST-recommended boto3 configuration
                 s3_client = boto3.client(
                     's3',
+                    use_ssl=False,  # VAST docs specify use_ssl=False, not verify=False
                     endpoint_url=self.s3_config['endpoint_url'],
                     aws_access_key_id=self.s3_config['aws_access_key_id'],
                     aws_secret_access_key=self.s3_config['aws_secret_access_key'],
-                    verify=False  # Disable SSL verification for internal endpoints
-                    # NO custom config - let boto3 use defaults
+                    region_name='us-east-1',  # VAST docs require region_name
+                    config=boto3.session.Config(
+                        signature_version='s3v4',
+                        s3={'addressing_style': 'path'}
+                    )
                 )
             else:
                 # Use default AWS S3
