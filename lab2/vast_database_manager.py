@@ -400,6 +400,54 @@ class VASTDatabaseManager:
             logger.error(f"❌ Failed to get metadata stats: {e}")
             return {}
     
+    def clear_all_tables(self) -> bool:
+        """Clear all data from metadata tables while preserving structure"""
+        try:
+            if not VASTDB_AVAILABLE:
+                logger.warning("⚠️  vastdb not available - mock table clearing")
+                return True
+            
+            cursor = self.connection.cursor()
+            
+            # Clear the main metadata table
+            cursor.execute(f"DELETE FROM {self.schema_name}.swift_metadata")
+            deleted_count = cursor.rowcount
+            
+            # Reset sequence if it exists
+            cursor.execute(f"ALTER SEQUENCE {self.schema_name}.swift_metadata_id_seq RESTART WITH 1")
+            
+            self.connection.commit()
+            cursor.close()
+            
+            logger.info(f"✅ Cleared {deleted_count} records from metadata tables")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to clear tables: {e}")
+            if self.connection and VASTDB_AVAILABLE:
+                self.connection.rollback()
+            return False
+    
+    def remove_database(self) -> bool:
+        """Remove the entire database (DESTRUCTIVE OPERATION)"""
+        try:
+            if not VASTDB_AVAILABLE:
+                logger.warning("⚠️  vastdb not available - mock database removal")
+                return True
+            
+            cursor = self.connection.cursor()
+            
+            # Drop the database (requires connection to a different database)
+            cursor.execute(f"DROP DATABASE IF EXISTS {self.database_name}")
+            
+            cursor.close()
+            logger.info(f"✅ Database '{self.database_name}' removed successfully")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to remove database: {e}")
+            return False
+    
     def close(self):
         """Close database connection"""
         if self.connection and VASTDB_AVAILABLE:
