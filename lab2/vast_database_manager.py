@@ -13,10 +13,8 @@ from pathlib import Path
 
 try:
     import vastdb
-    # Only import what's actually available in vastdb
     VASTDB_AVAILABLE = True
     print(f"✅ vastdb imported successfully: {vastdb}")
-    print(f"Available vastdb attributes: {[attr for attr in dir(vastdb) if not attr.startswith('_')]}")
 except ImportError as e:
     print(f"⚠️  vastdb not found. ImportError: {e}")
     print("💡 This is required for Lab 2 database functionality")
@@ -34,14 +32,13 @@ class VASTDatabaseManager:
         self.database_name = config.get('lab2.vastdb.database', 'orbital_dynamics_metadata')
         self.schema_name = config.get('lab2.vastdb.schema', 'satellite_observations')
         
-        # Database connection parameters
+        # Database connection parameters for vastdb (using S3 credentials)
         self.db_config = {
-            'host': config.get('lab2.vastdb.host', 'localhost'),
-            'port': config.get('lab2.vastdb.port', 5432),
-            'database': self.database_name,
-            'user': config.get('lab2.vastdb.user', 'vast'),
-            'password': config.get_secret('lab2.vastdb_password') or 'vastdata',  # Use default if not set
-            'schema': self.schema_name
+            'access': config.get('s3.access_key') or config.get_secret('s3_access_key'),
+            'secret': config.get('s3.secret_key') or config.get_secret('s3_secret_key'),
+            'endpoint': config.get('lab2.vastdb.endpoint', 'http://localhost:8080'),
+            'ssl_verify': config.get('lab2.vastdb.ssl_verify', True),
+            'timeout': config.get('lab2.vastdb.timeout', 30)
         }
         
         self.connection = None
@@ -55,12 +52,9 @@ class VASTDatabaseManager:
             return True
             
         try:
-            # Test connection without specifying database (to check if server is accessible)
-            test_config = self.db_config.copy()
-            test_config['database'] = 'postgres'  # Default database
-            
-            self.connection = vastdb.connect(**test_config)
-            logger.info(f"✅ Connected to VAST Database server at {self.db_config['host']}:{self.db_config['port']}")
+            # Connect to VAST Database using the correct parameters
+            self.connection = vastdb.connect(**self.db_config)
+            logger.info(f"✅ Connected to VAST Database at {self.db_config['endpoint']}")
             return True
             
         except Exception as e:
@@ -99,29 +93,47 @@ class VASTDatabaseManager:
             logger.error(f"❌ Error checking database existence: {e}")
             return False
     
-    def create_database(self) -> bool:
-        """Create the target database if it doesn't exist"""
+    def create_schema_and_table(self) -> bool:
+        """Create the target schema and table if they don't exist"""
         try:
-            if self.database_exists():
-                logger.info(f"ℹ️  Database '{self.database_name}' already exists")
+            if not self.connection:
+                if not self.connect():
+                    return False
+            
+            # Use VAST DB transaction to create schema and table
+            with self.connection.transaction() as tx:
+                # Get or create bucket (using database name as bucket)
+                bucket = tx.bucket(self.database_name)
+                
+                # Create schema
+                schema = bucket.create_schema(self.schema_name)
+                logger.info(f"✅ Created schema '{self.schema_name}' in bucket '{self.database_name}'")
+                
+                # Create table with metadata columns (matching the insert_metadata method)
+                import pyarrow as pa
+                columns = pa.schema([
+                    ('file_path', pa.utf8()),
+                    ('file_name', pa.utf8()),
+                    ('file_size_bytes', pa.int64()),
+                    ('file_format', pa.utf8()),
+                    ('dataset_name', pa.utf8()),
+                    ('mission_id', pa.utf8()),
+                    ('satellite_name', pa.utf8()),
+                    ('instrument_type', pa.utf8()),
+                    ('observation_timestamp', pa.timestamp('us')),
+                    ('target_object', pa.utf8()),
+                    ('processing_status', pa.utf8()),
+                    ('ingestion_timestamp', pa.timestamp('us')),
+                    ('metadata_version', pa.utf8()),
+                ])
+                
+                table = schema.create_table("swift_metadata", columns)
+                logger.info(f"✅ Created table 'swift_metadata' in schema '{self.schema_name}'")
+                
                 return True
-            
-            # Create database
-            cursor = self.connection.cursor()
-            cursor.execute(f"CREATE DATABASE {self.database_name}")
-            cursor.close()
-            
-            logger.info(f"✅ Created database '{self.database_name}'")
-            
-            # Reconnect to the new database
-            self.connection.close()
-            self.db_config['database'] = self.database_name
-            self.connection = vastdb.connect(**self.db_config)
-            
-            return True
-            
+                
         except Exception as e:
-            logger.error(f"❌ Failed to create database: {e}")
+            logger.error(f"❌ Failed to create schema and table: {e}")
             return False
     
     def schema_exists(self) -> bool:
@@ -272,53 +284,54 @@ class VASTDatabaseManager:
             return False
     
     def insert_metadata(self, metadata: Dict[str, Any]) -> bool:
-        """Insert metadata into the database"""
-        try:
-            cursor = self.connection.cursor()
-            
-            # Prepare the insert statement
-            columns = [
-                'file_path', 'file_name', 'file_size_bytes', 'file_format', 'dataset_name',
-                'mission_id', 'satellite_name', 'instrument_type', 'observation_timestamp',
-                'target_object', 'processing_status', 'ingestion_timestamp', 'metadata_version'
-            ]
-            
-            placeholders = ', '.join(['%s'] * len(columns))
-            column_names = ', '.join(columns)
-            
-            insert_sql = f"""
-                INSERT INTO {self.schema_name}.swift_metadata 
-                ({column_names}) VALUES ({placeholders})
-            """
-            
-            # Prepare values in the correct order
-            values = [
-                metadata.get('file_path'),
-                metadata.get('file_name'),
-                metadata.get('file_size_bytes'),
-                metadata.get('file_format'),
-                metadata.get('dataset_name'),
-                metadata.get('mission_id'),
-                metadata.get('satellite_name'),
-                metadata.get('instrument_type'),
-                metadata.get('observation_timestamp'),
-                metadata.get('target_object'),
-                metadata.get('processing_status'),
-                metadata.get('ingestion_timestamp'),
-                metadata.get('metadata_version', '1.0')
-            ]
-            
-            cursor.execute(insert_sql, values)
-            self.connection.commit()
-            cursor.close()
-            
-            logger.info(f"✅ Inserted metadata for: {metadata.get('file_name')}")
+        """Insert metadata into the database using VAST DB"""
+        if not VASTDB_AVAILABLE:
+            logger.warning("⚠️  vastdb not available - mock metadata insertion")
             return True
             
+        try:
+            if not self.connection:
+                if not self.connect():
+                    return False
+            
+            # Use VAST DB transaction to insert metadata
+            with self.connection.transaction() as tx:
+                bucket = tx.bucket(self.database_name)
+                schema = bucket.schema(self.schema_name)
+                table = schema.table("swift_metadata")
+                
+                # Convert metadata to PyArrow format
+                import pyarrow as pa
+                import json
+                
+                # Prepare data for insertion (matching the table schema)
+                data = [
+                    [
+                        metadata.get('file_path', ''),
+                        metadata.get('file_name', ''),
+                        metadata.get('file_size_bytes', 0),
+                        metadata.get('file_format', ''),
+                        metadata.get('dataset_name', ''),
+                        metadata.get('mission_id', ''),
+                        metadata.get('satellite_name', ''),
+                        metadata.get('instrument_type', ''),
+                        metadata.get('observation_timestamp', datetime.now()),
+                        metadata.get('target_object', ''),
+                        metadata.get('processing_status', ''),
+                        metadata.get('ingestion_timestamp', datetime.now()),
+                        metadata.get('metadata_version', '1.0')
+                    ]
+                ]
+                
+                # Create PyArrow table and insert
+                arrow_table = pa.table(data=data, schema=table.columns())
+                table.insert(arrow_table)
+                logger.info(f"✅ Inserted metadata for: {metadata.get('file_name')}")
+                
+                return True
+                
         except Exception as e:
             logger.error(f"❌ Failed to insert metadata: {e}")
-            if self.connection:
-                self.connection.rollback()
             return False
     
     def search_metadata(self, search_criteria: Dict[str, Any]) -> List[Dict[str, Any]]:
