@@ -163,25 +163,32 @@ class SwiftS3Uploader:
                 # Create custom session with DNS configuration
                 session = boto3.Session()
                 
-                # Create S3 client with minimal configuration for compatibility
+                # Create S3 client specifically configured for VAST Data compatibility
                 s3_client = session.client(
                     's3',
                     endpoint_url=self.s3_config['endpoint_url'],
                     aws_access_key_id=self.s3_config['aws_access_key_id'],
                     aws_secret_access_key=self.s3_config['aws_secret_access_key'],
-                    verify=self.s3_config.get('verify_ssl', False),  # SSL verification (for HTTPS)
-                    use_ssl=self.s3_config.get('use_ssl', False),   # Use SSL/TLS encryption
+                    verify=self.s3_config.get('verify_ssl', False),
+                    use_ssl=self.s3_config.get('use_ssl', False),
+                    # VAST-specific configuration
+                    region_name='us-east-1',  # Required for S3v4 signatures
                     config=boto3.session.Config(
-                        connect_timeout=self.s3_config.get('connect_timeout', 10),  # Use config setting
-                        read_timeout=self.s3_config.get('read_timeout', 30),       # Use config setting
-                        retries={'max_attempts': self.s3_config.get('max_attempts', 1)},  # Use config setting
-                        # Minimal S3 configuration to avoid unsupported features
-                        s3={'addressing_style': 'path'},  # Use path-style addressing
-                        signature_version='s3v4',          # Use S3v4 signatures
-                        # Disable features that might cause header issues
-                        parameter_validation=False,        # Skip parameter validation
-                        # Custom DNS configuration
-                        user_agent_extra='VASTCompatible',
+                        connect_timeout=self.s3_config.get('connect_timeout', 10),
+                        read_timeout=self.s3_config.get('read_timeout', 30),
+                        retries={'max_attempts': self.s3_config.get('max_attempts', 1)},
+                        # VAST S3 compatibility settings
+                        s3={
+                            'addressing_style': 'path',           # Use path-style addressing
+                            'payload_signing_enabled': False,      # Disable payload signing
+                            'use_accelerate_endpoint': False,      # Disable acceleration
+                            'use_dualstack_endpoint': False,      # Disable dual-stack
+                        },
+                        # Use S3v2 signatures for better compatibility
+                        signature_version='s3',                   # Use S3v2 instead of S3v4
+                        # Disable problematic features
+                        parameter_validation=False,               # Skip parameter validation
+                        user_agent_extra='VASTDataCompatible',   # Identify as VAST-compatible
                     )
                 )
             else:
@@ -341,30 +348,36 @@ class SwiftS3Uploader:
                     logger.error(f"   Method 1 (put_object): {method1_error}")
                     logger.error(f"   Method 2 (upload_file): {method2_error}")
                     
-                    # Method 3: Try with completely minimal S3 client
-                    logger.info(f"🔄 Trying minimal S3 client method...")
+                    # Method 3: Try with VAST-compatible S3 client
+                    logger.info(f"🔄 Trying VAST-compatible S3 client method...")
                     try:
-                        # Create a completely minimal S3 client
-                        minimal_s3 = boto3.client(
+                        # Create a VAST-compatible S3 client
+                        vast_s3 = boto3.client(
                             's3',
                             endpoint_url=self.s3_config['endpoint_url'],
                             aws_access_key_id=self.s3_config['aws_access_key_id'],
                             aws_secret_access_key=self.s3_config['aws_secret_access_key'],
                             use_ssl=False,
                             verify=False,
+                            region_name='us-east-1',
                             config=boto3.session.Config(
                                 connect_timeout=10,
                                 read_timeout=30,
                                 retries={'max_attempts': 1},
-                                s3={'addressing_style': 'path'},
-                                signature_version='s3v4',
+                                s3={
+                                    'addressing_style': 'path',
+                                    'payload_signing_enabled': False,
+                                    'use_accelerate_endpoint': False,
+                                    'use_dualstack_endpoint': False,
+                                },
+                                signature_version='s3',  # Use S3v2 for better compatibility
                                 parameter_validation=False
                             )
                         )
                         
-                        # Try upload with minimal client
+                        # Try upload with VAST-compatible client
                         with open(local_file, 'rb') as file_data:
-                            minimal_s3.put_object(
+                            vast_s3.put_object(
                                 Bucket=self.s3_config['bucket'],
                                 Key=s3_key,
                                 Body=file_data
@@ -374,8 +387,73 @@ class SwiftS3Uploader:
                         logger.info(f"✅ Upload successful using minimal S3 client method")
                         
                     except Exception as method3_error:
-                        logger.error(f"   Method 3 (minimal S3 client): {method3_error}")
-                        raise method2_error
+                        logger.error(f"   Method 3 (VAST-compatible S3 client): {method3_error}")
+                        
+                        # Method 4: Try direct HTTP upload as absolute last resort
+                        logger.info(f"🔄 Trying direct HTTP upload method (last resort)...")
+                        try:
+                            import requests
+                            import hashlib
+                            import hmac
+                            from datetime import datetime
+                            
+                            # Generate AWS signature manually
+                            timestamp = datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
+                            date = datetime.utcnow().strftime('%Y%m%d')
+                            
+                            # Read file content
+                            with open(local_file, 'rb') as file_data:
+                                file_content = file_data.read()
+                            
+                            # Create canonical request
+                            canonical_uri = f"/{self.s3_config['bucket']}/{s3_key}"
+                            canonical_querystring = ""
+                            canonical_headers = f"host:{self.s3_config['endpoint_url'].replace('http://', '')}\nx-amz-date:{timestamp}\n"
+                            signed_headers = "host;x-amz-date"
+                            
+                            # Create payload hash
+                            payload_hash = hashlib.sha256(file_content).hexdigest()
+                            
+                            canonical_request = f"PUT\n{canonical_uri}\n{canonical_querystring}\n{canonical_headers}\n{signed_headers}\n{payload_hash}"
+                            
+                            # Create string to sign
+                            algorithm = "AWS4-HMAC-SHA256"
+                            credential_scope = f"{date}/us-east-1/s3/aws4_request"
+                            string_to_sign = f"{algorithm}\n{timestamp}\n{credential_scope}\n{hashlib.sha256(canonical_request.encode()).hexdigest()}"
+                            
+                            # Calculate signature
+                            def sign(key, msg):
+                                return hmac.new(key, msg.encode('utf-8'), hashlib.sha256).digest()
+                            
+                            k_date = sign(f"AWS4{self.s3_config['aws_secret_access_key']}".encode('utf-8'), date)
+                            k_region = sign(k_date, 'us-east-1')
+                            k_service = sign(k_region, 's3')
+                            k_signing = sign(k_service, 'aws4_request')
+                            signature = hmac.new(k_signing, string_to_sign.encode('utf-8'), hashlib.sha256).hexdigest()
+                            
+                            # Create authorization header
+                            authorization_header = f"{algorithm} Credential={self.s3_config['aws_access_key_id']}/{credential_scope}, SignedHeaders={signed_headers}, Signature={signature}"
+                            
+                            # Make HTTP request
+                            s3_url = f"{self.s3_config['endpoint_url']}/{self.s3_config['bucket']}/{s3_key}"
+                            headers = {
+                                'Authorization': authorization_header,
+                                'x-amz-date': timestamp,
+                                'x-amz-content-sha256': payload_hash,
+                                'Content-Length': str(len(file_content))
+                            }
+                            
+                            response = requests.put(s3_url, data=file_content, headers=headers, timeout=30)
+                            
+                            if response.status_code in [200, 201]:
+                                upload_success = True
+                                logger.info(f"✅ Upload successful using direct HTTP method")
+                            else:
+                                logger.error(f"❌ Direct HTTP upload failed: {response.status_code} - {response.text}")
+                                
+                        except Exception as method4_error:
+                            logger.error(f"   Method 4 (direct HTTP): {method4_error}")
+                            raise method3_error
             
             if not upload_success:
                 raise Exception("All upload methods failed")
