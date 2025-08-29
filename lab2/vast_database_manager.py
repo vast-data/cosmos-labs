@@ -101,9 +101,14 @@ class VASTDatabaseManager:
                 if not self.connect():
                     return False
             
+            # First, try to create the bucket using S3 operations if it doesn't exist
+            if not self._ensure_bucket_exists():
+                logger.error(f"❌ Failed to ensure bucket '{self.bucket_name}' exists")
+                return False
+            
             # Use VAST DB transaction to create schema and table
             with self.connection.transaction() as tx:
-                # Get or create bucket (using the same bucket as S3)
+                # Get or create bucket
                 bucket = tx.bucket(self.bucket_name)
                 
                 # Create schema
@@ -135,6 +140,42 @@ class VASTDatabaseManager:
                 
         except Exception as e:
             logger.error(f"❌ Failed to create schema and table: {e}")
+            return False
+    
+    def _ensure_bucket_exists(self) -> bool:
+        """Ensure the target bucket exists, create it if needed"""
+        try:
+            # Import boto3 for S3 operations
+            import boto3
+            
+            # Create S3 client using the same credentials
+            s3_client = boto3.client(
+                's3',
+                endpoint_url=self.db_config['endpoint'],
+                aws_access_key_id=self.db_config['access'],
+                aws_secret_access_key=self.db_config['secret'],
+                region_name='us-east-1',
+                use_ssl=False,
+                config=boto3.session.Config(
+                    signature_version='s3v4',
+                    s3={'addressing_style': 'path'}
+                )
+            )
+            
+            # Check if bucket exists
+            try:
+                s3_client.head_bucket(Bucket=self.bucket_name)
+                logger.info(f"✅ Bucket '{self.bucket_name}' already exists")
+                return True
+            except Exception:
+                # Bucket doesn't exist, create it
+                logger.info(f"🔧 Creating bucket '{self.bucket_name}'...")
+                s3_client.create_bucket(Bucket=self.bucket_name)
+                logger.info(f"✅ Created bucket '{self.bucket_name}' successfully")
+                return True
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to ensure bucket exists: {e}")
             return False
     
     def schema_exists(self) -> bool:
