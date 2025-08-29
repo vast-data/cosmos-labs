@@ -50,8 +50,9 @@ class LabEnvironmentCleaner:
         if config_path is None:
             project_root = Path(__file__).parent.parent
             config_path = str(project_root / "config.yaml")
+            secrets_path = str(project_root / "secrets.yaml")
         
-        self.config = ConfigLoader(config_path)
+        self.config = ConfigLoader(config_path, secrets_path)
         
         # Initialize S3 client if needed
         self.s3_client = None
