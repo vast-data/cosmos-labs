@@ -183,36 +183,21 @@ class SwiftUploader:
             
             logger.info(f"📤 Uploading: {local_file.name} ({file_size_mb:.2f} MB)")
             
-            # Try simple upload first
+            # Use only put_object() as documented in VAST docs
             try:
-                self.s3_client.upload_file(
-                    str(local_file),
-                    self.s3_config['bucket'],
-                    s3_key
-                )
+                with open(local_file, 'rb') as file_data:
+                    self.s3_client.put_object(
+                        Bucket=self.s3_config['bucket'],
+                        Key=s3_key,
+                        Body=file_data
+                        # No extra parameters - use minimal put_object as per VAST docs
+                    )
                 logger.info(f"✅ Successfully uploaded: {local_file.name}")
                 return True
                 
-            except Exception as upload_error:
-                # If upload_file fails, try put_object with minimal parameters
-                logger.warning(f"⚠️  upload_file failed, trying put_object: {upload_error}")
-                
-                try:
-                    with open(local_file, 'rb') as file_data:
-                        self.s3_client.put_object(
-                            Bucket=self.s3_config['bucket'],
-                            Key=s3_key,
-                            Body=file_data
-                            # No extra parameters to avoid header issues
-                        )
-                    logger.info(f"✅ Successfully uploaded using put_object: {local_file.name}")
-                    return True
-                    
-                except Exception as put_error:
-                    logger.error(f"❌ Both upload methods failed:")
-                    logger.error(f"   upload_file: {upload_error}")
-                    logger.error(f"   put_object: {put_error}")
-                    raise put_error
+            except Exception as put_error:
+                logger.error(f"❌ put_object failed: {put_error}")
+                raise put_error
             
         except Exception as e:
             logger.error(f"❌ Failed to upload {local_file.name}: {e}")
