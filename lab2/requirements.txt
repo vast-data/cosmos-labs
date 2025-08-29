@@ -10,5 +10,8 @@ pyyaml>=6.0
 # Metadata catalog functionality
 vastdb>=0.1.0
 
+# Astronomical data processing
+astropy>=5.0.0  # For FITS file handling
+
 # Note: Install full dependencies with: pip install -r ../requirements.txt
 # This file contains only the minimal dependencies needed for Lab 2 

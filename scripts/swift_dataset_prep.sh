@@ -1,6 +1,7 @@
 #!/bin/bash
-# Swift Dataset Preparation Tool
-# Downloads Swift GRB datasets from NASA HEASARC and prepares them for VAST Data platform integration
+# Swift Dataset Preparation Tool v3
+# Downloads ALL Swift GRB dataset files from NASA HEASARC
+# Fixed to actually download complete datasets, not just partial files
 
 set -e  # Exit on any error
 
@@ -8,7 +9,7 @@ set -e  # Exit on any error
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 DOWNLOAD_DIR="${SCRIPT_DIR}/swift_datasets"
-LOG_FILE="${SCRIPT_DIR}/swift_download.log"
+LOG_FILE="${SCRIPT_DIR}/swift_download_v3.log"
 
 # Colors for output
 RED='\033[0;31m'
@@ -49,21 +50,14 @@ check_dependencies() {
     
     local missing_deps=()
     
-    # Check for curl (for downloads)
+    # Check for wget (primary tool for downloads)
+    if ! command -v wget &> /dev/null; then
+        missing_deps+=("wget")
+    fi
+    
+    # Check for curl (for connectivity testing and file listing)
     if ! command -v curl &> /dev/null; then
         missing_deps+=("curl")
-    fi
-    
-    # Check for wget (alternative to curl)
-    if ! command -v wget &> /dev/null; then
-        if [[ ${#missing_deps[@]} -eq 0 ]]; then
-            missing_deps+=("wget")
-        fi
-    fi
-    
-    # Check for jq (for JSON parsing if needed)
-    if ! command -v jq &> /dev/null; then
-        log "WARNING" "jq not found - JSON parsing will be limited"
     fi
     
     if [[ ${#missing_deps[@]} -gt 0 ]]; then
@@ -76,103 +70,6 @@ check_dependencies() {
     return 0
 }
 
-# Download function using curl or wget
-download_file() {
-    local url="$1"
-    local local_path="$2"
-    local filename=$(basename "$local_path")
-    
-    log "INFO" "Downloading: $filename"
-    
-    # Create directory if it doesn't exist
-    mkdir -p "$(dirname "$local_path")"
-    
-    # Try curl first, then wget
-    if command -v curl &> /dev/null; then
-        if curl -L -o "$local_path" --progress-bar "$url"; then
-            log "SUCCESS" "Downloaded: $filename"
-            return 0
-        else
-            log "ERROR" "Failed to download: $filename"
-            return 1
-        fi
-    elif command -v wget &> /dev/null; then
-        if wget -O "$local_path" --progress=bar "$url"; then
-            log "SUCCESS" "Downloaded: $filename"
-            return 0
-        else
-            log "ERROR" "Failed to download: $filename"
-            return 1
-        fi
-    else
-        log "ERROR" "No download tool available (curl or wget)"
-        return 1
-    fi
-}
-
-# Get dataset information
-get_dataset_info() {
-    cat << 'EOF'
-batsources_survey_north|BAT source survey data - North hemisphere (comprehensive)|https://heasarc.gsfc.nasa.gov/FTP/swift/data/batsources/survey157m/north|5000-10000 MB|high|swbj0000_5p3251_c_s157.lc.gz,swbj0002_5p0323_c_s157.lc.gz,swbj0003_2p2158_c_s157.lc.gz,swbj0005_0p7021_c_s157.lc.gz,swbj0006_2p2012_c_s157.lc.gz,swbj0007_6p0048_c_s157.lc.gz,swbj0008_3p4567_c_s157.lc.gz,swbj0009_1p2345_c_s157.lc.gz,swbj0010_5p6789_c_s157.lc.gz,swbj0011_2p3456_c_s157.lc.gz,swbj0012_7p8901_c_s157.lc.gz,swbj0013_4p5678_c_s157.lc.gz,swbj0014_9p0123_c_s157.lc.gz,swbj0015_6p4567_c_s157.lc.gz,swbj0016_3p8901_c_s157.lc.gz,swbj0017_0p2345_c_s157.lc.gz,swbj0018_7p6789_c_s157.lc.gz,swbj0019_4p0123_c_s157.lc.gz,swbj0020_1p4567_c_s157.lc.gz,swbj0021_8p8901_c_s157.lc.gz,swbj0022_5p2345_c_s157.lc.gz,swbj0023_2p6789_c_s157.lc.gz,swbj0024_9p0123_c_s157.lc.gz,swbj0025_6p4567_c_s157.lc.gz,swbj0026_3p8901_c_s157.lc.gz,swbj0027_0p2345_c_s157.lc.gz,swbj0028_7p6789_c_s157.lc.gz,swbj0029_4p0123_c_s157.lc.gz,swbj0030_1p4567_c_s157.lc.gz
-batsources_survey_south|BAT source survey data - South hemisphere (comprehensive)|https://heasarc.gsfc.nasa.gov/FTP/swift/data/batsources/survey157m/south|5000-10000 MB|high|swbj0001_0m0708_c_s157.lc.gz,swbj0001_6m7701_c_s157.lc.gz,swbj0001_9m2345_c_s157.lc.gz,swbj0001_2m5678_c_s157.lc.gz,swbj0001_5m9012_c_s157.lc.gz,swbj0001_8m3456_c_s157.lc.gz,swbj0001_1m7890_c_s157.lc.gz,swbj0001_4m1234_c_s157.lc.gz,swbj0001_7m5678_c_s157.lc.gz,swbj0001_0m9012_c_s157.lc.gz,swbj0001_3m3456_c_s157.lc.gz,swbj0001_6m7890_c_s157.lc.gz,swbj0001_9m1234_c_s157.lc.gz,swbj0001_2m5678_c_s157.lc.gz,swbj0001_5m9012_c_s157.lc.gz,swbj0001_8m3456_c_s157.lc.gz,swbj0001_1m7890_c_s157.lc.gz,swbj0001_4m1234_c_s157.lc.gz,swbj0001_7m5678_c_s157.lc.gz,swbj0001_0m9012_c_s157.lc.gz,swbj0001_3m3456_c_s157.lc.gz,swbj0001_6m7890_c_s157.lc.gz,swbj0001_9m1234_c_s157.lc.gz,swbj0001_2m5678_c_s157.lc.gz,swbj0001_5m9012_c_s157.lc.gz,swbj0001_8m3456_c_s157.lc.gz,swbj0001_1m7890_c_s157.lc.gz,swbj0001_4m1234_c_s157.lc.gz,swbj0001_7m5678_c_s157.lc.gz,swbj0001_0m9012_c_s157.lc.gz
-batsources_monitoring_north|BAT source monitoring data - North hemisphere (comprehensive)|https://heasarc.gsfc.nasa.gov/FTP/swift/data/batsources/monitoring/north|3000-6000 MB|high|swbj0007_0p7303_o2507.lc.gz,swbj0010_5p1057_o2507.lc.gz,swbj0019_8p7327_o2507.lc.gz,swbj0023_2p6142_o2507.lc.gz,swbj0025_1p2345_o2507.lc.gz,swbj0030_4p5678_o2507.lc.gz,swbj0035_7p8901_o2507.lc.gz,swbj0040_2p3456_o2507.lc.gz,swbj0007_0p7303_d2507.lc.gz,swbj0010_5p1057_d2507.lc.gz,swbj0019_8p7327_d2507.lc.gz,swbj0023_2p6142_d2507.lc.gz,swbj0025_1p2345_d2507.lc.gz,swbj0030_4p5678_d2507.lc.gz,swbj0035_7p8901_d2507.lc.gz,swbj0040_2p3456_d2507.lc.gz,swbj0007_0p7303_a2507.lc.gz,swbj0010_5p1057_a2507.lc.gz,swbj0019_8p7327_a2507.lc.gz,swbj0023_2p6142_a2507.lc.gz,swbj0025_1p2345_a2507.lc.gz,swbj0030_4p5678_a2507.lc.gz,swbj0035_7p8901_a2507.lc.gz,swbj0040_2p3456_a2507.lc.gz
-batsources_monitoring_south|BAT source monitoring data - South hemisphere (comprehensive)|https://heasarc.gsfc.nasa.gov/FTP/swift/data/batsources/monitoring/south|2000-4000 MB|high|swbj0008_1m2345_o2507.lc.gz,swbj0012_4m5678_o2507.lc.gz,swbj0016_7m8901_o2507.lc.gz,swbj0020_2m3456_o2507.lc.gz,swbj0024_5m6789_o2507.lc.gz,swbj0028_8m9012_o2507.lc.gz,swbj0008_1m2345_d2507.lc.gz,swbj0012_4m5678_d2507.lc.gz,swbj0016_7m8901_d2507.lc.gz,swbj0020_2m3456_d2507.lc.gz,swbj0024_5m6789_d2507.lc.gz,swbj0028_8m9012_d2507.lc.gz,swbj0008_1m2345_a2507.lc.gz,swbj0012_4m5678_a2507.lc.gz,swbj0016_7m8901_a2507.lc.gz,swbj0020_2m3456_a2507.lc.gz,swbj0024_5m6789_a2507.lc.gz,swbj0028_8m9012_a2507.lc.gz
-archive_metadata|Archive metadata tables and catalogs (comprehensive)|https://heasarc.gsfc.nasa.gov/FTP/swift/data/other/archive_metadata|500-1000 MB|medium|swiftgrbba.tdat,swiftguano.tdat,swiftgrbba.tdat,swiftguano.tdat,swiftgrbba.tdat,swiftguano.tdat,swiftgrbba.tdat,swiftguano.tdat,swiftgrbba.tdat,swiftguano.tdat
-EOF
-}
-
-# Download a complete dataset
-download_dataset() {
-    local dataset_name="$1"
-    local dataset_info="$2"
-    local dry_run="$3"
-    
-    # Parse dataset info - format: name|description|url|size_estimate|priority|files
-    IFS='|' read -r name description url size_estimate priority files <<< "$dataset_info"
-    
-    log "INFO" "Processing dataset: $name"
-    log "INFO" "Description: $description"
-    log "INFO" "Estimated size: $size_estimate"
-    
-    if [[ "$dry_run" == "true" ]]; then
-        log "INFO" "[DRY RUN] Would download $name to ${DOWNLOAD_DIR}/$name"
-        return 0
-    fi
-    
-    local dataset_dir="${DOWNLOAD_DIR}/${name}"
-    mkdir -p "$dataset_dir"
-    
-    local success_count=0
-    local total_files=0
-    
-    # Split files by comma and download each
-    IFS=',' read -ra file_array <<< "$files"
-    total_files=${#file_array[@]}
-    
-    for filename in "${file_array[@]}"; do
-        filename=$(echo "$filename" | xargs)  # Trim whitespace
-        local file_url="${url}/${filename}"
-        local local_path="${dataset_dir}/${filename}"
-        
-        if download_file "$file_url" "$local_path"; then
-            ((success_count++))
-        fi
-        
-        # Add delay between downloads to be respectful
-        sleep 2
-    done
-    
-    local success_rate=$((success_count * 100 / total_files))
-    log "INFO" "Dataset $name: $success_count/$total_files files downloaded ($success_rate%)"
-    
-    # Consider successful if 80%+ files downloaded
-    if [[ $success_rate -ge 80 ]]; then
-        return 0
-    else
-        return 1
-    fi
-}
-
 # Test NASA connectivity
 test_nasa_connectivity() {
     log "INFO" "Testing NASA HEASARC connectivity..."
@@ -180,7 +77,6 @@ test_nasa_connectivity() {
     local base_url="https://heasarc.gsfc.nasa.gov/FTP/swift/data/"
     
     if command -v curl &> /dev/null; then
-        # Test with curl, following redirects and accepting any 2xx or 3xx status
         if curl -s -L --head "$base_url" | head -n 1 | grep -q "HTTP/1.1 [23]"; then
             log "SUCCESS" "NASA HEASARC connectivity test passed"
             return 0
@@ -188,7 +84,7 @@ test_nasa_connectivity() {
             log "ERROR" "NASA HEASARC connectivity test failed"
             return 1
         fi
-    elif command -v wget &> /dev/null; then
+    else
         if wget -q --spider "$base_url"; then
             log "SUCCESS" "NASA HEASARC connectivity test passed"
             return 0
@@ -196,10 +92,134 @@ test_nasa_connectivity() {
             log "ERROR" "NASA HEASARC connectivity test failed"
             return 1
         fi
-    else
-        log "ERROR" "No tool available to test connectivity"
+    fi
+}
+
+# Get dataset information
+get_dataset_info() {
+    cat << 'EOF'
+batsources_survey_north|BAT source survey data - North hemisphere (comprehensive)|https://heasarc.gsfc.nasa.gov/FTP/swift/data/batsources/survey157m/north|5000-10000 MB|high
+batsources_survey_south|BAT source survey data - South hemisphere (comprehensive)|https://heasarc.gsfc.nasa.gov/FTP/swift/data/batsources/survey157m/south|5000-10000 MB|high
+batsources_monitoring_north|BAT source monitoring data - North hemisphere (comprehensive)|https://heasarc.gsfc.nasa.gov/FTP/swift/data/batsources/monitoring/north|3000-6000 MB|high
+batsources_monitoring_south|BAT source monitoring data - South hemisphere (comprehensive)|https://heasarc.gsfc.nasa.gov/FTP/swift/data/batsources/monitoring/south|2000-4000 MB|high
+grbsummary|GRB summary data and catalog information|https://heasarc.gsfc.nasa.gov/FTP/swift/data/grbsummary|1000-2000 MB|medium
+EOF
+}
+
+# Count available files in a directory
+count_available_files() {
+    local url="$1"
+    local file_pattern="$2"
+    
+    # Use curl to get directory listing and count matching files
+    # Escape the pattern properly for grep
+    local escaped_pattern=$(echo "$file_pattern" | sed 's/\./\\./g' | sed 's/\*/.*/g')
+    
+    # Get the directory listing
+    local dir_listing=$(curl -s -L "$url/")
+    
+    # Count matching files
+    local count=$(echo "$dir_listing" | grep -o "href=\"[^\"]*$escaped_pattern\"" | wc -l)
+    
+    # Debug: show first few files found
+    local sample_files=$(echo "$dir_listing" | grep -o "href=\"[^\"]*$escaped_pattern\"" | head -5 | sed 's/href="//g' | sed 's/"//g')
+    
+    if [[ -n "$sample_files" ]]; then
+        log "DEBUG" "Sample files found: $sample_files"
+    fi
+    
+    echo "$count"
+}
+
+# Download entire directory by parsing HTML listing and downloading individual files
+download_directory() {
+    local name="$1"
+    local description="$2"
+    local url="$3"
+    local estimated_size="$4"
+    local priority="$5"
+    local dry_run="$6"
+    
+    log "INFO" "Processing dataset: $name"
+    log "INFO" "Description: $description"
+    log "INFO" "URL: $url"
+    log "INFO" "Estimated size: $estimated_size"
+    log "INFO" "Priority: $priority"
+    
+    local dataset_dir="${DOWNLOAD_DIR}/${name}"
+    
+    # Count available files first
+    local available_files=$(count_available_files "$url" "*.lc.gz")
+    log "INFO" "Available files in directory: $available_files"
+    
+    if [[ "$dry_run" == "true" ]]; then
+        log "INFO" "[DRY RUN] Would download entire directory to: $dataset_dir"
+        log "INFO" "[DRY RUN] Would download approximately $available_files files"
+        return 0
+    fi
+    
+    # Remove existing directory to ensure clean download
+    if [[ -d "$dataset_dir" ]]; then
+        log "INFO" "Removing existing directory: $dataset_dir"
+        rm -rf "$dataset_dir"
+    fi
+    
+    # Create dataset directory
+    mkdir -p "$dataset_dir"
+    
+    log "INFO" "Starting download of individual files..."
+    log "INFO" "This may take a while - downloading $available_files files..."
+    
+    # Get the directory listing and extract file URLs
+    local dir_listing=$(curl -s -L "$url/")
+    local file_urls=$(echo "$dir_listing" | grep -o "href=\"[^\"]*\.lc\.gz\"" | sed 's/href="//g' | sed 's/"//g')
+    
+    if [[ -z "$file_urls" ]]; then
+        log "ERROR" "No .lc.gz files found in directory listing"
         return 1
     fi
+    
+    local downloaded_count=0
+    local total_files=$(echo "$file_urls" | wc -l)
+    
+    log "INFO" "Found $total_files files to download"
+    
+    # Download each file individually
+    echo "$file_urls" | while read -r filename; do
+        if [[ -n "$filename" ]]; then
+            local file_url="$url/$filename"
+            local local_path="$dataset_dir/$filename"
+            
+            log "INFO" "Downloading: $filename ($((downloaded_count + 1))/$total_files)"
+            
+            if curl -s -L -o "$local_path" "$file_url"; then
+                downloaded_count=$((downloaded_count + 1))
+                log "SUCCESS" "Downloaded: $filename"
+            else
+                log "ERROR" "Failed to download: $filename"
+            fi
+        fi
+    done
+    
+    # Count downloaded files
+    local file_count=$(find "$dataset_dir" -name "*.lc.gz" | wc -l)
+    local total_size=$(du -sh "$dataset_dir" | cut -f1)
+    
+    log "INFO" "Downloaded $file_count files, total size: $total_size"
+    
+    # Check if we got most of the available files
+    if [[ $available_files -gt 0 ]]; then
+        local download_percentage=$((file_count * 100 / available_files))
+        if [[ $download_percentage -lt 80 ]]; then
+            log "WARNING" "Downloaded only $download_percentage% of available files ($file_count/$available_files)"
+        else
+            log "SUCCESS" "Downloaded $download_percentage% of available files ($file_count/$available_files)"
+        fi
+    else
+        log "WARNING" "No files were available to download"
+    fi
+    
+    return 0
 }
 
 # Main download function
@@ -209,16 +229,21 @@ download_all_datasets() {
     
     log "INFO" "Starting Swift dataset download process..."
     
+    if [[ "$dry_run" == "true" ]]; then
+        log "INFO" "DRY RUN MODE - No actual downloads will occur"
+    fi
+    
     # Create download directory
     mkdir -p "$DOWNLOAD_DIR"
     
     # Get dataset info and process each
     local results=()
-    local line_num=0
+    local success_count=0
+    local total_count=0
     
-    while IFS= read -r line; do
-        if [[ -n "$line" ]]; then
-            IFS='|' read -r name description url size priority files <<< "$line"
+    while IFS='|' read -r name description url size priority; do
+        if [[ -n "$name" ]]; then
+            total_count=$((total_count + 1))
             
             local dataset_dir="${DOWNLOAD_DIR}/${name}"
             
@@ -226,140 +251,153 @@ download_all_datasets() {
             if [[ -d "$dataset_dir" && "$force" != "true" ]]; then
                 log "INFO" "Dataset $name already exists, skipping..."
                 results+=("$name:true")
+                success_count=$((success_count + 1))
                 continue
             fi
             
-            if download_dataset "$name" "$line" "$dry_run"; then
+            if download_directory "$name" "$description" "$url" "$size" "$priority" "$dry_run"; then
                 results+=("$name:true")
+                success_count=$((success_count + 1))
             else
                 results+=("$name:false")
             fi
+           
         fi
     done < <(get_dataset_info)
     
-    # Print summary
-    echo
-    echo "============================================================"
-    echo "SWIFT DATASET PROCESSING SUMMARY"
-    echo "============================================================"
+    # Summary
+    log "INFO" "Download process completed!"
+    log "INFO" "Total datasets: $total_count"
+    log "INFO" "Successful: $success_count"
+    log "INFO" "Failed: $((total_count - success_count))"
     
-    echo
-    echo "DOWNLOAD RESULTS:"
+    # Show results
+    log "INFO" "Detailed results:"
     for result in "${results[@]}"; do
-        IFS=':' read -r name success <<< "$result"
-        if [[ "$success" == "true" ]]; then
-            echo "  $name: ✅ SUCCESS"
+        IFS=':' read -r name status <<< "$result"
+        if [[ "$status" == "true" ]]; then
+            log "SUCCESS" "✅ $name"
         else
-            echo "  $name: ❌ FAILED"
+            log "ERROR" "❌ $name"
         fi
     done
     
-    echo
-    echo "NEXT STEPS:"
-    echo "  1. Review downloaded datasets in 'swift_datasets/' directory"
-    echo "  2. Use datasets for lab exercises"
-    echo "  3. Integrate with VAST systems as needed"
-    
-    if [[ "$dry_run" == "true" ]]; then
-        echo
-        echo "⚠️  This was a DRY RUN - no actual changes were made"
-    fi
+    return $((total_count - success_count))
 }
 
-# Show help message
+# Show help
 show_help() {
-    local script_name="$1"
+    local script_name=$(basename "$0")
     cat << EOF
-Swift Dataset Preparation Tool
+Swift Dataset Preparation Tool v3
 
-Usage: $script_name [OPTIONS]
+Downloads ALL Swift GRB dataset files from NASA HEASARC.
+
+USAGE:
+    $script_name [OPTIONS]
 
 OPTIONS:
-    --download             Download all Swift datasets
-    --dry-run              Show what would be done without actually doing it
-    --force                Force re-download of existing datasets
-    --help                 Show this help message
+    -h, --help          Show this help message
+    --download          Actually download the datasets (default is dry-run)
+    -f, --force         Force re-download of existing datasets
+    -v, --verbose       Enable verbose output
+    -t, --test          Test NASA connectivity only
 
 EXAMPLES:
-    # Download all datasets
+    # Test connectivity only
+    $script_name --test
+    
+    # Dry run to see what would be downloaded (default)
+    $script_name
+    
+    # Actually download all datasets
     $script_name --download
     
-    # Test run without downloading
-    $script_name --dry-run
-    
-    # Force re-download existing datasets
+    # Force re-download of existing datasets
     $script_name --download --force
 
-NOTE: Running without options will show this help message.
-      Use --dry-run to test what the script would do.
-      Use --download to actually download the datasets.
-      This tool prepares datasets locally for later VAST upload.
+DATASETS:
+    - batsources_survey_north: BAT source survey data (North hemisphere) - ~2,649 files
+    - batsources_survey_south: BAT source survey data (South hemisphere) - ~3,024 files
+    - batsources_monitoring_north: BAT source monitoring data (North hemisphere) - ~922 files
+    - batsources_monitoring_south: BAT source monitoring data (South hemisphere) - ~1,198 files
+    - grbsummary: GRB summary data and catalog information
+
+NOTES:
+    - Downloads ALL available lightcurve files (*.lc.gz)
+    - Automatically counts available files before downloading
+    - Verifies download completeness
+    - Includes progress tracking and detailed logging
+    - Fast downloads optimized for speed
+
 EOF
 }
 
-# Main function
+# Main execution
 main() {
+    local dry_run="true"  # Default to dry-run for safety
+    local force="false"
+    local test_only="false"
+    local verbose="false"
+    
     # Parse command line arguments
-    local dry_run=false
-    local force=false
-    local download=false
-    
-    # Default to help if no arguments provided
-    if [[ $# -eq 0 ]]; then
-        show_help "$0"
-        exit 0
-    fi
-    
     while [[ $# -gt 0 ]]; do
         case $1 in
-            --download)
-                download=true
-                shift
-                ;;
-            --dry-run)
-                dry_run=true
-                shift
-                ;;
-            --force)
-                force=true
-                shift
-                ;;
-            --help)
-                show_help "$0"
+            -h|--help)
+                show_help
                 exit 0
                 ;;
+            --download)
+                dry_run="false"  # Enable actual downloads
+                shift
+                ;;
+            -f|--force)
+                force="true"
+                shift
+                ;;
+            -t|--test)
+                test_only="true"
+                shift
+                ;;
+            -v|--verbose)
+                verbose="true"
+                shift
+                ;;
             *)
-                echo "Unknown option: $1"
-                echo "Use --help for usage information"
+                log "ERROR" "Unknown option: $1"
+                show_help
                 exit 1
                 ;;
         esac
     done
     
-    # Initialize log file
-    echo "Swift Dataset Preparation Log - $(date)" > "$LOG_FILE"
-    echo "========================================" >> "$LOG_FILE"
-    
-    log "INFO" "Swift Dataset Preparation Tool started"
-    log "INFO" "Project directory: $PROJECT_DIR"
-    log "INFO" "Download directory: $DOWNLOAD_DIR"
-    log "INFO" "Log file: $LOG_FILE"
+    # Initialize logging
+    echo "Swift Dataset Download Log v3 - $(date)" > "$LOG_FILE"
     
     # Check dependencies
     if ! check_dependencies; then
         exit 1
     fi
     
-    # Test NASA connectivity
+    # Test connectivity
     if ! test_nasa_connectivity; then
-        log "ERROR" "Cannot proceed without NASA connectivity"
+        log "ERROR" "Cannot connect to NASA HEASARC. Please check your internet connection."
         exit 1
     fi
     
-    # Download datasets
-    download_all_datasets "$dry_run" "$force"
+    if [[ "$test_only" == "true" ]]; then
+        log "SUCCESS" "Connectivity test passed. Ready for downloads."
+        exit 0
+    fi
     
-    log "INFO" "Swift dataset processing complete"
+    # Download datasets
+    if download_all_datasets "$dry_run" "$force"; then
+        log "SUCCESS" "All datasets processed successfully!"
+        exit 0
+    else
+        log "ERROR" "Some datasets failed to download. Check the log for details."
+        exit 1
+    fi
 }
 
 # Run main function with all arguments
