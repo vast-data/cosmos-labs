@@ -42,6 +42,11 @@ class VASTDatabaseManager:
             'timeout': config.get('lab2.vastdb.timeout', 30)
         }
         
+        # Debug: log what we're trying to connect with
+        logger.info(f"🔧 VAST DB config - access: {'***' if self.db_config['access'] else 'None'}, "
+                   f"secret: {'***' if self.db_config['secret'] else 'None'}, "
+                   f"endpoint: {self.db_config['endpoint']}")
+        
         self.connection = None
         self.database = None
         
