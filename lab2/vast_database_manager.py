@@ -13,10 +13,12 @@ from pathlib import Path
 
 try:
     import vastdb
-    from vastdb import Database, Table, Column, DataType
+    # Only import what's actually available in vastdb
     VASTDB_AVAILABLE = True
-except ImportError:
-    print("⚠️  vastdb not found. Install with: pip install vastdb")
+    print(f"✅ vastdb imported successfully: {vastdb}")
+    print(f"Available vastdb attributes: {[attr for attr in dir(vastdb) if not attr.startswith('_')]}")
+except ImportError as e:
+    print(f"⚠️  vastdb not found. ImportError: {e}")
     print("💡 This is required for Lab 2 database functionality")
     print("🔧 For now, using mock database operations")
     VASTDB_AVAILABLE = False
