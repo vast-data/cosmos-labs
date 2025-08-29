@@ -197,10 +197,10 @@ class SwiftUploader:
             except Exception as boto_error:
                 logger.warning(f"⚠️  boto3 put_object failed, trying direct HTTP: {boto_error}")
                 
-                # Fallback: Direct HTTP PUT request with minimal headers
+                # Fallback: Direct HTTP PUT request with AWS Signature V4
                 try:
                     import requests
-                    from datetime import datetime
+                    from datetime import datetime, timezone
                     import hashlib
                     import hmac
                     
@@ -212,20 +212,71 @@ class SwiftUploader:
                     with open(local_file, 'rb') as f:
                         file_data = f.read()
                     
-                    # Create minimal headers
+                    # AWS Signature V4 requires specific datetime format
+                    now = datetime.now(timezone.utc)
+                    amz_date = now.strftime('%Y%m%dT%H%M%SZ')
+                    date_stamp = now.strftime('%Y%m%d')
+                    
+                    # Parse host from endpoint
+                    host = self.s3_config['endpoint_url'].replace('http://', '').replace('https://', '')
+                    
+                    # Create minimal headers for S3
                     headers = {
                         'Content-Type': 'application/octet-stream',
                         'Content-Length': str(len(file_data)),
-                        'Host': self.s3_config['endpoint_url'].replace('http://', '').replace('https://', ''),
-                        'Date': datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
+                        'Host': host,
+                        'X-Amz-Date': amz_date,
+                        'X-Amz-Content-Sha256': hashlib.sha256(file_data).hexdigest()
                     }
                     
-                    # Make direct HTTP PUT request
+                    # Create canonical request for AWS Signature V4
+                    canonical_uri = f"/{self.s3_config['bucket']}/{s3_key}"
+                    canonical_querystring = ""
+                    canonical_headers = '\n'.join([f"{k.lower()}:{v}" for k, v in sorted(headers.items())]) + '\n'
+                    signed_headers = ';'.join([k.lower() for k in sorted(headers.keys())])
+                    
+                    # Create payload hash
+                    payload_hash = hashlib.sha256(file_data).hexdigest()
+                    
+                    # Create canonical request
+                    canonical_request = '\n'.join([
+                        'PUT',
+                        canonical_uri,
+                        canonical_querystring,
+                        canonical_headers,
+                        signed_headers,
+                        payload_hash
+                    ])
+                    
+                    # Create string to sign
+                    algorithm = 'AWS4-HMAC-SHA256'
+                    credential_scope = f"{date_stamp}/us-east-1/s3/aws4_request"
+                    string_to_sign = '\n'.join([
+                        algorithm,
+                        amz_date,
+                        credential_scope,
+                        hashlib.sha256(canonical_request.encode('utf-8')).hexdigest()
+                    ])
+                    
+                    # Calculate signature
+                    def sign(key, msg):
+                        return hmac.new(key, msg.encode('utf-8'), hashlib.sha256).digest()
+                    
+                    date_key = sign(f"AWS4{self.s3_config['aws_secret_access_key']}".encode('utf-8'), date_stamp)
+                    date_region_key = sign(date_key, 'us-east-1')
+                    date_region_service_key = sign(date_region_key, 's3')
+                    signing_key = sign(date_region_service_key, 'aws4_request')
+                    signature = hmac.new(signing_key, string_to_sign.encode('utf-8'), hashlib.sha256).hexdigest()
+                    
+                    # Add authorization header
+                    authorization_header = f"{algorithm} Credential={self.s3_config['aws_access_key_id']}/{credential_scope}, SignedHeaders={signed_headers}, Signature={signature}"
+                    headers['Authorization'] = authorization_header
+                    
+                    # Make direct HTTP PUT request with AWS Signature V4
                     response = requests.put(
                         url,
                         data=file_data,
                         headers=headers,
-                        auth=(self.s3_config['aws_access_key_id'], self.s3_config['aws_secret_access_key']),
                         verify=False,
                         timeout=30
                     )
