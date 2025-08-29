@@ -47,6 +47,12 @@ s3:
   bucket: "your-bucket"               # Default bucket for raw data
   prefix: "swift"                        # Default prefix for Swift datasets
   
+  # Compatibility settings for VAST S3
+  compatibility:
+    disable_advanced_features: true      # Disable unsupported S3 features
+    minimal_headers: true                # Use minimal S3 headers
+    path_style_addressing: true          # Use path-style addressing
+
   # Connection settings
   verify_ssl: false                      # Disable SSL verification for internal endpoints
   connect_timeout: 10                    # Connection timeout in seconds
