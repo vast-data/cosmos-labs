@@ -179,11 +179,9 @@ class SwiftS3Uploader:
                         s3={'addressing_style': 'path'},  # Use path-style addressing
                         signature_version='s3v4',          # Use S3v4 signatures
                         # Disable features that might cause header issues
-                        user_agent_extra='VASTCompatible',
-                        # Remove any automatic header additions
                         parameter_validation=False,        # Skip parameter validation
                         # Custom DNS configuration
-                        user_agent_extra='CustomDNS',
+                        user_agent_extra='VASTCompatible',
                     )
                 )
             else:
