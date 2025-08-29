@@ -103,20 +103,14 @@ class SwiftUploader:
         try:
             # Create S3 client with custom endpoint if specified
             if self.s3_config.get('endpoint_url'):
-                # Use the exact same minimal configuration as the working test_s3.py
+                # Use absolute minimal configuration - no custom config at all
                 s3_client = boto3.client(
                     's3',
                     endpoint_url=self.s3_config['endpoint_url'],
                     aws_access_key_id=self.s3_config['aws_access_key_id'],
                     aws_secret_access_key=self.s3_config['aws_secret_access_key'],
-                    verify=False,  # Disable SSL verification for internal endpoints
-                    config=boto3.session.Config(
-                        s3={'addressing_style': 'path'}, 
-                        signature_version='s3v4',
-                        connect_timeout=5,
-                        read_timeout=15,
-                        retries={'max_attempts': 2}
-                    )
+                    verify=False  # Disable SSL verification for internal endpoints
+                    # NO custom config - let boto3 use defaults
                 )
             else:
                 # Use default AWS S3
