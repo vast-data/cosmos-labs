@@ -24,6 +24,8 @@ from typing import Dict, List, Optional, Any
 
 # Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
+# Add lab2 directory to path for vast_database_manager import
+sys.path.append(str(Path(__file__).parent.parent / "lab2"))
 
 try:
     from config_loader import ConfigLoader
@@ -108,10 +110,6 @@ class LabEnvironmentCleaner:
     def _initialize_db_manager(self):
         """Initialize database manager for cleanup operations"""
         try:
-            import sys
-            # Add both lab2 and root directory to path for imports
-            sys.path.append(str(Path(__file__).parent.parent / "lab2"))
-            sys.path.append(str(Path(__file__).parent.parent))
             from vast_database_manager import VASTDatabaseManager
             self.db_manager = VASTDatabaseManager(self.config)
             logger.info("✅ Database manager initialized successfully")
