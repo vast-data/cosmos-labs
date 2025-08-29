@@ -173,7 +173,7 @@ class SwiftUploader:
         return sorted(datasets, key=lambda x: x['size_gb'], reverse=True)
     
     def upload_file_s3(self, local_file: Path, s3_key: str, dry_run: bool = True) -> bool:
-        """Upload a single file to S3"""
+        """Upload a single file to S3 using direct HTTP to avoid boto3 header issues"""
         try:
             file_size_mb = local_file.stat().st_size / (1024**2)
             
@@ -183,21 +183,65 @@ class SwiftUploader:
             
             logger.info(f"📤 Uploading: {local_file.name} ({file_size_mb:.2f} MB)")
             
-            # Use only put_object() as documented in VAST docs
+            # Try boto3 first, fallback to direct HTTP if it fails
             try:
                 with open(local_file, 'rb') as file_data:
                     self.s3_client.put_object(
                         Bucket=self.s3_config['bucket'],
                         Key=s3_key,
                         Body=file_data
-                        # No extra parameters - use minimal put_object as per VAST docs
                     )
-                logger.info(f"✅ Successfully uploaded: {local_file.name}")
+                logger.info(f"✅ Successfully uploaded via boto3: {local_file.name}")
                 return True
                 
-            except Exception as put_error:
-                logger.error(f"❌ put_object failed: {put_error}")
-                raise put_error
+            except Exception as boto_error:
+                logger.warning(f"⚠️  boto3 put_object failed, trying direct HTTP: {boto_error}")
+                
+                # Fallback: Direct HTTP PUT request with minimal headers
+                try:
+                    import requests
+                    from datetime import datetime
+                    import hashlib
+                    import hmac
+                    
+                    # Parse endpoint URL
+                    endpoint = self.s3_config['endpoint_url'].rstrip('/')
+                    url = f"{endpoint}/{self.s3_config['bucket']}/{s3_key}"
+                    
+                    # Read file data
+                    with open(local_file, 'rb') as f:
+                        file_data = f.read()
+                    
+                    # Create minimal headers
+                    headers = {
+                        'Content-Type': 'application/octet-stream',
+                        'Content-Length': str(len(file_data)),
+                        'Host': self.s3_config['endpoint_url'].replace('http://', '').replace('https://', ''),
+                        'Date': datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
+                    }
+                    
+                    # Make direct HTTP PUT request
+                    response = requests.put(
+                        url,
+                        data=file_data,
+                        headers=headers,
+                        auth=(self.s3_config['aws_access_key_id'], self.s3_config['aws_secret_access_key']),
+                        verify=False,
+                        timeout=30
+                    )
+                    
+                    if response.status_code in [200, 201]:
+                        logger.info(f"✅ Successfully uploaded via direct HTTP: {local_file.name}")
+                        return True
+                    else:
+                        logger.error(f"❌ HTTP upload failed with status {response.status_code}: {response.text}")
+                        return False
+                        
+                except Exception as http_error:
+                    logger.error(f"❌ Both boto3 and HTTP methods failed:")
+                    logger.error(f"   boto3: {boto_error}")
+                    logger.error(f"   HTTP: {http_error}")
+                    raise http_error
             
         except Exception as e:
             logger.error(f"❌ Failed to upload {local_file.name}: {e}")
