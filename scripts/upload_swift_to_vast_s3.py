@@ -302,16 +302,60 @@ class SwiftS3Uploader:
             
             logger.info(f"📤 Uploading: {local_file.name} ({file_size_mb:.2f} MB)")
             
-            # Upload file to S3
-            self.s3_client.upload_file(
-                str(local_file),
-                self.s3_config['bucket'],
-                s3_key
-            )
+            # Try multiple upload methods for compatibility
+            upload_success = False
+            
+            # Method 1: put_object with minimal headers
+            try:
+                with open(local_file, 'rb') as file_data:
+                    self.s3_client.put_object(
+                        Bucket=self.s3_config['bucket'],
+                        Key=s3_key,
+                        Body=file_data,
+                        ContentType='application/octet-stream'  # Generic binary content type
+                    )
+                upload_success = True
+                logger.info(f"✅ Upload successful using put_object method")
+                
+            except Exception as method1_error:
+                logger.warning(f"⚠️  Method 1 (put_object) failed: {method1_error}")
+                
+                # Method 2: upload_file with minimal config
+                try:
+                    logger.info(f"🔄 Trying alternative upload method...")
+                    self.s3_client.upload_file(
+                        str(local_file),
+                        self.s3_config['bucket'],
+                        s3_key,
+                        ExtraArgs={
+                            'ContentType': 'application/octet-stream'
+                        }
+                    )
+                    upload_success = True
+                    logger.info(f"✅ Upload successful using upload_file method")
+                    
+                except Exception as method2_error:
+                    logger.error(f"❌ All upload methods failed:")
+                    logger.error(f"   Method 1 (put_object): {method1_error}")
+                    logger.error(f"   Method 2 (upload_file): {method2_error}")
+                    raise method2_error
+            
+            if not upload_success:
+                raise Exception("All upload methods failed")
             
             logger.info(f"✅ Successfully uploaded: {local_file.name}")
             return True
             
+        except ClientError as e:
+            error_code = e.response['Error']['Code']
+            if error_code == 'NotImplemented':
+                logger.error(f"❌ Failed to upload {local_file.name}: S3 endpoint doesn't support required functionality")
+                logger.error(f"   Error details: {e}")
+                logger.error(f"   This might be due to unsupported S3 headers or features")
+                return False
+            else:
+                logger.error(f"❌ Failed to upload {local_file.name}: S3 error {error_code}: {e}")
+                return False
         except Exception as e:
             logger.error(f"❌ Failed to upload {local_file.name}: {e}")
             return False
