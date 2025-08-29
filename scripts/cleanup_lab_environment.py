@@ -109,7 +109,9 @@ class LabEnvironmentCleaner:
         """Initialize database manager for cleanup operations"""
         try:
             import sys
+            # Add both lab2 and root directory to path for imports
             sys.path.append(str(Path(__file__).parent.parent / "lab2"))
+            sys.path.append(str(Path(__file__).parent.parent))
             from vast_database_manager import VASTDatabaseManager
             self.db_manager = VASTDatabaseManager(self.config)
             logger.info("✅ Database manager initialized successfully")
