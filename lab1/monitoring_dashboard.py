@@ -86,37 +86,35 @@ class StorageDashboard:
             view = views[0]
             view_id = view['id']
             
-            # Get detailed information
+            # Get detailed information from view
             view_details = self.client.views[view_id].get()
+            
+            # Get quota information from quotas endpoint
+            quotas = self.client.quotas.get(path=view_path)
             
             # Debug: Let's see what the VAST API actually returns
             print(f"🔍 VAST API response for view {view_path}:")
             print(f"   View ID: {view_id}")
             print(f"   Available fields: {list(view_details.keys())}")
-            print(f"   Raw size value: {view_details.get('size')}")
-            print(f"   Raw quota value: {view_details.get('quota')}")
             print(f"   Physical capacity: {view_details.get('physical_capacity')}")
             print(f"   Logical capacity: {view_details.get('logical_capacity')}")
             
-            # Try different possible field names for size and quota
-            size = 0
+            # Get size from view details
+            size = view_details.get('logical_capacity', 0)
+            print(f"   Found size in field 'logical_capacity': {size}")
+            
+            # Get quota information
             quota = 0
-            
-            # Common field names for size (try VAST-specific fields first)
-            size_fields = ['logical_capacity', 'physical_capacity', 'size', 'used_size', 'used_bytes', 'bytes_used', 'storage_used']
-            for field in size_fields:
-                if field in view_details and view_details[field] is not None:
-                    size = view_details[field]
-                    print(f"   Found size in field '{field}': {size}")
-                    break
-            
-            # Common field names for quota (try VAST-specific fields first)
-            quota_fields = ['quota', 'quota_size', 'quota_bytes', 'max_size', 'max_bytes', 'storage_limit']
-            for field in quota_fields:
-                if field in view_details and view_details[field] is not None:
-                    quota = view_details[field]
-                    print(f"   Found quota in field '{field}': {quota}")
-                    break
+            if quotas:
+                quota_info = quotas[0]
+                quota = quota_info.get('soft_limit', 0)
+                used_capacity = quota_info.get('used_capacity', 0)
+                print(f"   Quota info: used={used_capacity}, soft_limit={quota}")
+                # Use the quota's used capacity if available, otherwise use view's logical capacity
+                if used_capacity > 0:
+                    size = used_capacity
+            else:
+                print(f"   No quota found for path: {view_path}")
             
             # Convert to int if they're strings or floats
             try:
