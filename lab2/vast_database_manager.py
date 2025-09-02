@@ -526,6 +526,73 @@ class VASTDatabaseManager:
                                         if record_value != pattern:
                                             matches = False
                                             break
+                                elif criteria['type'] == 'comparison':
+                                    # Comparison match (for dates, numbers, etc.)
+                                    operator = criteria['operator']
+                                    compare_value = criteria['value']
+                                    
+                                    # Try to parse as date first
+                                    try:
+                                        from datetime import datetime
+                                        record_date = datetime.fromisoformat(record_value.replace('Z', '+00:00'))
+                                        compare_date = datetime.fromisoformat(compare_value.replace('Z', '+00:00'))
+                                        
+                                        if operator == '>':
+                                            if not (record_date > compare_date):
+                                                matches = False
+                                                break
+                                        elif operator == '<':
+                                            if not (record_date < compare_date):
+                                                matches = False
+                                                break
+                                        elif operator == '>=':
+                                            if not (record_date >= compare_date):
+                                                matches = False
+                                                break
+                                        elif operator == '<=':
+                                            if not (record_date <= compare_date):
+                                                matches = False
+                                                break
+                                    except (ValueError, TypeError):
+                                        # Not a date, try numeric comparison
+                                        try:
+                                            record_num = float(record_value)
+                                            compare_num = float(compare_value)
+                                            
+                                            if operator == '>':
+                                                if not (record_num > compare_num):
+                                                    matches = False
+                                                    break
+                                            elif operator == '<':
+                                                if not (record_num < compare_num):
+                                                    matches = False
+                                                    break
+                                            elif operator == '>=':
+                                                if not (record_num >= compare_num):
+                                                    matches = False
+                                                    break
+                                            elif operator == '<=':
+                                                if not (record_num <= compare_num):
+                                                    matches = False
+                                                    break
+                                        except (ValueError, TypeError):
+                                            # Not numeric either, do string comparison
+                                            if operator == '>':
+                                                if not (record_value > compare_value):
+                                                    matches = False
+                                                    break
+                                            elif operator == '<':
+                                                if not (record_value < compare_value):
+                                                    matches = False
+                                                    break
+                                            elif operator == '>=':
+                                                if not (record_value >= compare_value):
+                                                    matches = False
+                                                    break
+                                            elif operator == '<=':
+                                                if not (record_value <= compare_value):
+                                                    matches = False
+                                                    break
                             
                             if matches:
                                 results.append(record)

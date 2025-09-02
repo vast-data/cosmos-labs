@@ -350,7 +350,7 @@ def main():
     parser.add_argument('--setup-only', action='store_true', help='Only set up database infrastructure')
     parser.add_argument('--process-only', action='store_true', help='Only process metadata (assumes setup is complete)')
     parser.add_argument('--stats', action='store_true', help='Show database statistics')
-    parser.add_argument('--search', type=str, help='Search metadata (e.g., "mission_id=SWIFT,target_object=GRB*") - supports wildcards: *, value*, *value, *value*')
+    parser.add_argument('--search', type=str, help='Search metadata (e.g., "mission_id=SWIFT,target_object=GRB*,observation_timestamp<2004-12-25") - supports wildcards: *, value*, *value, *value* and comparisons: >, <, >=, <=')
     parser.add_argument('--latest', type=int, help='Get the N latest files (e.g., --latest 10)')
     parser.add_argument('--demo-extraction', type=str, help='Demo metadata extraction from a file (e.g., --demo-extraction /path/to/file.fits)')
     parser.add_argument('--delete-schema', action='store_true', help='Delete VAST schema and recreate with new structure (DESTRUCTIVE)')
@@ -388,7 +388,44 @@ def main():
             criteria_pairs = args.search.split(',')
             
             for pair in criteria_pairs:
-                if '=' in pair:
+                # Check for comparison operators
+                if '>=' in pair:
+                    key, value = pair.split('>=', 1)
+                    key = key.strip()
+                    value = value.strip()
+                    search_criteria[key] = {
+                        'type': 'comparison',
+                        'operator': '>=',
+                        'value': value
+                    }
+                elif '<=' in pair:
+                    key, value = pair.split('<=', 1)
+                    key = key.strip()
+                    value = value.strip()
+                    search_criteria[key] = {
+                        'type': 'comparison',
+                        'operator': '<=',
+                        'value': value
+                    }
+                elif '>' in pair:
+                    key, value = pair.split('>', 1)
+                    key = key.strip()
+                    value = value.strip()
+                    search_criteria[key] = {
+                        'type': 'comparison',
+                        'operator': '>',
+                        'value': value
+                    }
+                elif '<' in pair:
+                    key, value = pair.split('<', 1)
+                    key = key.strip()
+                    value = value.strip()
+                    search_criteria[key] = {
+                        'type': 'comparison',
+                        'operator': '<',
+                        'value': value
+                    }
+                elif '=' in pair:
                     key, value = pair.split('=', 1)
                     key = key.strip()
                     value = value.strip()
@@ -410,6 +447,7 @@ def main():
                     print(f"⚠️  Invalid search criteria format: {pair}")
                     print("💡 Use format: key1=value1,key2=value2")
                     print("💡 Wildcards supported: key1=value*, key1=*value, key1=*value*")
+                    print("💡 Comparisons supported: key1>value1, key1<value1, key1>=value1, key1<=value1")
                     sys.exit(1)
             
             results = solution.search_metadata(search_criteria)
