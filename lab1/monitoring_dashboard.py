@@ -136,6 +136,8 @@ class StorageDashboard:
             if quota_for_calc > 0:
                 utilization = (size / quota_for_calc) * 100
                 available = quota_for_calc - size
+                # Debug: Print the calculation details
+                print(f"   DEBUG: size={size}, quota_for_calc={quota_for_calc}, utilization={utilization:.1f}%, available={available}")
             else:
                 utilization = 0
                 available = 0
