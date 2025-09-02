@@ -391,7 +391,11 @@ class VASTDatabaseManager:
                         metadata.get('target_object', ''),
                         metadata.get('processing_status', ''),
                         metadata.get('ingestion_timestamp', datetime.now()),
-                        metadata.get('metadata_version', '1.0')
+                        metadata.get('last_modified', None),
+                        metadata.get('checksum', ''),
+                        metadata.get('metadata_version', '1.0'),
+                        datetime.now(),  # created_at
+                        datetime.now()   # updated_at
                     ]
                 ]
                 
