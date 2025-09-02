@@ -191,8 +191,8 @@ class OrbitalDynamicsStorageManager:
         
         logger.info("="*60)
     
-    def create_initial_views(self):
-        """Create the initial storage views for different data types"""
+    def check_initial_views(self):
+        """Check if the required storage views exist (monitoring only)"""
         try:
             # Get default policy for views
             # Log API call
@@ -250,58 +250,14 @@ class OrbitalDynamicsStorageManager:
                 logger.info("🎉 All required views already exist!")
                 return True
             
-            if self.production_mode:
-                # Actually create the missing views
-                logger.info(f"\n🚨 PRODUCTION MODE: Creating {len(missing_views)} missing views...")
-                
-                created_count = 0
-                failed_count = 0
-                
+            if missing_views:
+                logger.warning(f"\n⚠️  MISSING VIEWS DETECTED:")
+                logger.warning(f"   📁 Missing views: {len(missing_views)}")
                 for view_path in missing_views:
-                    try:
-                        logger.info(f"🔨 Creating view: {view_path}")
-                        # Log API call
-                        self._log_api_call(
-                            "client.views.post()",
-                            f"path={view_path}, policy_id={default_policy['id']}"
-                        )
-                        
-                        view = self.client.views.post(
-                            path=view_path,
-                            policy_id=default_policy['id'],
-                            create_dir=True,
-                            protocols=['NFS', 'SMB']
-                        )
-                        logger.info(f"✅ Successfully created view: {view_path}")
-                        created_count += 1
-                    except Exception as e:
-                        error_msg = str(e)
-                        if "already exists" in error_msg.lower():
-                            logger.info(f"ℹ️  View was created by another process: {view_path}")
-                            created_count += 1
-                        else:
-                            logger.error(f"❌ Failed to create view {view_path}: {error_msg}")
-                            failed_count += 1
-                
-                # Final summary
-                logger.info(f"\n📊 VIEW CREATION SUMMARY:")
-                logger.info(f"  ✅ Successfully created: {created_count}")
-                logger.info(f"  ❌ Failed to create: {failed_count}")
-                
-                if failed_count == 0:
-                    logger.info("🎉 All missing views created successfully!")
-                    return True
-                else:
-                    logger.error(f"⚠️  {failed_count} views failed to create")
-                    return False
-                    
-            else:
-                # Dry run - show what would happen
-                logger.info(f"\n⚠️  DRY RUN MODE: Would create the following views:")
-                for view_path in missing_views:
-                    logger.info(f"  📁 {view_path}")
-                logger.info(f"  (No actual views were created - {len(missing_views)} views would be created)")
-                return True
+                    logger.warning(f"      - {view_path}")
+                logger.warning("   💡 Please create these views manually or use a storage setup lab")
+                logger.warning("   🔧 Lab 1 focuses on monitoring existing views, not creating them")
+                return False
             
         except Exception as e:
             logger.error(f"❌ Failed to setup initial views: {e}")
@@ -509,13 +465,13 @@ def main():
     """Main function to run the storage automation"""
     
     # Parse command line arguments
-    parser = argparse.ArgumentParser(description='Orbital Dynamics Storage Automation')
+    parser = argparse.ArgumentParser(description='Orbital Dynamics Storage Monitoring & Auto-Expansion')
     parser.add_argument('--pushtoprod', action='store_true', 
                        help='Enable production mode (actual changes will be made)')
     parser.add_argument('--dry-run', action='store_true', 
                        help='Run in dry-run mode (default, no changes made)')
     parser.add_argument('--setup-only', action='store_true',
-                       help='Only set up initial views, then exit')
+                       help='Only check if required views exist, then exit')
     parser.add_argument('--monitor-only', action='store_true',
                        help='Only run monitoring, skip setup')
     parser.add_argument('--showapicalls', action='store_true',
@@ -553,10 +509,10 @@ def main():
         
         # Handle different operation modes
         if args.setup_only:
-            # Only set up initial views
-            logger.info("Setting up initial storage views...")
-            if not storage_manager.create_initial_views():
-                logger.error("Failed to create initial views")
+            # Only check initial views (monitoring focus)
+            logger.info("Checking initial storage views...")
+            if not storage_manager.check_initial_views():
+                logger.error("Some required views are missing - please create them first")
                 return
             logger.info("✅ Setup complete. Exiting.")
             return

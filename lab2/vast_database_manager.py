@@ -14,7 +14,6 @@ from pathlib import Path
 try:
     import vastdb
     VASTDB_AVAILABLE = True
-    print(f"✅ vastdb imported successfully: {vastdb}")
 except ImportError as e:
     print(f"⚠️  vastdb not found. ImportError: {e}")
     print("💡 This is required for Lab 2 database functionality")

@@ -8,7 +8,6 @@ This solution demonstrates how to use `vastpy` to automate storage provisioning,
 
 - **`lab1_solution.py`** - Main storage automation script
 - **`lab1_config.py`** - Lab-specific configuration loader (inherits from centralized config)
-- **`pipeline_integration.py`** - Integration script for Jordan's processing pipeline
 - **`monitoring_dashboard.py`** - Real-time monitoring dashboard
 - **`test_solution.py`** - Unit tests for the solution
 - **`requirements.txt`** - Python dependencies
@@ -51,9 +50,6 @@ python lab1_solution.py --monitor-only
 
 # In another terminal, run the dashboard
 python monitoring_dashboard.py
-
-# Test pipeline integration
-python pipeline_integration.py 5.0  # Check for 5TB availability
 ```
 
 ## Configuration
@@ -66,21 +62,26 @@ The main configuration file contains all non-sensitive settings:
 # VAST Connection Settings
 vast:
   user: admin
-  password: ""  # Set via environment variable VAST_PASSWORD
-  address: "localhost"
+  password: ""  # Set in secrets.yaml
+  address: "your-vast-cluster.example.com"
   token: ""  # Optional for Vast 5.3+
 
-# Storage Paths
-storage:
-  raw_data_path: "/cosmos7/raw"
-  processed_data_path: "/cosmos7/processed"
-  temp_data_path: "/cosmos7/temp"
+# Data directories
+data:
+  directories:
+    - "/your-tenant/raw"      # Raw data storage
+    - "/your-tenant/processed" # Processed data storage
 
-# Quota Management
-quotas:
-  warning_threshold: 75  # Alert at 75% utilization
-  critical_threshold: 85  # Auto-provision at 85% utilization
-  auto_expand_size_tb: 10  # Expand by 10TB when needed
+# Lab 1: Storage Automation Settings
+lab1:
+  storage:
+    auto_provision_threshold: 75  # Percentage at which to auto-provision
+    expansion_factor: 1.5  # How much to expand by
+    max_expansion_gb: 10000  # Maximum expansion in GB
+  
+  monitoring:
+    alert_threshold: 80  # Percentage at which to alert
+    critical_threshold: 90  # Percentage at which to take immediate action
 ```
 
 ### Secrets Configuration (`secrets.yaml`)
@@ -91,28 +92,21 @@ The secrets file contains sensitive data and should not be committed to version 
 # VAST Connection Secrets
 vast_password: "your_vast_password_here"
 vast_token: "your_vast_api_token_here"
-
-# Alerting Secrets
-slack_webhook_url: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
-pagerduty_api_key: "your_pagerduty_api_key_here"
 ```
 
 ## Features
 
 ### ✅ Automated Storage Provisioning
-- Automatically expands quotas when utilization exceeds 85%
-- Configurable expansion size (default: 10TB)
-- Supports multiple storage views (raw, processed, temp)
+- Automatically expands quotas when utilization exceeds 90%
+- Fixed expansion size (1TB per expansion)
+- Supports multiple storage views (raw, processed)
 
 ### ✅ Real-time Monitoring
 - Continuous monitoring with configurable intervals
-- Status levels: Normal (🟢) vs Needs Expansion (🔴)
-- Simple 2-tier system for easy understanding
+- Status levels: Normal (🟢), Warning (🟡), Needs Expansion (🔴)
+- Three-tier system: 70% warning, 90% critical
 
-### ✅ Pipeline Integration
-- Pre-flight storage availability checks
-- Automatic space requirement validation
-- Integration with Jordan's processing pipeline
+
 
 ### ✅ Alerting System
 - Simple alerting for storage expansion needs
@@ -121,7 +115,7 @@ pagerduty_api_key: "your_pagerduty_api_key_here"
 
 ### ✅ Configuration Management
 - YAML-based configuration
-- Environment variable overrides
+- Centralized configuration system
 - Separate secrets management
 - Validation and error handling
 
@@ -155,7 +149,7 @@ Before any operation, the system validates these essential safety requirements:
 - ✅ **View Existence** - Target views must exist and be accessible
 - ✅ **Basic Permissions** - Proper access rights verified  
 - ✅ **Storage Availability** - Sufficient space for expansion
-- ✅ **Quota Limits** - Expansion requests within 10TB limit (configurable)
+- ✅ **Quota Limits** - Expansion requests within 1TB limit (fixed)
 
 ## Usage Examples
 
@@ -173,39 +167,7 @@ python lab1_solution.py
 python monitoring_dashboard.py
 ```
 
-### Pipeline Integration
 
-```python
-# In Jordan's processing script
-from pipeline_integration import PipelineStorageChecker
-from lab1_config import Lab1ConfigLoader
-
-def run_processing_pipeline(processing_type: str = "default"):
-    # Load configuration
-    config = ConfigLoader()
-    
-    # Get space requirement for this processing type
-    space_requirements = config.get('pipeline.space_requirements', {})
-    required_space = space_requirements.get(processing_type, space_requirements.get('default', 1.0))
-    
-    # Check storage before starting
-    checker = PipelineStorageChecker()
-    
-    if not checker.check_storage_availability(required_space):
-        print(f"ERROR: Insufficient storage space for {processing_type} processing")
-        return False
-    
-    # Proceed with processing
-    print(f"Starting {processing_type} processing pipeline...")
-    # ... processing logic ...
-    
-    return True
-
-# Usage examples:
-run_processing_pipeline("cosmos7_processing")  # Uses 5.0 TB requirement
-run_processing_pipeline("mars_rover_processing")  # Uses 3.0 TB requirement
-run_processing_pipeline()  # Uses default 1.0 TB requirement
-```
 
 ### Testing
 
