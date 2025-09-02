@@ -92,16 +92,8 @@ class StorageDashboard:
             # Get quota information from quotas endpoint
             quotas = self.client.quotas.get(path=view_path)
             
-            # Debug: Let's see what the VAST API actually returns
-            print(f"🔍 VAST API response for view {view_path}:")
-            print(f"   View ID: {view_id}")
-            print(f"   Available fields: {list(view_details.keys())}")
-            print(f"   Physical capacity: {view_details.get('physical_capacity')}")
-            print(f"   Logical capacity: {view_details.get('logical_capacity')}")
-            
             # Get size from view details
             size = view_details.get('logical_capacity', 0)
-            print(f"   Found size in field 'logical_capacity': {size}")
             
             # Get quota information
             soft_limit = 0
@@ -111,7 +103,6 @@ class StorageDashboard:
                 soft_limit = quota_info.get('soft_limit', 0)
                 hard_limit = quota_info.get('hard_limit', 0)
                 used_capacity = quota_info.get('used_capacity', 0)
-                print(f"   Quota info: used={used_capacity}, soft_limit={soft_limit}, hard_limit={hard_limit}")
                 # Use the quota's used capacity if available, otherwise use view's logical capacity
                 if used_capacity > 0:
                     size = used_capacity
@@ -128,8 +119,6 @@ class StorageDashboard:
                 soft_limit = 0
                 hard_limit = 0
             
-            print(f"   Final values - Size: {size} bytes, Soft Limit: {soft_limit} bytes, Hard Limit: {hard_limit} bytes")
-            
             # Use soft limit for utilization calculation if available, otherwise hard limit
             quota_for_calc = soft_limit if soft_limit > 0 else hard_limit
             if quota_for_calc > 0:
@@ -143,11 +132,11 @@ class StorageDashboard:
                 'path': view_path,
                 'status': self._get_status_level(utilization),
                 'utilization': round(utilization, 1),
-                'size_tb': round(size / (1000**3), 2),
-                'soft_limit_tb': round(soft_limit / (1000**3), 2),
-                'hard_limit_tb': round(hard_limit / (1000**3), 2),
-                'quota_tb': round(quota_for_calc / (1000**3), 2),  # The limit used for calculation
-                'available_tb': round(available / (1000**3), 2),
+                'size_tb': round(size / (1000**4), 2),
+                'soft_limit_tb': round(soft_limit / (1000**4), 2),
+                'hard_limit_tb': round(hard_limit / (1000**4), 2),
+                'quota_tb': round(quota_for_calc / (1000**4), 2),  # The limit used for calculation
+                'available_tb': round(available / (1000**4), 2),
                 'last_updated': datetime.now().isoformat()
             }
             
