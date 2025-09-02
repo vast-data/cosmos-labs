@@ -1,257 +1,292 @@
-# Lab 2: Proactive Metadata Infrastructure Planning
+# Lab 2 Complete Solution: Metadata Infrastructure Project
 
-## Overview
+## 🎯 Overview
 
-This lab demonstrates how to build a metadata system using the VAST Management System (VMS) and the official vastpy Python SDK. You'll create a storage organization system that can handle current and future data volumes, enabling researchers to quickly locate datasets by mission parameters, timestamps, and data quality metrics.
+This Lab 2 solution provides a complete metadata infrastructure system that:
 
-**Note:** This lab focuses on the infrastructure and workflow design.
+1. **Safely sets up VAST Database infrastructure** - Checks if bucket/schema/tables exist before creating anything
+2. **Processes Swift datasets** - Extracts metadata from local Swift data files
+3. **Extracts comprehensive metadata** - From Swift data files (FITS, lightcurves, etc.)
+4. **Stores metadata in VAST Database** - With duplicate detection and safe insertion
+5. **Provides search capabilities** - Query metadata across all datasets
 
-## Learning Objectives
+## 🏗️ Architecture
 
-By the end of this lab, you will be able to:
-- Design and implement a comprehensive metadata schema for satellite observations
-- Build automated workflows for extracting metadata from various file formats
-- Create search and query interfaces for efficient data discovery
-- Integrate metadata systems with existing data processing pipelines
-
-## Files
-
-- **`lab2_solution.py`** - Main metadata catalog system with extraction and pipeline integration
-- **`search_interface.py`** - Search and query interface for the catalog
-- **`config_loader.py`** - Lab-specific configuration loader (inherits from centralized config)
-- **`test_solution.py`** - Unit tests for the solution
-- **`requirements.txt`** - Python dependencies
-
-**Note:** Configuration files are centralized in the root directory. Copy `../config.yaml.example` to `../config.yaml` and `../secrets.yaml.example` to `../secrets.yaml`, then edit them with your settings.
-**Note:** `test_login.py` is now available in the root directory for testing VAST VMS connectivity.
-
-## Quick Start
-
-### 1. Install Dependencies
-```bash
-pip install -r requirements.txt
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Swift Data    │    │  Metadata        │    │  VAST Database  │
+│   (Local Files) │───▶│  Extractor       │───▶│  (vastdb SDK)   │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                              │
+                              ▼
+                       ┌──────────────────┐
+                       │  Search & Query  │
+                       │  Interface       │
+                       └──────────────────┘
 ```
 
-### 2. Configure the Solution
-```bash
-# Edit configuration files
-cp config.yaml.example config.yaml
-cp secrets.yaml.example secrets.yaml
+## 📁 Files
 
-# Update config.yaml with your VAST connection settings (non-sensitive)
-# Update secrets.yaml with your authentication credentials (sensitive)
+- **`vast_database_manager.py`** - Manages VAST Database operations safely
+- **`swift_metadata_extractor.py`** - Extracts metadata from Swift data files
+- **`lab2_solution.py`** - Main solution integrating all components
+- **`test_lab2_solution.py`** - Test script to verify everything works
+
+## 🚀 Quick Start
+
+### 1. Test the Solution
+
+```bash
+cd lab2
+python test_lab2_solution.py
 ```
 
-### 3. Test Your Connection
+This will verify that all components can be imported and initialized correctly.
+
+### 2. Set Up VAST Database Infrastructure (Dry Run)
+
 ```bash
-# First, test your VAST VMS connection
-python test_login.py
-
-# If successful, proceed with the lab
-```
-
-### 4. Run the Solution
-```bash
-# DRY RUN MODE (default - no changes made)
-python lab2_solution.py
-
-# PRODUCTION MODE (actual changes - requires confirmation)
-python lab2_solution.py --pushtoprod
-
-# Setup only (create schema, skip ingestion)
 python lab2_solution.py --setup-only
-
-# Ingest only (skip schema creation)
-python lab2_solution.py --ingest-only
-
-# Test search functionality
-python search_interface.py
-
-# Run unit tests
-python test_solution.py
 ```
 
-## Core Workflows
+This will check what VAST Database infrastructure exists and what would be created.
 
-### 1. Metadata Ingestion Workflow
-The system automatically extracts and catalogs metadata from satellite data files:
-
-- **Bulk Ingest**: Scan existing directories to catalog historical data
-- **Format Support**: FITS, JSON, and basic filename parsing
-- **Format Support**: FITS, JSON, and basic filename parsing
-
-### 2. Search and Query Workflow
-Researchers can find data through multiple interfaces:
-
-- **Interactive Search**: Web-based dashboard for manual discovery
-- **Programmatic API**: Integration with existing tools and scripts
-- **Advanced Filtering**: Search by mission, time, quality, and target
-
-### 3. Pipeline Integration Workflow
-Data processing pipelines can query the catalog before starting analysis:
-
-- **Pre-flight Checks**: Validate data availability
-- **Resource Validation**: Ensure sufficient storage for processing
-- **Simple Queries**: Basic filtering by mission and time
-
-## Configuration
-
-### Main Configuration (`config.yaml`)
-```yaml
-# VAST Connection Settings (non-sensitive)
-vast:
-  user: admin
-  address: "localhost"
-  # Note: password, token, and tenant_name are stored in secrets.yaml
-
-# VAST Catalog Settings
-catalog:
-  name: "orbital_dynamics_metadata"
-  port: 8080
-  batch_size: 1000
-
-# Data Directories
-data:
-  directories:
-    - "/cosmos7/raw"
-    - "/cosmos7/processed"
-    - "/mars_rover/data"
-```
-
-### Secrets Configuration (`secrets.yaml`)
-```yaml
-# VAST Connection Secrets
-vast_password: "your_vast_password_here"
-vast_token: ""  # Optional: API token for Vast 5.3+
-vast_tenant_name: ""  # Optional: Tenant name for Vast 5.3+
-vast_api_version: "v1"  # Optional: API version
-```
-
-## Safety System
-
-Lab 2 includes a comprehensive safety system to prevent accidental changes to the VAST system:
-
-### **Dry Run Mode (Default)**
-- **No actual changes** are made to the VAST system
-- **Preview operations** before execution
-- **Safety checks** run automatically
-- **Estimated results** are shown
-
-### **Production Mode**
-- **Explicit confirmation** required (`--pushtoprod`)
-- **Actual changes** made to VAST views and storage
-- **Comprehensive safety checks** before any operation
-- **User must type 'YES'** to confirm
-
-### **Safety Checks Performed**
-1. **View Policy Validation** - Check required policies exist
-2. **Storage Availability** - Ensure sufficient space
-3. **Catalog Name Conflicts** - Prevent duplicate catalogs
-4. **Directory Access** - Verify read permissions
-5. **File Count Limits** - Prevent overwhelming operations
-6. **Storage Impact Assessment** - Estimate resource usage
-
-## Usage Examples
-
-### Basic Catalog Operations
-```python
-from lab2_solution import OrbitalDynamicsMetadataCatalog
-
-# Initialize the catalog system (dry run mode by default)
-catalog_system = OrbitalDynamicsMetadataCatalog(config)
-
-# For production mode, use production_mode=True
-catalog_system = OrbitalDynamicsMetadataCatalog(config, production_mode=True)
-
-# Create the catalog schema
-catalog_system.create_catalog_schema()
-
-# Ingest metadata from directories
-results = catalog_system.batch_ingest_directory('/cosmos7/raw')
-print(f"Ingested {results['successful_ingests']} files")
-```
-
-### Search Operations
-```python
-from search_interface import MetadataSearchInterface
-
-# Initialize search interface
-search_interface = MetadataSearchInterface(config)
-
-# Find Mars rover data from last 30 days
-mars_data = search_interface.find_mars_rover_data(30)
-
-# Find high-quality observations
-high_quality = search_interface.find_high_quality_observations()
-
-# Advanced search with multiple criteria
-criteria = {
-    'mission_id': 'COSMOS7',
-    'min_quality': 0.8,
-    'processing_status': 'PROCESSED'
-}
-results = search_interface.advanced_search(criteria)
-```
-
-### Pipeline Integration
-```python
-from lab2_solution import PipelineDataManager
-
-# Initialize pipeline manager
-pipeline_manager = PipelineDataManager(catalog_client)
-
-# Get available datasets for processing
-datasets = pipeline_manager.get_available_datasets('COSMOS7', min_quality=0.8)
-
-# Check storage availability
-storage_check = pipeline_manager.check_storage_availability(datasets)
-
-# Start processing if resources are available
-if storage_check['sufficient_storage']:
-    pipeline_manager.start_processing_pipeline('COSMOS7')
-```
-
-## Success Criteria
-
-The system succeeds when it can:
-- **Ingest**: Catalog existing files and automatically index new ones
-- **Query**: Find datasets by mission, time, quality, and target criteria  
-- **Integrate**: Enable pipelines to validate data and track processing status
-
-## Testing
+### 3. Set Up VAST Database Infrastructure (Production)
 
 ```bash
-# Run all unit tests
-python test_solution.py
-
-# Run specific test classes
-python -m unittest test_solution.TestMetadataExtractor
-python -m unittest test_solution.TestSearchInterface
+python lab2_solution.py --setup-only --pushtoprod
 ```
 
-## Troubleshooting
+This will actually create the bucket, schema, and tables in VAST Database.
+
+### 4. Process Metadata (Dry Run)
+
+```bash
+python lab2_solution.py --process-only
+```
+
+This will extract metadata from Swift datasets and show what would be inserted.
+
+### 5. Process Metadata (Production)
+
+```bash
+python lab2_solution.py --process-only --pushtoprod
+```
+
+This will actually extract and store metadata in VAST Database.
+
+### 6. Full Solution (Setup + Process)
+
+```bash
+python lab2_solution.py --pushtoprod
+```
+
+This will set up the VAST Database infrastructure and process all metadata.
+
+## 🔧 Configuration
+
+### VAST Database Settings
+
+The solution uses these configuration keys from your `config.yaml`:
+
+```yaml
+lab2:
+  vastdb:
+    bucket: "your-tenant-metadata"      # VAST Database bucket name
+    schema: "satellite_observations"    # Schema name
+    endpoint: "http://localhost:8080"   # VAST Database endpoint
+    ssl_verify: true                    # SSL verification
+    timeout: 30                         # Connection timeout
+```
+
+### Secrets
+
+Add these to your `secrets.yaml`:
+
+```yaml
+secrets:
+  s3_access_key: "your_access_key"      # VAST Database access key
+  s3_secret_key: "your_secret_key"      # VAST Database secret key
+```
+
+These are the same credentials used for VAST Database access.
+
+## 📊 Metadata Schema
+
+The solution creates a comprehensive metadata table:
+
+```sql
+CREATE TABLE satellite_observations.swift_metadata (
+    id SERIAL PRIMARY KEY,
+    file_path VARCHAR(500) NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    file_size_bytes BIGINT,
+    file_format VARCHAR(50),
+    dataset_name VARCHAR(100),
+    
+    -- Swift-specific metadata
+    mission_id VARCHAR(100),
+    satellite_name VARCHAR(100),
+    instrument_type VARCHAR(100),
+    observation_timestamp TIMESTAMP,
+    target_object VARCHAR(100),
+    processing_status VARCHAR(50),
+    
+    -- File metadata
+    ingestion_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_modified TIMESTAMP,
+    checksum VARCHAR(64),
+    metadata_version VARCHAR(20),
+    
+    -- Search optimization
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+## 🔍 Metadata Extraction
+
+### Supported File Formats
+
+- **FITS files** - Full astronomical header parsing (requires astropy)
+- **Swift lightcurves** - Pattern-based metadata extraction
+- **JSON files** - Structured metadata extraction
+- **Generic files** - Filename pattern analysis
+
+### Extracted Metadata
+
+- **File information**: Path, name, size, format, checksum
+- **Swift-specific**: Mission ID, satellite, instrument, target, timestamp
+- **Processing**: Status, version, ingestion timestamp
+- **Search optimization**: Indexed fields for fast queries
+
+## 🛡️ Safety Features
+
+### Dry Run Mode (Default)
+
+- **No actual changes** to VAST Database or files
+- **Shows what would happen** without making changes
+- **Safe for testing** and understanding the solution
+
+### Production Mode (`--pushtoprod`)
+
+- **Requires explicit confirmation** ("YES")
+- **Makes actual changes** to VAST Database and files
+- **Safety checks always run** before any operation
+
+### VAST Database Safety
+
+- **Checks existence** before creating anything
+- **No overwrites** - skips existing records
+- **Transaction safety** - rollback on errors
+- **Connection management** - proper cleanup
+
+## 📈 Usage Examples
+
+### Show VAST Database Statistics
+
+```bash
+python lab2_solution.py --stats
+```
+
+### Search Metadata
+
+```bash
+# Search by mission
+python lab2_solution.py --search "mission_id=SWIFT"
+
+# Search by target object
+python lab2_solution.py --search "target_object=BAT_0001"
+```
+
+### Process Specific Datasets
+
+The solution automatically detects and processes all datasets in the `swift_datasets/` directory:
+
+- `batsources_survey_north/`
+- `batsources_survey_south/`
+- `batsources_monitoring_north/`
+- `batsources_monitoring_south/`
+
+## 🔍 Troubleshooting
 
 ### Common Issues
 
-1. **Catalog Connection Failed**
-   - Verify VAST Catalog service is running
-   - Check credentials in `secrets.yaml`
-   - Ensure network connectivity
+1. **Import Errors**
+   ```bash
+   pip install -r requirements.txt
+   pip install -r ../requirements.txt
+   ```
 
-2. **Metadata Extraction Failed**
-   - Check file permissions and accessibility
-   - Verify file format is supported
-   - Review extraction logs
+2. **Database Connection Issues**
+   - Check VAST Database is running
+   - Verify host/port in config.yaml
+   - Check credentials in secrets.yaml
 
-3. **Search Performance Issues**
-   - Check catalog indexing status
-   - Verify query complexity
-   - Monitor catalog performance
+3. **Swift Datasets Not Found**
+   - Run the Swift download script first
+   - Check `swift_datasets/` directory exists
+   - Verify VAST Database configuration
 
-## Next Steps
+4. **Metadata Extraction Failures**
+   - Install astropy for FITS support
+   - Check file permissions
+   - Verify file formats
 
-After completing this lab, consider:
-1. **Web Interface**: Build a user-friendly search dashboard
-2. **Real-time Ingestion**: Set up automated monitoring for new data
-3. **Advanced Analytics**: Add data quality trends and usage patterns
-4. **Integration**: Connect with external astronomical databases 
+### Debug Mode
+
+Enable debug logging:
+
+```python
+import logging
+logging.getLogger().setLevel(logging.DEBUG)
+```
+
+## 📚 API Reference
+
+### VASTDatabaseManager
+
+- `connect()` - Connect to database server
+- `database_exists()` - Check if database exists
+- `create_database()` - Create database if needed
+- `create_schema()` - Create schema if needed
+- `create_metadata_table()` - Create metadata table if needed
+- `insert_metadata(metadata)` - Insert metadata record
+- `search_metadata(criteria)` - Search metadata
+- `get_metadata_stats()` - Get database statistics
+
+### SwiftMetadataExtractor
+
+- `extract_metadata_from_file(file_path)` - Extract from single file
+- `extract_metadata_from_dataset(dataset_path)` - Extract from dataset
+- `_extract_fits_metadata(file_path)` - FITS-specific extraction
+- `_extract_swift_lightcurve_metadata(file_path)` - Swift-specific extraction
+
+### Lab2CompleteSolution
+
+- `setup_database_infrastructure()` - Set up database infrastructure
+- `process_all_datasets()` - Process all available datasets
+- `show_database_stats()` - Display database statistics
+- `search_metadata(criteria)` - Search metadata
+
+## 🎯 Next Steps
+
+After completing Lab 2:
+
+1. **Verify metadata** is correctly stored in database
+2. **Test search queries** for different criteria
+3. **Explore the data** using database tools
+4. **Move to Lab 3** for pipeline orchestration
+
+## 📞 Support
+
+If you encounter issues:
+
+1. **Check the test script** output for specific errors
+2. **Verify configuration** in config.yaml and secrets.yaml
+3. **Check dependencies** are properly installed
+4. **Review logs** for detailed error messages
+
+---
+
+**🎉 Congratulations!** You now have a complete metadata infrastructure system that safely manages VAST Database operations and processes Swift satellite data.
