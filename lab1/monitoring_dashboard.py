@@ -313,11 +313,11 @@ def main():
     dashboard = StorageDashboard()
     
     try:
-        # Use Rich Live display for auto-refresh
-        with Live(refresh_per_second=1, console=dashboard.console) as live:
-            while True:
-                live.update(dashboard.create_rich_dashboard())
-                time.sleep(dashboard.refresh_interval)
+        while True:
+            # Clear screen and display dashboard
+            dashboard.console.clear()
+            dashboard.console.print(dashboard.create_rich_dashboard())
+            time.sleep(dashboard.refresh_interval)
     except KeyboardInterrupt:
         dashboard.console.print("\n[bold red]Dashboard stopped by user[/bold red]")
 
