@@ -104,12 +104,14 @@ class StorageDashboard:
             print(f"   Found size in field 'logical_capacity': {size}")
             
             # Get quota information
-            quota = 0
+            soft_limit = 0
+            hard_limit = 0
             if quotas:
                 quota_info = quotas[0]
-                quota = quota_info.get('soft_limit', 0)
+                soft_limit = quota_info.get('soft_limit', 0)
+                hard_limit = quota_info.get('hard_limit', 0)
                 used_capacity = quota_info.get('used_capacity', 0)
-                print(f"   Quota info: used={used_capacity}, soft_limit={quota}")
+                print(f"   Quota info: used={used_capacity}, soft_limit={soft_limit}, hard_limit={hard_limit}")
                 # Use the quota's used capacity if available, otherwise use view's logical capacity
                 if used_capacity > 0:
                     size = used_capacity
@@ -119,16 +121,20 @@ class StorageDashboard:
             # Convert to int if they're strings or floats
             try:
                 size = int(float(size)) if size is not None else 0
-                quota = int(float(quota)) if quota is not None else 0
+                soft_limit = int(float(soft_limit)) if soft_limit is not None else 0
+                hard_limit = int(float(hard_limit)) if hard_limit is not None else 0
             except (ValueError, TypeError):
                 size = 0
-                quota = 0
+                soft_limit = 0
+                hard_limit = 0
             
-            print(f"   Final values - Size: {size} bytes, Quota: {quota} bytes")
+            print(f"   Final values - Size: {size} bytes, Soft Limit: {soft_limit} bytes, Hard Limit: {hard_limit} bytes")
             
-            if quota > 0:
-                utilization = (size / quota) * 100
-                available = quota - size
+            # Use soft limit for utilization calculation if available, otherwise hard limit
+            quota_for_calc = soft_limit if soft_limit > 0 else hard_limit
+            if quota_for_calc > 0:
+                utilization = (size / quota_for_calc) * 100
+                available = quota_for_calc - size
             else:
                 utilization = 0
                 available = 0
@@ -138,7 +144,9 @@ class StorageDashboard:
                 'status': self._get_status_level(utilization),
                 'utilization': round(utilization, 1),
                 'size_tb': round(size / (1024**3), 2),
-                'quota_tb': round(quota / (1024**3), 2),
+                'soft_limit_tb': round(soft_limit / (1024**3), 2),
+                'hard_limit_tb': round(hard_limit / (1024**3), 2),
+                'quota_tb': round(quota_for_calc / (1024**3), 2),  # The limit used for calculation
                 'available_tb': round(available / (1024**3), 2),
                 'last_updated': datetime.now().isoformat()
             }
@@ -217,8 +225,21 @@ class StorageDashboard:
             
             if view_data['status'] in ['NORMAL', 'WARNING', 'CRITICAL']:
                 print(f"   Utilization: {view_data['utilization']}%")
-                print(f"   Size: {view_data['size_tb']} TB / {view_data['quota_tb']} TB")
-                print(f"   Available: {view_data['available_tb']} TB")
+                print(f"   Size: {view_data['size_tb']} TB")
+                
+                # Show quota limits
+                if view_data['soft_limit_tb'] > 0 or view_data['hard_limit_tb'] > 0:
+                    if view_data['soft_limit_tb'] > 0 and view_data['hard_limit_tb'] > 0:
+                        print(f"   Soft Limit: {view_data['soft_limit_tb']} TB")
+                        print(f"   Hard Limit: {view_data['hard_limit_tb']} TB")
+                    elif view_data['soft_limit_tb'] > 0:
+                        print(f"   Soft Limit: {view_data['soft_limit_tb']} TB")
+                    elif view_data['hard_limit_tb'] > 0:
+                        print(f"   Hard Limit: {view_data['hard_limit_tb']} TB")
+                    
+                    print(f"   Available: {view_data['available_tb']} TB")
+                else:
+                    print(f"   No quota set")
             elif view_data['status'] in ['ERROR', 'CONNECTION_ERROR']:
                 print(f"   Error: {view_data.get('error', 'Unknown error')}")
             else:
