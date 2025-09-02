@@ -393,45 +393,44 @@ class VASTDatabaseManager:
                     except:
                         return None
                 
-                data = [
-                    [
-                        metadata.get('file_path', ''),
-                        metadata.get('file_name', ''),
-                        metadata.get('file_size_bytes', 0),
-                        metadata.get('file_format', ''),
-                        metadata.get('dataset_name', ''),
-                        metadata.get('mission_id', ''),
-                        metadata.get('satellite_name', ''),
-                        metadata.get('instrument_type', ''),
-                        parse_timestamp(metadata.get('observation_timestamp', datetime.now())),
-                        metadata.get('target_object', ''),
-                        metadata.get('processing_status', ''),
-                        parse_timestamp(metadata.get('ingestion_timestamp', datetime.now())),
-                        parse_timestamp(metadata.get('last_modified')),
-                        metadata.get('checksum', ''),
-                        metadata.get('metadata_version', '1.0'),
-                        datetime.now(),  # created_at
-                        datetime.now()   # updated_at
-                    ]
-                ]
+                # PyArrow expects data as column arrays, not row arrays
+                data = {
+                    'file_path': [metadata.get('file_path', '')],
+                    'file_name': [metadata.get('file_name', '')],
+                    'file_size_bytes': [metadata.get('file_size_bytes', 0)],
+                    'file_format': [metadata.get('file_format', '')],
+                    'dataset_name': [metadata.get('dataset_name', '')],
+                    'mission_id': [metadata.get('mission_id', '')],
+                    'satellite_name': [metadata.get('satellite_name', '')],
+                    'instrument_type': [metadata.get('instrument_type', '')],
+                    'observation_timestamp': [parse_timestamp(metadata.get('observation_timestamp', datetime.now()))],
+                    'target_object': [metadata.get('target_object', '')],
+                    'processing_status': [metadata.get('processing_status', '')],
+                    'ingestion_timestamp': [parse_timestamp(metadata.get('ingestion_timestamp', datetime.now()))],
+                    'last_modified': [parse_timestamp(metadata.get('last_modified'))],
+                    'checksum': [metadata.get('checksum', '')],
+                    'metadata_version': [metadata.get('metadata_version', '1.0')],
+                    'created_at': [datetime.now()],
+                    'updated_at': [datetime.now()]
+                }
                 
                 # Validate schema and data match
                 schema = table.columns()
-                data_columns = len(data[0])
+                data_columns = len(data)
                 schema_columns = len(schema)
                 
                 logger.info(f"🔧 Table schema has {schema_columns} columns: {[col.name for col in schema]}")
-                logger.info(f"🔧 Data array has {data_columns} elements")
+                logger.info(f"🔧 Data dictionary has {data_columns} columns")
                 
                 # Debug: Show data types and values
                 logger.info(f"🔧 Schema data types: {[col.type for col in schema]}")
-                logger.info(f"🔧 Data values: {data[0]}")
+                logger.info(f"🔧 Data keys: {list(data.keys())}")
                 
                 if data_columns != schema_columns:
-                    error_msg = f"❌ SCHEMA MISMATCH: Data has {data_columns} elements but table schema expects {schema_columns} columns"
+                    error_msg = f"❌ SCHEMA MISMATCH: Data has {data_columns} columns but table schema expects {schema_columns} columns"
                     logger.error(error_msg)
                     logger.error(f"❌ Table columns: {[col.name for col in schema]}")
-                    logger.error(f"❌ Data elements: {data_columns}")
+                    logger.error(f"❌ Data columns: {list(data.keys())}")
                     logger.error("❌ Stopping processing to prevent data corruption. Please fix schema mismatch.")
                     raise ValueError(error_msg)
                 
