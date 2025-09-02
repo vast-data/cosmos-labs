@@ -359,10 +359,6 @@ class VASTDatabaseManager:
                     table = schema.table("swift_metadata")
                     
                     # Search for the file_path
-                    self._log_api_call(
-                        "table.select()",
-                        f"table=swift_metadata, checking if file_path exists"
-                    )
                     reader = table.select()
                     
                     for batch in reader:
@@ -445,12 +441,9 @@ class VASTDatabaseManager:
                 data_columns = len(data)
                 schema_columns = len(schema)
                 
-                logger.info(f"🔧 Table schema has {schema_columns} columns: {[col.name for col in schema]}")
-                logger.info(f"🔧 Data dictionary has {data_columns} columns")
-                
-                # Debug: Show data types and values
-                logger.info(f"🔧 Schema data types: {[col.type for col in schema]}")
-                logger.info(f"🔧 Data keys: {list(data.keys())}")
+                # Schema validation (debug level to reduce noise)
+                logger.debug(f"🔧 Table schema has {schema_columns} columns: {[col.name for col in schema]}")
+                logger.debug(f"🔧 Data dictionary has {data_columns} columns")
                 
                 if data_columns != schema_columns:
                     error_msg = f"❌ SCHEMA MISMATCH: Data has {data_columns} columns but table schema expects {schema_columns} columns"
