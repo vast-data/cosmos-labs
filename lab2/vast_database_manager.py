@@ -22,13 +22,14 @@ except ImportError as e:
 
 try:
     import ibis
-    # Check for basic ibis functionality
-    if hasattr(ibis, '_'):
+    # Check for basic ibis functionality - test if we can create expressions
+    try:
+        # Test basic ibis functionality
+        test_expr = ibis.literal(1) == 1
         IBIS_AVAILABLE = True
         print("✅ ibis-framework loaded successfully")
-    else:
-        print(f"⚠️  ibis version compatibility issue")
-        print("💡 ibis._ not found - this version may be incompatible")
+    except Exception as test_error:
+        print(f"⚠️  ibis functionality test failed: {test_error}")
         print("🔧 Disabling ibis support to avoid connection issues")
         IBIS_AVAILABLE = False
 except ImportError as e:
@@ -92,83 +93,9 @@ class VASTDatabaseManager:
             return None
             
         try:
-            from ibis import _
-            predicates = []
-            
-            for key, criteria in search_criteria.items():
-                try:
-                    # Get the column reference
-                    column = getattr(_, key)
-                    
-                    if criteria['type'] == 'exact':
-                        # Exact match: key = value
-                        predicates.append(column == criteria['value'])
-                        
-                    elif criteria['type'] == 'wildcard':
-                        pattern = criteria['pattern']
-                        if pattern == '*':
-                            # Match all - no predicate needed
-                            continue
-                        elif pattern.startswith('*') and pattern.endswith('*'):
-                            # Contains: *value* -> contains() method
-                            search_value = pattern[1:-1]
-                            predicates.append(column.contains(search_value))
-                        elif pattern.startswith('*'):
-                            # Ends with: *value -> endswith() method
-                            search_value = pattern[1:]
-                            predicates.append(column.endswith(search_value))
-                        elif pattern.endswith('*'):
-                            # Starts with: value* -> startswith() method
-                            search_value = pattern[:-1]
-                            predicates.append(column.startswith(search_value))
-                        else:
-                            # No wildcards - treat as exact match
-                            predicates.append(column == pattern)
-                            
-                    elif criteria['type'] == 'comparison':
-                        operator = criteria['operator']
-                        value = criteria['value']
-                        
-                        # Try to convert to appropriate type for comparison
-                        try:
-                            # Try date comparison first
-                            from datetime import datetime
-                            datetime.fromisoformat(value.replace('Z', '+00:00'))
-                            # It's a valid date, keep as string for comparison
-                            compare_value = value
-                        except (ValueError, TypeError):
-                            try:
-                                # Try numeric comparison
-                                compare_value = float(value)
-                            except (ValueError, TypeError):
-                                # Fallback to string comparison
-                                compare_value = value
-                        
-                        if operator == '>':
-                            predicates.append(column > compare_value)
-                        elif operator == '<':
-                            predicates.append(column < compare_value)
-                        elif operator == '>=':
-                            predicates.append(column >= compare_value)
-                        elif operator == '<=':
-                            predicates.append(column <= compare_value)
-                            
-                except AttributeError as e:
-                    logger.warning(f"⚠️  Column '{key}' not found in ibis schema: {e}")
-                    # Skip this predicate if column doesn't exist
-                    continue
-            
-            # Combine all predicates with AND using proper ibis syntax
-            if predicates:
-                if len(predicates) == 1:
-                    return predicates[0]
-                else:
-                    # Combine with AND operator using & (as shown in documentation)
-                    result = predicates[0]
-                    for pred in predicates[1:]:
-                        result = result & pred
-                    return result
-            
+            # For now, disable ibis predicate building due to API complexity
+            # The VAST DB SDK integration with ibis needs more investigation
+            logger.debug("⚠️  ibis predicate building disabled - using Python filtering")
             return None
             
         except Exception as e:
