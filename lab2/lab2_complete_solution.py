@@ -335,7 +335,7 @@ def main():
     parser.add_argument('--setup-only', action='store_true', help='Only set up database infrastructure')
     parser.add_argument('--process-only', action='store_true', help='Only process metadata (assumes setup is complete)')
     parser.add_argument('--stats', action='store_true', help='Show database statistics')
-    parser.add_argument('--search', type=str, help='Search metadata (e.g., "mission_id=SWIFT")')
+    parser.add_argument('--search', type=str, help='Search metadata (e.g., "mission_id=SWIFT,target_object=GRB")')
     parser.add_argument('--delete-schema', action='store_true', help='Delete VAST schema and recreate with new structure (DESTRUCTIVE)')
     
     args = parser.parse_args()
@@ -365,18 +365,33 @@ def main():
             
         elif args.search:
             # Search metadata
-            # Parse search criteria (simple format: key=value)
+            # Parse search criteria (format: key1=value1,key2=value2)
             search_criteria = {}
-            if '=' in args.search:
-                key, value = args.search.split('=', 1)
-                search_criteria[key.strip()] = value.strip()
+            criteria_pairs = args.search.split(',')
+            
+            for pair in criteria_pairs:
+                if '=' in pair:
+                    key, value = pair.split('=', 1)
+                    search_criteria[key.strip()] = value.strip()
+                else:
+                    print(f"⚠️  Invalid search criteria format: {pair}")
+                    print("💡 Use format: key1=value1,key2=value2")
+                    sys.exit(1)
             
             results = solution.search_metadata(search_criteria)
             
             if results:
                 print(f"\n🔍 Search Results ({len(results)} found):")
                 for i, result in enumerate(results[:10], 1):  # Show first 10
-                    print(f"{i}. {result.get('file_name', 'Unknown')} - {result.get('mission_id', 'Unknown')}")
+                    file_name = result.get('file_name', 'Unknown')
+                    mission_id = result.get('mission_id', 'Unknown')
+                    target_object = result.get('target_object', 'Unknown')
+                    file_size = result.get('file_size_bytes', 0)
+                    size_mb = file_size / (1024 * 1024) if file_size else 0
+                    
+                    print(f"{i}. {file_name}")
+                    print(f"   Mission: {mission_id} | Object: {target_object} | Size: {size_mb:.1f} MB")
+                
                 if len(results) > 10:
                     print(f"... and {len(results) - 10} more results")
             else:
