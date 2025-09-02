@@ -161,7 +161,7 @@ class Lab2CompleteSolution:
                 # Insert metadata into database
                 if self.db_manager.insert_metadata(metadata):
                     inserted_count += 1
-                    logger.debug(f"✅ Inserted metadata for: {metadata['file_name']}")
+                    logger.info(f"✅ Inserted metadata for: {metadata['file_name']}")
                 else:
                     failed_count += 1
                     logger.error(f"❌ Failed to insert metadata for: {metadata['file_name']}")

@@ -308,18 +308,39 @@ class VASTDatabaseManager:
             return False
     
     def metadata_exists(self, file_path: str) -> bool:
-        """Check if metadata for a file already exists in the database"""
+        """Check if metadata for a file already exists in the database using VAST DB"""
+        if not VASTDB_AVAILABLE:
+            logger.warning("⚠️  vastdb not available - mock metadata existence check")
+            return False
+            
         try:
-            cursor = self.connection.cursor()
-            cursor.execute(f"""
-                SELECT 1 FROM {self.schema_name}.swift_metadata 
-                WHERE file_path = %s
-            """, (file_path,))
+            if not self.connection:
+                if not self.connect():
+                    return False
             
-            exists = cursor.fetchone() is not None
-            cursor.close()
-            
-            return exists
+            # Use VAST DB transaction to check if metadata exists
+            with self.connection.transaction() as tx:
+                bucket = tx.bucket(self.bucket_name)
+                
+                # Check if schema and table exist
+                try:
+                    schema = bucket.schema(self.schema_name)
+                    table = schema.table("swift_metadata")
+                    
+                    # Search for the file_path
+                    reader = table.select()
+                    
+                    for batch in reader:
+                        for i in range(len(batch)):
+                            if batch['file_path'][i].as_py() == file_path:
+                                return True
+                    
+                    return False
+                    
+                except Exception:
+                    # Schema or table doesn't exist yet
+                    logger.info(f"ℹ️  Schema '{self.schema_name}' or table 'swift_metadata' doesn't exist yet")
+                    return False
             
         except Exception as e:
             logger.error(f"❌ Error checking metadata existence: {e}")
