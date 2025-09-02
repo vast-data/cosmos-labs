@@ -104,22 +104,22 @@ class StorageDashboard:
             # Get quota information from quotas endpoint
             quotas = self.client.quotas.get(path=view_path)
             
-            # Get size from view details
-            size = view_details.get('logical_capacity', 0)
-            
-            # Get quota information
+            # Get quota information first
             soft_limit = 0
             hard_limit = 0
+            size = 0
+            
             if quotas:
                 quota_info = quotas[0]
                 soft_limit = quota_info.get('soft_limit', 0)
                 hard_limit = quota_info.get('hard_limit', 0)
                 used_capacity = quota_info.get('used_capacity', 0)
-                # Use the quota's used capacity if available, otherwise use view's logical capacity
-                if used_capacity > 0:
-                    size = used_capacity
+                # Use the quota's used capacity for size (this is what utilization is based on)
+                size = used_capacity
             else:
                 print(f"   No quota found for path: {view_path}")
+                # Fallback to view's logical capacity if no quota
+                size = view_details.get('logical_capacity', 0)
             
             # Convert to int if they're strings or floats
             try:
@@ -136,8 +136,6 @@ class StorageDashboard:
             if quota_for_calc > 0:
                 utilization = (size / quota_for_calc) * 100
                 available = quota_for_calc - size
-                # Debug: Print the calculation details
-                print(f"   DEBUG: size={size}, quota_for_calc={quota_for_calc}, utilization={utilization:.1f}%, available={available}")
             else:
                 utilization = 0
                 available = 0
