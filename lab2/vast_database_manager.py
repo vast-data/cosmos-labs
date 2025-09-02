@@ -115,7 +115,7 @@ class VASTDatabaseManager:
                 schema = bucket.create_schema(self.schema_name)
                 logger.info(f"✅ Created schema '{self.schema_name}' in bucket '{self.bucket_name}'")
                 
-                # Create table with metadata columns (matching the insert_metadata method)
+                # Create table with complete metadata columns
                 import pyarrow as pa
                 columns = pa.schema([
                     ('file_path', pa.utf8()),
@@ -130,7 +130,11 @@ class VASTDatabaseManager:
                     ('target_object', pa.utf8()),
                     ('processing_status', pa.utf8()),
                     ('ingestion_timestamp', pa.timestamp('us')),
+                    ('last_modified', pa.timestamp('us')),
+                    ('checksum', pa.utf8()),
                     ('metadata_version', pa.utf8()),
+                    ('created_at', pa.timestamp('us')),
+                    ('updated_at', pa.timestamp('us'))
                 ])
                 
                 table = schema.create_table("swift_metadata", columns)
@@ -376,7 +380,7 @@ class VASTDatabaseManager:
                 import pyarrow as pa
                 import json
                 
-                # Prepare data for insertion (matching the table schema)
+                # Prepare data for insertion (matching the complete table schema - 17 columns)
                 data = [
                     [
                         metadata.get('file_path', ''),
