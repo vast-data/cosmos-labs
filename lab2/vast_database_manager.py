@@ -819,6 +819,12 @@ class VASTDatabaseManager:
                 if not self.connect():
                     return {}
             
+            # Log API call
+            self._log_api_call(
+                "connection.transaction()",
+                f"bucket={self.bucket_name} (stats query)"
+            )
+            
             # Use VAST DB transaction to get statistics
             with self.connection.transaction() as tx:
                 bucket = tx.bucket(self.bucket_name)
@@ -827,6 +833,12 @@ class VASTDatabaseManager:
                 try:
                     schema = bucket.schema(self.schema_name)
                     table = schema.table("swift_metadata")
+                    
+                    # Log API call
+                    self._log_api_call(
+                        "table.select()",
+                        f"schema={self.schema_name}, table=swift_metadata (stats query)"
+                    )
                     
                     # Get total count using select()
                     reader = table.select()
