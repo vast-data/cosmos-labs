@@ -17,15 +17,17 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class OrbitalDynamicsStorageManager:
-    def __init__(self, config: Lab1ConfigLoader, production_mode: bool = False):
+    def __init__(self, config: Lab1ConfigLoader, production_mode: bool = False, show_api_calls: bool = False):
         """
         Initialize the storage manager for Orbital Dynamics
         
         Args:
             config: Lab1ConfigLoader instance with loaded configuration
             production_mode: If True, allows actual changes. If False, dry-run only.
+            show_api_calls: If True, show API calls being made (credentials obfuscated).
         """
         self.production_mode = production_mode
+        self.show_api_calls = show_api_calls
         # Load VAST configuration
         vast_config = config.get_vast_config()
         
@@ -99,6 +101,24 @@ class OrbitalDynamicsStorageManager:
             logger.info("⚠️  DRY RUN MODE: No actual changes will be made")
         else:
             logger.warning("🚨 PRODUCTION MODE: Actual changes will be made to your VAST system")
+    
+    def _log_api_call(self, operation: str, details: str = ""):
+        """Log API calls if show_api_calls is enabled"""
+        if self.show_api_calls:
+            # Obfuscate credentials in the details
+            obfuscated_details = details
+            vast_config = self.config.get_vast_config()
+            if vast_config.get('user') and vast_config['user'] in obfuscated_details:
+                obfuscated_details = obfuscated_details.replace(vast_config['user'], '***')
+            if vast_config.get('password') and vast_config['password'] in obfuscated_details:
+                obfuscated_details = obfuscated_details.replace(vast_config['password'], '***')
+            if vast_config.get('token') and vast_config['token'] in obfuscated_details:
+                obfuscated_details = obfuscated_details.replace(vast_config['token'], '***')
+            
+            print(f"🔌 API CALL: {operation}")
+            if details:
+                print(f"   Details: {obfuscated_details}")
+            print()
     
     def show_current_view_status(self):
         """Display current status of all target views"""
@@ -187,6 +207,12 @@ class OrbitalDynamicsStorageManager:
             
             for view_path in view_paths:
                 try:
+                    # Log API call
+                    self._log_api_call(
+                        "client.views.get()",
+                        f"path={view_path}"
+                    )
+                    
                     existing = self.client.views.get(path=view_path)
                     if existing:
                         existing_views.append(view_path)
@@ -222,6 +248,12 @@ class OrbitalDynamicsStorageManager:
                 for view_path in missing_views:
                     try:
                         logger.info(f"🔨 Creating view: {view_path}")
+                        # Log API call
+                        self._log_api_call(
+                            "client.views.post()",
+                            f"path={view_path}, policy_id={default_policy['id']}"
+                        )
+                        
                         view = self.client.views.post(
                             path=view_path,
                             policy_id=default_policy['id'],
@@ -450,6 +482,8 @@ def main():
                        help='Only set up initial views, then exit')
     parser.add_argument('--monitor-only', action='store_true',
                        help='Only run monitoring, skip setup')
+    parser.add_argument('--showapicalls', action='store_true',
+                       help='Show API calls being made (credentials obfuscated)')
     
     args = parser.parse_args()
     
@@ -479,7 +513,7 @@ def main():
             return
         
         # Initialize storage manager with production mode
-        storage_manager = OrbitalDynamicsStorageManager(config, production_mode=production_mode)
+        storage_manager = OrbitalDynamicsStorageManager(config, production_mode=production_mode, show_api_calls=args.showapicalls)
         
         # Handle different operation modes
         if args.setup_only:
