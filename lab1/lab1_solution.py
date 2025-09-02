@@ -119,25 +119,44 @@ class OrbitalDynamicsStorageManager:
                     view = existing[0]
                     view_id = view['id']
                     
-                    # Get detailed view information
+                    # Get quota information
                     try:
-                        view_details = self.client.views[view_id].get()
-                        size_gb = view_details.get('size', 0) / (1024**3) if view_details.get('size') else 0
-                        quota_gb = view_details.get('quota', 0) / (1024**3) if view_details.get('quota') else 0
-                        
-                        if quota_gb > 0:
-                            utilization = (size_gb / quota_gb) * 100
-                            status_icon = "🟢" if utilization < self.warning_threshold else "🟡" if utilization < self.critical_threshold else "🔴"
-                            logger.info(f"{status_icon} {view_path}")
-                            logger.info(f"    📊 Size: {size_gb:.2f} GB / {quota_gb:.2f} GB ({utilization:.1f}%)")
-                            logger.info(f"    🆔 View ID: {view_id}")
+                        quotas = self.client.quotas.get(path=view_path)
+                        if quotas:
+                            quota_info = quotas[0]
+                            used_capacity = quota_info.get('used_capacity', 0)
+                            hard_limit = quota_info.get('hard_limit', 0)
+                            soft_limit = quota_info.get('soft_limit', 0)
+                            
+                            # Convert to GB for display
+                            size_gb = used_capacity / (1024**3) if used_capacity else 0
+                            hard_limit_gb = hard_limit / (1024**3) if hard_limit else 0
+                            soft_limit_gb = soft_limit / (1024**3) if soft_limit else 0
+                            
+                            # Use hard limit for utilization calculation
+                            quota_for_calc = hard_limit if hard_limit > 0 else soft_limit
+                            if quota_for_calc > 0:
+                                utilization = (used_capacity / quota_for_calc) * 100
+                                status_icon = "🟢" if utilization < self.warning_threshold else "🟡" if utilization < self.critical_threshold else "🔴"
+                                logger.info(f"{status_icon} {view_path}")
+                                logger.info(f"    📊 Size: {size_gb:.2f} GB")
+                                if soft_limit_gb > 0:
+                                    logger.info(f"    ⚠️  Soft Limit: {soft_limit_gb:.2f} GB")
+                                if hard_limit_gb > 0:
+                                    logger.info(f"    🚫 Hard Limit: {hard_limit_gb:.2f} GB")
+                                logger.info(f"    📈 Utilization: {utilization:.1f}%")
+                            else:
+                                logger.info(f"📁 {view_path}")
+                                logger.info(f"    📊 Size: {size_gb:.2f} GB (no quota set)")
                         else:
                             logger.info(f"📁 {view_path}")
-                            logger.info(f"    📊 Size: {size_gb:.2f} GB (no quota set)")
-                            logger.info(f"    🆔 View ID: {view_id}")
+                            logger.info(f"    📊 Size: 0.00 GB (no quota set)")
+                        
+                        logger.info(f"    🆔 View ID: {view_id}")
+                        
                     except Exception as e:
                         logger.info(f"📁 {view_path}")
-                        logger.info(f"    ⚠️  Could not get detailed info: {e}")
+                        logger.info(f"    ⚠️  Could not get quota info: {e}")
                         logger.info(f"    🆔 View ID: {view_id}")
                 else:
                     logger.info(f"❌ {view_path} - NOT FOUND")
@@ -249,25 +268,23 @@ class OrbitalDynamicsStorageManager:
     def get_view_utilization(self, view_path: str) -> Optional[float]:
         """Get current utilization percentage for a view"""
         try:
-            views = self.client.views.get(path=view_path)
-            if not views:
-                logger.warning(f"No view found for path: {view_path}")
+            # Get quota information from quotas endpoint
+            quotas = self.client.quotas.get(path=view_path)
+            if not quotas:
+                logger.warning(f"No quota found for path: {view_path}")
                 return None
             
-            view = views[0]
-            view_id = view['id']
+            quota_info = quotas[0]
+            used_capacity = quota_info.get('used_capacity', 0)
+            hard_limit = quota_info.get('hard_limit', 0)
+            soft_limit = quota_info.get('soft_limit', 0)
             
-            # Get detailed view information including usage
-            view_details = self.client.views[view_id].get()
+            # Use hard limit for utilization calculation (actual storage capacity)
+            quota_for_calc = hard_limit if hard_limit > 0 else soft_limit
             
-            # Calculate utilization percentage
-            if 'size' in view_details and 'quota' in view_details:
-                used_size = view_details['size']
-                quota_size = view_details['quota']
-                
-                if quota_size > 0:
-                    utilization = (used_size / quota_size) * 100
-                    return utilization
+            if quota_for_calc > 0:
+                utilization = (used_capacity / quota_for_calc) * 100
+                return utilization
             
             return None
             
