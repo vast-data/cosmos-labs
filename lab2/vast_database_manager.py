@@ -22,11 +22,22 @@ except ImportError as e:
 
 try:
     import ibis
-    IBIS_AVAILABLE = True
+    # Check for compatibility issues
+    if hasattr(ibis.expr, 'types'):
+        IBIS_AVAILABLE = True
+    else:
+        print(f"⚠️  ibis version compatibility issue with VAST DB SDK")
+        print("💡 ibis.expr.types not found - this version may be incompatible")
+        print("🔧 Disabling ibis support to avoid connection issues")
+        IBIS_AVAILABLE = False
 except ImportError as e:
     print(f"⚠️  ibis not found. ImportError: {e}")
     print("💡 This enables efficient predicate pushdown for queries")
     print("🔧 Falling back to Python-side filtering")
+    IBIS_AVAILABLE = False
+except Exception as e:
+    print(f"⚠️  ibis compatibility issue: {e}")
+    print("💡 Disabling ibis support to avoid connection issues")
     IBIS_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
@@ -183,7 +194,13 @@ class VASTDatabaseManager:
             return True
             
         except Exception as e:
-            logger.error(f"❌ Failed to connect to VAST Database: {e}")
+            error_msg = str(e)
+            if 'ibis.expr' in error_msg and 'types' in error_msg:
+                logger.error(f"❌ Failed to connect to VAST Database: {e}")
+                logger.error("💡 This appears to be an ibis version compatibility issue with VAST DB SDK")
+                logger.error("💡 Try installing a different ibis version or check VAST DB SDK requirements")
+            else:
+                logger.error(f"❌ Failed to connect to VAST Database: {e}")
             return False
     
     def database_exists(self) -> bool:
