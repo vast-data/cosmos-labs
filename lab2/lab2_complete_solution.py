@@ -465,7 +465,7 @@ def main():
             
             try:
                 # Extract metadata from the specified file
-                metadata = solution.metadata_extractor.extract_metadata(args.demo_extraction)
+                metadata = solution.metadata_extractor.extract_metadata_from_file(args.demo_extraction)
                 
                 if metadata:
                     print("✅ Successfully extracted metadata:")
