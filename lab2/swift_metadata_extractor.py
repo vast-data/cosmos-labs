@@ -52,11 +52,12 @@ class SwiftMetadataExtractor:
             }
             
             # Extract format-specific metadata
-            if file_format in ['.fits', '.lc']:
-                # Both .fits and .lc files are FITS format (lightcurves are FITS tables)
-                metadata.update(self._extract_fits_metadata(file_path))
-            elif file_format == '.gz':
+            if file_format == '.gz':
+                # Compressed files - use Swift lightcurve metadata extraction
                 metadata.update(self._extract_swift_lightcurve_metadata(file_path))
+            elif file_format in ['.fits', '.lc']:
+                # Uncompressed FITS files
+                metadata.update(self._extract_fits_metadata(file_path))
             elif file_format == '.json':
                 metadata.update(self._extract_json_metadata(file_path))
             else:
@@ -69,7 +70,9 @@ class SwiftMetadataExtractor:
             return metadata
             
         except Exception as e:
-            logger.error(f"❌ Metadata extraction failed for {file_path}: {e}")
+            # Only log errors for files that should have worked
+            if file_path.suffix in ['.fits', '.lc', '.gz']:
+                logger.warning(f"⚠️  Could not extract metadata from {file_path.name}: {e}")
             return None
     
     def _get_file_format(self, file_path: Path) -> str:
@@ -311,7 +314,7 @@ class SwiftMetadataExtractor:
             logger.error(f"❌ Dataset directory not found: {dataset_path}")
             return []
         
-        logger.info(f"🔍 Extracting metadata from dataset: {dataset_path.name}")
+        logger.info(f"🔍 Processing dataset: {dataset_path.name}")
         
         metadata_list = []
         file_count = 0
@@ -326,8 +329,8 @@ class SwiftMetadataExtractor:
                 if metadata:
                     metadata_list.append(metadata)
                 
-                # Progress logging
-                if file_count % 10 == 0:
+                # Progress logging (less frequent)
+                if file_count % 100 == 0:
                     logger.info(f"📊 Processed {file_count} files, extracted {len(metadata_list)} metadata records")
         
         logger.info(f"✅ Completed metadata extraction: {len(metadata_list)}/{file_count} files processed")

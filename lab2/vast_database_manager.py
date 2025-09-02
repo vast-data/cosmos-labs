@@ -158,6 +158,12 @@ class VASTDatabaseManager:
                     ('updated_at', pa.timestamp('us'))
                 ])
                 
+                # Log API call
+                self._log_api_call(
+                    "schema.create_table()",
+                    f"schema={self.schema_name}, table=swift_metadata, columns={len(columns)}"
+                )
+                
                 table = schema.create_table("swift_metadata", columns)
                 logger.info(f"✅ Created table 'swift_metadata' in schema '{self.schema_name}'")
                 
@@ -343,12 +349,6 @@ class VASTDatabaseManager:
                 if not self.connect():
                     return False
             
-            # Log API call
-            self._log_api_call(
-                "connection.transaction()",
-                f"bucket={self.bucket_name} (check metadata exists)"
-            )
-            
             # Use VAST DB transaction to check if metadata exists
             with self.connection.transaction() as tx:
                 bucket = tx.bucket(self.bucket_name)
@@ -390,23 +390,12 @@ class VASTDatabaseManager:
                     logger.error("❌ Failed to connect to database")
                     return False
             
-            logger.info(f"🔧 Attempting to insert metadata for: {metadata.get('file_name', 'Unknown')}")
-            
-            # Log API call
-            self._log_api_call(
-                "connection.transaction()",
-                f"bucket={self.bucket_name} (insert metadata)"
-            )
+            # Insert metadata (no need to log every file)
             
             # Use VAST DB transaction to insert metadata
             with self.connection.transaction() as tx:
-                logger.info(f"🔧 Getting bucket: {self.bucket_name}")
                 bucket = tx.bucket(self.bucket_name)
-                
-                logger.info(f"🔧 Getting schema: {self.schema_name}")
                 schema = bucket.schema(self.schema_name)
-                
-                logger.info("🔧 Getting table: swift_metadata")
                 table = schema.table("swift_metadata")
                 
                 # Convert metadata to PyArrow format
@@ -469,8 +458,15 @@ class VASTDatabaseManager:
                 
                 # Create PyArrow table and insert
                 arrow_table = pa.table(data=data, schema=table.columns())
+                
+                # Log API call
+                self._log_api_call(
+                    "table.insert()",
+                    f"table=swift_metadata, file_name={metadata.get('file_name', 'Unknown')}"
+                )
+                
                 table.insert(arrow_table)
-                logger.info(f"✅ Inserted metadata for: {metadata.get('file_name')}")
+                # Success - no need to log every single insertion
                 
                 return True
                 
@@ -489,12 +485,6 @@ class VASTDatabaseManager:
                 if not self.connect():
                     return []
             
-            # Log API call
-            self._log_api_call(
-                "connection.transaction()",
-                f"bucket={self.bucket_name}"
-            )
-            
             # Use VAST DB transaction to search metadata
             with self.connection.transaction() as tx:
                 bucket = tx.bucket(self.bucket_name)
@@ -503,12 +493,6 @@ class VASTDatabaseManager:
                 try:
                     schema = bucket.schema(self.schema_name)
                     table = schema.table("swift_metadata")
-                    
-                    # Log API call
-                    self._log_api_call(
-                        "table.select()",
-                        f"schema={self.schema_name}, table=swift_metadata"
-                    )
                     
                     # For now, return all records (VAST DB predicate pushdown can be implemented later)
                     # This is a simplified search that gets all records and filters in Python
@@ -759,12 +743,6 @@ class VASTDatabaseManager:
                 if not self.connect():
                     return []
             
-            # Log API call
-            self._log_api_call(
-                "connection.transaction()",
-                f"bucket={self.bucket_name} (get latest {count} files)"
-            )
-            
             # Use VAST DB transaction to get latest files
             with self.connection.transaction() as tx:
                 bucket = tx.bucket(self.bucket_name)
@@ -836,12 +814,6 @@ class VASTDatabaseManager:
                 if not self.connect():
                     return {}
             
-            # Log API call
-            self._log_api_call(
-                "connection.transaction()",
-                f"bucket={self.bucket_name} (stats query)"
-            )
-            
             # Use VAST DB transaction to get statistics
             with self.connection.transaction() as tx:
                 bucket = tx.bucket(self.bucket_name)
@@ -850,12 +822,6 @@ class VASTDatabaseManager:
                 try:
                     schema = bucket.schema(self.schema_name)
                     table = schema.table("swift_metadata")
-                    
-                    # Log API call
-                    self._log_api_call(
-                        "table.select()",
-                        f"schema={self.schema_name}, table=swift_metadata (stats query)"
-                    )
                     
                     # Get total count using select()
                     reader = table.select()
@@ -972,6 +938,13 @@ class VASTDatabaseManager:
                         # Try to get the swift_metadata table specifically
                         try:
                             table = schema.table("swift_metadata")
+                            
+                            # Log API call
+                            self._log_api_call(
+                                "table.drop()",
+                                f"table=swift_metadata (DESTRUCTIVE OPERATION)"
+                            )
+                            
                             table.drop()
                             tables_deleted += 1
                             logger.info(f"✅ Deleted table 'swift_metadata'")
@@ -979,6 +952,12 @@ class VASTDatabaseManager:
                             logger.debug(f"Table 'swift_metadata' may not exist: {e}")
                         
                         # Now try to drop the schema
+                        # Log API call
+                        self._log_api_call(
+                            "schema.drop()",
+                            f"schema={self.schema_name} (DESTRUCTIVE OPERATION)"
+                        )
+                        
                         schema.drop()
                         logger.info(f"✅ Deleted VAST schema '{self.schema_name}' and {tables_deleted} tables")
                         return True

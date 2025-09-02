@@ -184,7 +184,7 @@ class Lab2CompleteSolution:
                 if self.db_manager.insert_metadata(metadata):
                     inserted_count += 1
                     if processed_count % 50 == 0:  # Less frequent success logging
-                        logger.info(f"✅ Inserted metadata for {file_path.name}")
+                        # Success - no need to log every single file
                 else:
                     failed_count += 1
                     logger.error(f"❌ Failed to insert metadata for: {file_path.name}")
@@ -212,7 +212,7 @@ class Lab2CompleteSolution:
     
     def process_all_datasets(self) -> Dict[str, Any]:
         """Process metadata for all available datasets"""
-        logger.info("🚀 Starting metadata processing for all datasets")
+        logger.info("🚀 Starting metadata processing...")
         
         # Get available datasets
         datasets = self.get_available_datasets()
@@ -263,7 +263,7 @@ class Lab2CompleteSolution:
         logger.info(f"  ❌ Failed datasets: {failed_count}")
         logger.info(f"  📊 Total datasets: {len(datasets)}")
         logger.info(f"  📁 Total files processed: {total_processed}")
-        logger.info(f"  💾 Total metadata records inserted: {total_inserted}")
+        logger.info(f"✅ Processing complete: {total_inserted} metadata records inserted")
         
         if self.production_mode:
             logger.info("✅ Production mode: All changes were applied")
