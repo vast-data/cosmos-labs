@@ -394,13 +394,10 @@ class VASTDatabaseManager:
                         return None
                 
                 # PyArrow expects data as column arrays, not row arrays
-                file_size_bytes = metadata.get('file_size_bytes', 0)
-                logger.info(f"💾 Inserting metadata: {metadata.get('file_name', 'Unknown')} | file_size_bytes: {file_size_bytes}")
-                
                 data = {
                     'file_path': [metadata.get('file_path', '')],
                     'file_name': [metadata.get('file_name', '')],
-                    'file_size_bytes': [file_size_bytes],
+                    'file_size_bytes': [metadata.get('file_size_bytes', 0)],
                     'file_format': [metadata.get('file_format', '')],
                     'dataset_name': [metadata.get('dataset_name', '')],
                     'mission_id': [metadata.get('mission_id', '')],
@@ -484,10 +481,7 @@ class VASTDatabaseManager:
                                 else:
                                     record[col_name] = None
                             
-                            # Debug: log file_size_bytes retrieval
-                            if 'file_size_bytes' in record:
-                                logger.info(f"🔍 Retrieved file_size_bytes: {record['file_size_bytes']} (type: {type(record['file_size_bytes'])}) for {record.get('file_name', 'Unknown')}")
-                            
+
                             # Apply search criteria
                             matches = True
                             for key, value in search_criteria.items():

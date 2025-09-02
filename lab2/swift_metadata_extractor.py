@@ -38,9 +38,7 @@ class SwiftMetadataExtractor:
             file_size = file_stat.st_size
             file_format = self._get_file_format(file_path)
             
-            # Debug: log file size extraction
-            logger.info(f"📁 File: {file_path.name} | Size: {file_size} bytes | Format: {file_format}")
-            
+
             # Basic metadata that all files have
             metadata = {
                 'file_path': str(file_path),
