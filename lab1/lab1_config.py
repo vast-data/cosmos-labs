@@ -46,4 +46,36 @@ class Lab1ConfigLoader(ConfigLoader):
     
     def get_critical_threshold(self):
         """Get critical threshold percentage"""
-        return self.get('lab1.monitoring.critical_threshold', 90) 
+        return self.get('lab1.monitoring.critical_threshold', 90)
+    
+    def validate_config(self) -> bool:
+        """Validate that required Lab1 configuration is present"""
+        errors = []
+        
+        # Check required lab1 configuration sections
+        if not self.get('lab1.storage.auto_provision_threshold'):
+            errors.append("lab1.storage.auto_provision_threshold is required")
+        
+        if not self.get('lab1.storage.expansion_factor'):
+            errors.append("lab1.storage.expansion_factor is required")
+        
+        if not self.get('lab1.monitoring.alert_threshold'):
+            errors.append("lab1.monitoring.alert_threshold is required")
+        
+        # Check VAST configuration
+        vast_config = self.get_vast_config()
+        if not vast_config.get('user'):
+            errors.append("vast.user is required")
+        if not vast_config.get('address'):
+            errors.append("vast.address is required")
+        if not vast_config.get('password') and not vast_config.get('token'):
+            errors.append("Either vast.password or vast.token is required")
+        
+        if errors:
+            print("❌ Configuration Validation FAILED:")
+            for error in errors:
+                print(f"  ERROR: {error}")
+            return False
+        
+        print("✅ Lab1 configuration validation passed")
+        return True 
