@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 from vastpy import VASTClient
 from lab1_config import Lab1ConfigLoader
-from rich.console import Console
+from rich.console import Console, Group
 from rich.live import Live
 from rich.table import Table
 from rich.panel import Panel
@@ -271,9 +271,9 @@ class StorageDashboard:
         timestamp_text = f"Last Updated: {dashboard['timestamp']}"
         timestamp_panel = Panel(timestamp_text, border_style="blue")
         
-        # Combine everything
+        # Combine everything using Rich's Group
         return Panel(
-            f"{summary_panel}\n\n{table}\n\n{timestamp_panel}",
+            Group(summary_panel, table, timestamp_panel),
             border_style="bright_blue"
         )
 
