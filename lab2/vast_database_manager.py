@@ -354,13 +354,22 @@ class VASTDatabaseManager:
             
         try:
             if not self.connection:
+                logger.info("🔧 No database connection, attempting to connect...")
                 if not self.connect():
+                    logger.error("❌ Failed to connect to database")
                     return False
+            
+            logger.info(f"🔧 Attempting to insert metadata for: {metadata.get('file_name', 'Unknown')}")
             
             # Use VAST DB transaction to insert metadata
             with self.connection.transaction() as tx:
+                logger.info(f"🔧 Getting bucket: {self.bucket_name}")
                 bucket = tx.bucket(self.bucket_name)
+                
+                logger.info(f"🔧 Getting schema: {self.schema_name}")
                 schema = bucket.schema(self.schema_name)
+                
+                logger.info("🔧 Getting table: swift_metadata")
                 table = schema.table("swift_metadata")
                 
                 # Convert metadata to PyArrow format
