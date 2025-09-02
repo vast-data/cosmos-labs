@@ -141,6 +141,12 @@ class OrbitalDynamicsStorageManager:
                     
                     # Get quota information
                     try:
+                        # Log API call
+                        self._log_api_call(
+                            "client.quotas.get()",
+                            f"path={view_path}"
+                        )
+                        
                         quotas = self.client.quotas.get(path=view_path)
                         if quotas:
                             quota_info = quotas[0]
@@ -189,6 +195,12 @@ class OrbitalDynamicsStorageManager:
         """Create the initial storage views for different data types"""
         try:
             # Get default policy for views
+            # Log API call
+            self._log_api_call(
+                "client.viewpolicies.get()",
+                "name=default"
+            )
+            
             policies = self.client.viewpolicies.get(name='default')
             if not policies:
                 logger.error("No default view policy found - please create one in VAST")
@@ -298,6 +310,12 @@ class OrbitalDynamicsStorageManager:
     def get_view_utilization(self, view_path: str) -> Optional[float]:
         """Get current utilization percentage for a view"""
         try:
+            # Log API call
+            self._log_api_call(
+                "client.quotas.get()",
+                f"path={view_path} (utilization check)"
+            )
+            
             # Get quota information from quotas endpoint
             quotas = self.client.quotas.get(path=view_path)
             if not quotas:
@@ -334,6 +352,12 @@ class OrbitalDynamicsStorageManager:
             if not self.safety_checker.validate_storage_expansion(view_path, additional_size_gb):
                 raise SafetyCheckFailed("Quota expansion safety checks failed")
             
+            # Log API call
+            self._log_api_call(
+                "client.views.get()",
+                f"path={view_path} (quota expansion)"
+            )
+            
             views = self.client.views.get(path=view_path)
             if not views:
                 logger.error(f"No view found for path: {view_path}")
@@ -341,6 +365,12 @@ class OrbitalDynamicsStorageManager:
             
             view = views[0]
             view_id = view['id']
+            
+            # Log API call
+            self._log_api_call(
+                "client.quotas.get()",
+                f"path={view_path} (quota expansion)"
+            )
             
             # Get current quota from quotas endpoint
             quotas = self.client.quotas.get(path=view_path)
@@ -355,6 +385,12 @@ class OrbitalDynamicsStorageManager:
             if self.production_mode:
                 # Actually perform the expansion
                 logger.info("🚨 PRODUCTION MODE: Expanding quota...")
+                
+                # Log API call
+                self._log_api_call(
+                    "client.quotas[].patch()",
+                    f"quota_id={quota_info['id']}, hard_limit={new_hard_limit}"
+                )
                 
                 # Update the quota with new hard limit
                 quota_id = quota_info['id']
