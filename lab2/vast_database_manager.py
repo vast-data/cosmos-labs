@@ -399,6 +399,22 @@ class VASTDatabaseManager:
                     ]
                 ]
                 
+                # Validate schema and data match
+                schema = table.columns()
+                data_columns = len(data[0])
+                schema_columns = len(schema)
+                
+                logger.info(f"🔧 Table schema has {schema_columns} columns: {[col.name for col in schema]}")
+                logger.info(f"🔧 Data array has {data_columns} elements")
+                
+                if data_columns != schema_columns:
+                    error_msg = f"❌ SCHEMA MISMATCH: Data has {data_columns} elements but table schema expects {schema_columns} columns"
+                    logger.error(error_msg)
+                    logger.error(f"❌ Table columns: {[col.name for col in schema]}")
+                    logger.error(f"❌ Data elements: {data_columns}")
+                    logger.error("❌ Stopping processing to prevent data corruption. Please fix schema mismatch.")
+                    raise ValueError(error_msg)
+                
                 # Create PyArrow table and insert
                 arrow_table = pa.table(data=data, schema=table.columns())
                 table.insert(arrow_table)
