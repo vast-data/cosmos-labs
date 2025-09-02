@@ -92,6 +92,13 @@ class VASTDatabaseManager:
         if not IBIS_AVAILABLE:
             return None
             
+        # Temporarily disable ibis predicate building due to VAST DB SDK compatibility issues
+        # The "Deferred objects" error suggests the ibis predicates aren't compatible with this VAST DB version
+        logger.debug("⚠️  ibis predicate building temporarily disabled - using Python-side filtering")
+        return None
+        
+        # TODO: Re-enable ibis predicate building once VAST DB SDK compatibility is resolved
+        # The code below works for building predicates but causes issues with VAST DB SDK
         try:
             from ibis import _
             predicates = []
