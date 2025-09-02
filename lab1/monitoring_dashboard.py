@@ -4,6 +4,11 @@ import json
 from datetime import datetime
 from vastpy import VASTClient
 from lab1_config import Lab1ConfigLoader
+from rich.console import Console
+from rich.live import Live
+from rich.table import Table
+from rich.panel import Panel
+from rich.text import Text
 
 class StorageDashboard:
     """Real-time storage monitoring dashboard"""
@@ -55,7 +60,14 @@ class StorageDashboard:
             # Use first 3 directories from config, or all if less than 3
             self.view_paths = view_paths[:3] if len(view_paths) >= 3 else view_paths
         
+        # Get refresh interval from config
+        self.refresh_interval = self.config.get('monitoring.refresh_interval_seconds', 30)
+        
+        # Initialize Rich console
+        self.console = Console()
+        
         print(f"📁 Monitoring {len(self.view_paths)} view paths: {', '.join(self.view_paths)}")
+        print(f"🔄 Auto-refresh every {self.refresh_interval} seconds")
     
     def get_view_status(self, view_path: str) -> dict:
         """Get detailed status for a specific view"""
@@ -184,22 +196,26 @@ class StorageDashboard:
         
         return dashboard_data
     
-    def print_dashboard(self):
-        """Print a formatted dashboard to console"""
+    def create_rich_dashboard(self):
+        """Create a Rich-formatted dashboard"""
         dashboard = self.generate_dashboard_data()
         
-        print("\n" + "="*80)
-        print("ORBITAL DYNAMICS - STORAGE MONITORING DASHBOARD")
-        print("="*80)
-        print(f"Last Updated: {dashboard['timestamp']}")
-        print()
+        # Create main table
+        table = Table(title="ORBITAL DYNAMICS - STORAGE MONITORING DASHBOARD", 
+                     title_style="bold blue", 
+                     show_header=True, 
+                     header_style="bold magenta")
         
-        # Summary
-        summary = dashboard['summary']
-        print(f"SUMMARY: {summary['normal_views']} Normal | {summary['warning_views']} Warning | {summary['critical_views']} Critical")
-        print()
+        # Add columns
+        table.add_column("Path", style="cyan", no_wrap=True)
+        table.add_column("Status", justify="center")
+        table.add_column("Utilization", justify="right", style="green")
+        table.add_column("Size", justify="right")
+        table.add_column("Soft Limit", justify="right")
+        table.add_column("Hard Limit", justify="right")
+        table.add_column("Available", justify="right")
         
-        # View details
+        # Add rows
         for view_path, view_data in dashboard['views'].items():
             status_icon = {
                 'NORMAL': '🟢',
@@ -210,33 +226,56 @@ class StorageDashboard:
                 'CONNECTION_ERROR': '🔌'
             }.get(view_data['status'], '❓')
             
-            print(f"{status_icon} {view_path}")
-            
             if view_data['status'] in ['NORMAL', 'WARNING', 'CRITICAL']:
-                print(f"   Utilization: {view_data['utilization']}%")
-                print(f"   Size: {view_data['size_tb']} TB")
+                utilization_text = f"{view_data['utilization']}%"
+                size_text = f"{view_data['size_tb']} TB"
+                soft_limit_text = f"{view_data['soft_limit_tb']} TB" if view_data['soft_limit_tb'] > 0 else "N/A"
+                hard_limit_text = f"{view_data['hard_limit_tb']} TB" if view_data['hard_limit_tb'] > 0 else "N/A"
+                available_text = f"{view_data['available_tb']} TB"
                 
-                # Show quota limits
-                if view_data['soft_limit_tb'] > 0 or view_data['hard_limit_tb'] > 0:
-                    if view_data['soft_limit_tb'] > 0 and view_data['hard_limit_tb'] > 0:
-                        print(f"   Soft Limit: {view_data['soft_limit_tb']} TB")
-                        print(f"   Hard Limit: {view_data['hard_limit_tb']} TB")
-                    elif view_data['soft_limit_tb'] > 0:
-                        print(f"   Soft Limit: {view_data['soft_limit_tb']} TB")
-                    elif view_data['hard_limit_tb'] > 0:
-                        print(f"   Hard Limit: {view_data['hard_limit_tb']} TB")
-                    
-                    print(f"   Available: {view_data['available_tb']} TB")
+                # Color utilization based on level
+                if view_data['utilization'] >= 90:
+                    utilization_style = "bold red"
+                elif view_data['utilization'] >= 75:
+                    utilization_style = "bold yellow"
                 else:
-                    print(f"   No quota set")
-            elif view_data['status'] in ['ERROR', 'CONNECTION_ERROR']:
-                print(f"   Error: {view_data.get('error', 'Unknown error')}")
+                    utilization_style = "green"
+                
+                table.add_row(
+                    view_path,
+                    status_icon,
+                    Text(utilization_text, style=utilization_style),
+                    size_text,
+                    soft_limit_text,
+                    hard_limit_text,
+                    available_text
+                )
             else:
-                print(f"   Status: {view_data['status']}")
-            
-            print()
+                error_text = view_data.get('error', view_data['status'])
+                table.add_row(
+                    view_path,
+                    status_icon,
+                    "N/A",
+                    "N/A",
+                    "N/A",
+                    "N/A",
+                    Text(error_text, style="red")
+                )
         
-        print("="*80)
+        # Create summary panel
+        summary = dashboard['summary']
+        summary_text = f"Normal: {summary['normal_views']} | Warning: {summary['warning_views']} | Critical: {summary['critical_views']}"
+        summary_panel = Panel(summary_text, title="Summary", border_style="green")
+        
+        # Create timestamp panel
+        timestamp_text = f"Last Updated: {dashboard['timestamp']}"
+        timestamp_panel = Panel(timestamp_text, border_style="blue")
+        
+        # Combine everything
+        return Panel(
+            f"{summary_panel}\n\n{table}\n\n{timestamp_panel}",
+            border_style="bright_blue"
+        )
 
 def main():
     """Main function for dashboard"""
@@ -244,12 +283,13 @@ def main():
     dashboard = StorageDashboard()
     
     try:
-        while True:
-            dashboard.print_dashboard()
-            refresh_interval = config.get('dashboard.refresh_interval_seconds', 60)
-            time.sleep(refresh_interval)
+        # Use Rich Live display for auto-refresh
+        with Live(dashboard.create_rich_dashboard(), refresh_per_second=1, console=dashboard.console) as live:
+            while True:
+                live.update(dashboard.create_rich_dashboard())
+                time.sleep(dashboard.refresh_interval)
     except KeyboardInterrupt:
-        print("\nDashboard stopped by user")
+        dashboard.console.print("\n[bold red]Dashboard stopped by user[/bold red]")
 
 if __name__ == "__main__":
     main() 
