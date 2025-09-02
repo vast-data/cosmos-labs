@@ -446,7 +446,7 @@ class VASTDatabaseManager:
             return False
     
     def search_metadata(self, search_criteria: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Search metadata based on criteria using VAST DB"""
+        """Search metadata based on criteria using VAST DB with wildcard support"""
         if not VASTDB_AVAILABLE:
             logger.warning("⚠️  vastdb not available - mock metadata search")
             return []
@@ -482,12 +482,50 @@ class VASTDatabaseManager:
                                     record[col_name] = None
                             
 
-                            # Apply search criteria
+                            # Apply search criteria with wildcard support
                             matches = True
-                            for key, value in search_criteria.items():
-                                if key in record and record[key] != value:
+                            for key, criteria in search_criteria.items():
+                                if key not in record:
                                     matches = False
                                     break
+                                
+                                record_value = str(record[key]).lower()
+                                
+                                if criteria['type'] == 'exact':
+                                    # Exact match
+                                    if record_value != str(criteria['value']).lower():
+                                        matches = False
+                                        break
+                                elif criteria['type'] == 'wildcard':
+                                    # Wildcard match
+                                    pattern = criteria['pattern'].lower()
+                                    
+                                    if pattern == '*':
+                                        # Match everything
+                                        continue
+                                    elif pattern.startswith('*') and pattern.endswith('*'):
+                                        # Contains pattern: *value*
+                                        search_value = pattern[1:-1]
+                                        if search_value not in record_value:
+                                            matches = False
+                                            break
+                                    elif pattern.startswith('*'):
+                                        # Ends with pattern: *value
+                                        search_value = pattern[1:]
+                                        if not record_value.endswith(search_value):
+                                            matches = False
+                                            break
+                                    elif pattern.endswith('*'):
+                                        # Starts with pattern: value*
+                                        search_value = pattern[:-1]
+                                        if not record_value.startswith(search_value):
+                                            matches = False
+                                            break
+                                    else:
+                                        # No wildcards, treat as exact match
+                                        if record_value != pattern:
+                                            matches = False
+                                            break
                             
                             if matches:
                                 results.append(record)
@@ -549,6 +587,53 @@ class VASTDatabaseManager:
                     
         except Exception as e:
             logger.error(f"❌ Failed to get all metadata: {e}")
+            return []
+    
+    def get_recent_metadata(self, limit: int = 1000) -> List[Dict[str, Any]]:
+        """Get recent metadata records from the database (limited for performance)"""
+        if not VASTDB_AVAILABLE:
+            logger.warning("⚠️  vastdb not available - mock recent metadata")
+            return []
+            
+        try:
+            if not self.connection:
+                if not self.connect():
+                    return []
+            
+            # Use VAST DB transaction to get recent metadata
+            with self.connection.transaction() as tx:
+                bucket = tx.bucket(self.bucket_name)
+                
+                # Check if schema and table exist
+                try:
+                    schema = bucket.schema(self.schema_name)
+                    table = schema.table("swift_metadata")
+                    
+                    # Get limited number of records
+                    reader = table.select().limit(limit)
+                    results = []
+                    
+                    for batch in reader:
+                        for i in range(len(batch)):
+                            record = {}
+                            # Convert PyArrow record to Python dict
+                            for col_name in batch.column_names:
+                                col_data = batch.column(col_name)
+                                if hasattr(col_data, 'to_pylist'):
+                                    record[col_name] = col_data.to_pylist()[i]
+                                else:
+                                    record[col_name] = col_data[i]
+                            results.append(record)
+                    
+                    logger.info(f"📊 Retrieved {len(results)} recent metadata records (limit: {limit})")
+                    return results
+                    
+                except Exception as e:
+                    logger.error(f"❌ Failed to access metadata table: {e}")
+                    return []
+                    
+        except Exception as e:
+            logger.error(f"❌ Failed to get recent metadata: {e}")
             return []
     
     def get_latest_files(self, count: int) -> List[Dict[str, Any]]:

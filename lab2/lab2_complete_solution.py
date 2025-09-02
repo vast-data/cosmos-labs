@@ -313,65 +313,11 @@ class Lab2CompleteSolution:
         try:
             logger.info(f"🔍 Searching metadata with criteria: {search_criteria}")
             
-            # Get all metadata first (since VAST DB doesn't support complex filtering yet)
-            all_metadata = self.db_manager.get_all_metadata()
+            # The database manager now handles both exact and wildcard searches
+            results = self.db_manager.search_metadata(search_criteria)
             
-            if not all_metadata:
-                logger.info("🔍 No metadata found in database")
-                return []
-            
-            # Filter results based on search criteria
-            filtered_results = []
-            
-            for record in all_metadata:
-                match = True
-                
-                for key, criteria in search_criteria.items():
-                    record_value = record.get(key, '')
-                    
-                    if criteria['type'] == 'exact':
-                        # Exact match
-                        if str(record_value).lower() != str(criteria['value']).lower():
-                            match = False
-                            break
-                    elif criteria['type'] == 'wildcard':
-                        # Wildcard match
-                        pattern = criteria['pattern']
-                        record_str = str(record_value).lower()
-                        pattern_lower = pattern.lower()
-                        
-                        if pattern_lower == '*':
-                            # Match everything
-                            continue
-                        elif pattern_lower.startswith('*') and pattern_lower.endswith('*'):
-                            # Contains pattern: *value*
-                            search_value = pattern_lower[1:-1]
-                            if search_value not in record_str:
-                                match = False
-                                break
-                        elif pattern_lower.startswith('*'):
-                            # Ends with pattern: *value
-                            search_value = pattern_lower[1:]
-                            if not record_str.endswith(search_value):
-                                match = False
-                                break
-                        elif pattern_lower.endswith('*'):
-                            # Starts with pattern: value*
-                            search_value = pattern_lower[:-1]
-                            if not record_str.startswith(search_value):
-                                match = False
-                                break
-                        else:
-                            # No wildcards, treat as exact match
-                            if record_str != pattern_lower:
-                                match = False
-                                break
-                
-                if match:
-                    filtered_results.append(record)
-            
-            logger.info(f"🔍 Search completed: {len(filtered_results)} results found")
-            return filtered_results
+            logger.info(f"🔍 Search completed: {len(results)} results found")
+            return results
             
         except Exception as e:
             logger.error(f"❌ Search failed: {e}")
