@@ -614,12 +614,15 @@ class VASTDatabaseManager:
                     
                     # Delete schema (this will also delete all tables in the schema)
                     try:
-                        schema = bucket.schema(self.schema_name)
-                        schema.delete()
-                        logger.info(f"✅ Deleted VAST schema '{self.schema_name}' and all its tables")
+                        schema = bucket.schema(self.schema_name, fail_if_missing=False)
+                        if schema:
+                            schema.drop()
+                            logger.info(f"✅ Deleted VAST schema '{self.schema_name}' and all its tables")
+                        else:
+                            logger.info(f"ℹ️  Schema '{self.schema_name}' does not exist (already deleted)")
                         return True
                     except Exception as e:
-                        logger.warning(f"⚠️  Schema '{self.schema_name}' may not exist: {e}")
+                        logger.warning(f"⚠️  Error accessing schema '{self.schema_name}': {e}")
                         return True  # Consider it successful if schema doesn't exist
                     
                 except Exception as e:
