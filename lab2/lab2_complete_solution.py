@@ -402,11 +402,11 @@ def main():
                     mission_id = result.get('mission_id', 'Unknown')
                     target_object = result.get('target_object', 'Unknown')
                     file_size = result.get('file_size_bytes', 0)
+                    observation_time = result.get('observation_timestamp', 'Unknown')
                     
-                    # Debug: show raw file_size value
                     print(f"{i}. {file_name}")
                     print(f"   Mission: {mission_id} | Object: {target_object}")
-                    print(f"   Raw file_size_bytes: {file_size} (type: {type(file_size)})")
+                    print(f"   Observed: {observation_time}")
                     
                     if file_size and file_size > 0:
                         if file_size >= 1024 * 1024:  # >= 1 MB
