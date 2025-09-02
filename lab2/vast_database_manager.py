@@ -493,6 +493,10 @@ class VASTDatabaseManager:
                     
                     # For now, return all records (VAST DB predicate pushdown can be implemented later)
                     # This is a simplified search that gets all records and filters in Python
+                    self._log_api_call(
+                        "table.select()",
+                        f"table=swift_metadata, search_criteria={len(search_criteria)} conditions"
+                    )
                     reader = table.select()
                     results = []
                     
