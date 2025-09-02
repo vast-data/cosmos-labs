@@ -36,6 +36,12 @@ class SwiftMetadataExtractor:
             # Get basic file information
             file_stat = file_path.stat()
             file_size = file_stat.st_size
+            
+            # Skip empty files to avoid processing errors
+            if file_size == 0:
+                logger.debug(f"⚠️  Skipping empty file: {file_path.name}")
+                return None
+            
             file_format = self._get_file_format(file_path)
             
 
@@ -128,7 +134,14 @@ class SwiftMetadataExtractor:
             logger.warning("⚠️  astropy not available, using basic FITS parsing")
             return self._extract_basic_fits_metadata(file_path)
         except Exception as e:
-            logger.error(f"❌ FITS metadata extraction failed: {e}")
+            # Check if it's a common issue that we can handle gracefully
+            error_msg = str(e).lower()
+            if 'empty' in error_msg or 'corrupt' in error_msg or 'not a fits file' in error_msg:
+                # These are common issues with some files - use debug level
+                logger.debug(f"⚠️  FITS file issue ({file_path.name}): {e}")
+            else:
+                # Unexpected errors - use warning level
+                logger.warning(f"⚠️  FITS metadata extraction failed ({file_path.name}): {e}")
             return self._get_default_metadata()
     
     def _extract_basic_fits_metadata(self, file_path: Path) -> Dict[str, Any]:
@@ -164,7 +177,8 @@ class SwiftMetadataExtractor:
                 return metadata
                 
         except Exception as e:
-            logger.error(f"❌ Basic FITS parsing failed: {e}")
+            # Basic FITS parsing failures are common - use debug level
+            logger.debug(f"⚠️  Basic FITS parsing failed ({file_path.name}): {e}")
             return self._get_default_metadata()
     
     def _extract_swift_lightcurve_metadata(self, file_path: Path) -> Dict[str, Any]:
@@ -206,7 +220,8 @@ class SwiftMetadataExtractor:
             return metadata
             
         except Exception as e:
-            logger.error(f"❌ Swift lightcurve metadata extraction failed: {e}")
+            # Swift lightcurve parsing failures are common - use debug level
+            logger.debug(f"⚠️  Swift lightcurve parsing failed ({file_path.name}): {e}")
             return self._get_default_metadata()
     
     def _extract_json_metadata(self, file_path: Path) -> Dict[str, Any]:
