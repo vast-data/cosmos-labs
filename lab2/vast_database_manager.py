@@ -98,15 +98,15 @@ class VASTDatabaseManager:
                             # Match all - no predicate needed
                             continue
                         elif pattern.startswith('*') and pattern.endswith('*'):
-                            # Contains: *value* -> LIKE '%value%'
+                            # Contains: *value* -> contains() method
                             search_value = pattern[1:-1]
                             predicates.append(column.contains(search_value))
                         elif pattern.startswith('*'):
-                            # Ends with: *value -> LIKE '%value'
+                            # Ends with: *value -> endswith() method
                             search_value = pattern[1:]
                             predicates.append(column.endswith(search_value))
                         elif pattern.endswith('*'):
-                            # Starts with: value* -> LIKE 'value%'
+                            # Starts with: value* -> startswith() method
                             search_value = pattern[:-1]
                             predicates.append(column.startswith(search_value))
                         else:
@@ -146,14 +146,16 @@ class VASTDatabaseManager:
                     # Skip this predicate if column doesn't exist
                     continue
             
-            # Combine all predicates with AND
+            # Combine all predicates with AND using proper ibis syntax
             if predicates:
                 if len(predicates) == 1:
                     return predicates[0]
                 else:
-                    # Combine with AND operator using ibis.and_()
-                    from ibis import and_
-                    return and_(*predicates)
+                    # Combine with AND operator using & (as shown in documentation)
+                    result = predicates[0]
+                    for pred in predicates[1:]:
+                        result = result & pred
+                    return result
             
             return None
             
