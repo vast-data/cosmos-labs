@@ -143,11 +143,11 @@ class StorageDashboard:
                 'path': view_path,
                 'status': self._get_status_level(utilization),
                 'utilization': round(utilization, 1),
-                'size_tb': round(size / (1024**3), 2),
-                'soft_limit_tb': round(soft_limit / (1024**3), 2),
-                'hard_limit_tb': round(hard_limit / (1024**3), 2),
-                'quota_tb': round(quota_for_calc / (1024**3), 2),  # The limit used for calculation
-                'available_tb': round(available / (1024**3), 2),
+                'size_tb': round(size / (1000**3), 2),
+                'soft_limit_tb': round(soft_limit / (1000**3), 2),
+                'hard_limit_tb': round(hard_limit / (1000**3), 2),
+                'quota_tb': round(quota_for_calc / (1000**3), 2),  # The limit used for calculation
+                'available_tb': round(available / (1000**3), 2),
                 'last_updated': datetime.now().isoformat()
             }
             
