@@ -12,10 +12,17 @@ class StorageDashboard:
         self.config = Lab1ConfigLoader()
         vast_config = self.config.get_vast_config()
         # Build VAST client parameters dynamically based on what's available
+        # vastpy constructs URLs as https://{address}/... so we need to strip protocol
+        address = vast_config['address']
+        if address.startswith('https://'):
+            address = address[8:]  # Remove 'https://' prefix
+        elif address.startswith('http://'):
+            address = address[7:]   # Remove 'http://' prefix
+        
         client_params = {
             'user': vast_config['user'],
             'password': vast_config['password'],
-            'address': vast_config['address']
+            'address': address
         }
         
         # Add optional parameters only if they exist and are supported
