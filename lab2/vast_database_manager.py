@@ -606,24 +606,47 @@ class VASTDatabaseManager:
                 if not self.connect():
                     return False
             
-            # Use VAST DB transaction to delete schema and tables
+            # Use VAST DB transaction to delete tables first, then schema
             with self.connection.transaction() as tx:
                 try:
                     # Get bucket
                     bucket = tx.bucket(self.bucket_name)
                     
-                    # Delete schema (this will also delete all tables in the schema)
-                    try:
-                        schema = bucket.schema(self.schema_name, fail_if_missing=False)
-                        if schema:
-                            schema.drop()
-                            logger.info(f"✅ Deleted VAST schema '{self.schema_name}' and all its tables")
-                        else:
-                            logger.info(f"ℹ️  Schema '{self.schema_name}' does not exist (already deleted)")
+                    # Get schema
+                    schema = bucket.schema(self.schema_name, fail_if_missing=False)
+                    if not schema:
+                        logger.info(f"ℹ️  Schema '{self.schema_name}' does not exist (already deleted)")
                         return True
+                    
+                    # First, delete all tables in the schema
+                    logger.info(f"🔧 Deleting all tables in schema '{self.schema_name}'...")
+                    tables_deleted = 0
+                    
+                    # Get all tables in the schema
+                    try:
+                        # Try to get the swift_metadata table specifically
+                        try:
+                            table = schema.table("swift_metadata")
+                            table.drop()
+                            tables_deleted += 1
+                            logger.info(f"✅ Deleted table 'swift_metadata'")
+                        except Exception as e:
+                            logger.debug(f"Table 'swift_metadata' may not exist: {e}")
+                        
+                        # Now try to drop the schema
+                        schema.drop()
+                        logger.info(f"✅ Deleted VAST schema '{self.schema_name}' and {tables_deleted} tables")
+                        return True
+                        
                     except Exception as e:
-                        logger.warning(f"⚠️  Error accessing schema '{self.schema_name}': {e}")
-                        return True  # Consider it successful if schema doesn't exist
+                        error_msg = str(e)
+                        if "TabularSchemaNotEmpty" in error_msg:
+                            logger.error(f"❌ Cannot delete schema '{self.schema_name}' - it still contains tables")
+                            logger.error(f"❌ Error: {error_msg}")
+                            return False
+                        else:
+                            logger.error(f"❌ Failed to delete schema '{self.schema_name}': {e}")
+                            return False
                     
                 except Exception as e:
                     logger.error(f"❌ Failed to delete VAST schema: {e}")
