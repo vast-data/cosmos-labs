@@ -69,6 +69,23 @@ class StorageDashboard:
         print(f"📁 Monitoring {len(self.view_paths)} view paths: {', '.join(self.view_paths)}")
         print(f"🔄 Auto-refresh every {self.refresh_interval} seconds")
     
+    def format_storage_size(self, bytes_value: int) -> str:
+        """Format storage size with appropriate unit (MB, GB, TB, PB)"""
+        if bytes_value == 0:
+            return "0 B"
+        
+        # Convert to appropriate unit
+        if bytes_value >= 1000**5:  # PB
+            return f"{bytes_value / (1000**5):.2f} PB"
+        elif bytes_value >= 1000**4:  # TB
+            return f"{bytes_value / (1000**4):.2f} TB"
+        elif bytes_value >= 1000**3:  # GB
+            return f"{bytes_value / (1000**3):.2f} GB"
+        elif bytes_value >= 1000**2:  # MB
+            return f"{bytes_value / (1000**2):.2f} MB"
+        else:  # KB or bytes
+            return f"{bytes_value / 1000:.2f} KB"
+    
     def get_view_status(self, view_path: str) -> dict:
         """Get detailed status for a specific view"""
         try:
@@ -135,7 +152,9 @@ class StorageDashboard:
             quota_for_calc = soft_limit if soft_limit > 0 else hard_limit
             if quota_for_calc > 0:
                 utilization = (size / quota_for_calc) * 100
-                available = quota_for_calc - size
+                # Available should be based on hard limit (actual storage limit), not soft limit (warning threshold)
+                available_limit = hard_limit if hard_limit > 0 else soft_limit
+                available = available_limit - size
             else:
                 utilization = 0
                 available = 0
@@ -144,11 +163,10 @@ class StorageDashboard:
                 'path': view_path,
                 'status': self._get_status_level(utilization),
                 'utilization': round(utilization, 1),
-                'size_tb': round(size / (1000**4), 2),
-                'soft_limit_tb': round(soft_limit / (1000**4), 2),
-                'hard_limit_tb': round(hard_limit / (1000**4), 2),
-                'quota_tb': round(quota_for_calc / (1000**4), 2),  # The limit used for calculation
-                'available_tb': round(available / (1000**4), 2),
+                'size_formatted': self.format_storage_size(size),
+                'soft_limit_formatted': self.format_storage_size(soft_limit),
+                'hard_limit_formatted': self.format_storage_size(hard_limit),
+                'available_formatted': self.format_storage_size(available),
                 'last_updated': datetime.now().isoformat()
             }
             
@@ -228,10 +246,10 @@ class StorageDashboard:
             
             if view_data['status'] in ['NORMAL', 'WARNING', 'CRITICAL']:
                 utilization_text = f"{view_data['utilization']}%"
-                size_text = f"{view_data['size_tb']} TB"
-                soft_limit_text = f"{view_data['soft_limit_tb']} TB" if view_data['soft_limit_tb'] > 0 else "N/A"
-                hard_limit_text = f"{view_data['hard_limit_tb']} TB" if view_data['hard_limit_tb'] > 0 else "N/A"
-                available_text = f"{view_data['available_tb']} TB"
+                size_text = view_data['size_formatted']
+                soft_limit_text = view_data['soft_limit_formatted'] if view_data['soft_limit_formatted'] != "0 B" else "N/A"
+                hard_limit_text = view_data['hard_limit_formatted'] if view_data['hard_limit_formatted'] != "0 B" else "N/A"
+                available_text = view_data['available_formatted']
                 
                 # Color utilization based on level
                 if view_data['utilization'] >= 90:
