@@ -310,26 +310,33 @@ class OrbitalDynamicsStorageManager:
             view = views[0]
             view_id = view['id']
             
-            # Get current quota
-            current_quota = view.get('quota', 0)
-            new_quota = current_quota + (additional_size_tb * 1024 * 1024 * 1024)  # Convert TB to bytes
+            # Get current quota from quotas endpoint
+            quotas = self.client.quotas.get(path=view_path)
+            if not quotas:
+                logger.error(f"No quota found for path: {view_path}")
+                return False
+            
+            quota_info = quotas[0]
+            current_hard_limit = quota_info.get('hard_limit', 0)
+            new_hard_limit = current_hard_limit + (additional_size_tb * 1024 * 1024 * 1024)  # Convert TB to bytes
             
             if self.production_mode:
                 # Actually perform the expansion
-                logger.info("🚨 PRODUCTION MODE: Expanding view quota...")
+                logger.info("🚨 PRODUCTION MODE: Expanding quota...")
                 
-                # Update the view with new quota
-                updated_view = self.client.views[view_id].patch(quota=new_quota)
+                # Update the quota with new hard limit
+                quota_id = quota_info['id']
+                updated_quota = self.client.quotas[quota_id].patch(hard_limit=new_hard_limit)
                 
-                logger.info(f"✅ Successfully expanded quota for {view_path}: {current_quota} → {new_quota} bytes")
+                logger.info(f"✅ Successfully expanded quota for {view_path}: {current_hard_limit} → {new_hard_limit} bytes")
                 return True
             else:
                 # Dry run - show what would happen
-                logger.info("⚠️  DRY RUN MODE: Would expand view quota:")
+                logger.info("⚠️  DRY RUN MODE: Would expand quota:")
                 logger.info(f"  📊 View: {view_path}")
-                logger.info(f"  📊 Current quota: {current_quota} bytes")
+                logger.info(f"  📊 Current hard limit: {current_hard_limit} bytes")
                 logger.info(f"  📊 Additional size: +{additional_size_tb}TB")
-                logger.info(f"  📊 New quota: {new_quota} bytes")
+                logger.info(f"  📊 New hard limit: {new_hard_limit} bytes")
                 logger.info("  (No actual quota changes were made)")
                 return True
             
