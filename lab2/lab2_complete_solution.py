@@ -34,9 +34,10 @@ logger = logging.getLogger(__name__)
 class Lab2CompleteSolution:
     """Complete Lab 2 solution integrating database, metadata extraction, and S3"""
     
-    def __init__(self, config_path: str = None, production_mode: bool = False):
+    def __init__(self, config_path: str = None, production_mode: bool = False, show_api_calls: bool = False):
         """Initialize the complete Lab 2 solution"""
         self.production_mode = production_mode
+        self.show_api_calls = show_api_calls
         
         # Load configuration
         if config_path is None:
@@ -50,7 +51,7 @@ class Lab2CompleteSolution:
         self.config = ConfigLoader(config_path, secrets_path)
         
         # Initialize components
-        self.db_manager = VASTDatabaseManager(self.config)
+        self.db_manager = VASTDatabaseManager(self.config, show_api_calls=show_api_calls)
         self.metadata_extractor = SwiftMetadataExtractor(self.config)
         
         # Swift datasets configuration
@@ -354,6 +355,7 @@ def main():
     parser.add_argument('--latest', type=int, help='Get the N latest files (e.g., --latest 10)')
     parser.add_argument('--demo-extraction', type=str, help='Demo metadata extraction from a file (e.g., --demo-extraction /path/to/file.fits)')
     parser.add_argument('--delete-schema', action='store_true', help='Delete VAST schema and recreate with new structure (DESTRUCTIVE)')
+    parser.add_argument('--showapicalls', action='store_true', help='Show API calls being made (credentials obfuscated)')
     
     args = parser.parse_args()
     
@@ -374,7 +376,7 @@ def main():
     
     try:
         # Create solution instance
-        solution = Lab2CompleteSolution(config_path=args.config, production_mode=production_mode)
+        solution = Lab2CompleteSolution(config_path=args.config, production_mode=production_mode, show_api_calls=args.showapicalls)
         
         if args.stats:
             # Show database statistics

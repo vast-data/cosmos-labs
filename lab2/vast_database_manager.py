@@ -26,9 +26,10 @@ logger = logging.getLogger(__name__)
 class VASTDatabaseManager:
     """Manages VAST Database operations for metadata catalog"""
     
-    def __init__(self, config):
+    def __init__(self, config, show_api_calls: bool = False):
         """Initialize the database manager"""
         self.config = config
+        self.show_api_calls = show_api_calls
         # Lab 2 database bucket – use only lab2.vastdb.bucket (not the general datastore/S3 bucket)
         self.bucket_name = config.get('lab2.vastdb.bucket', 'your-tenant-metadata')
         self.schema_name = config.get('lab2.vastdb.schema', 'satellite_observations')
@@ -49,6 +50,21 @@ class VASTDatabaseManager:
         
         self.connection = None
         self.database = None
+    
+    def _log_api_call(self, operation: str, details: str = ""):
+        """Log API calls if show_api_calls is enabled"""
+        if self.show_api_calls:
+            # Obfuscate credentials in the details
+            obfuscated_details = details
+            if 'access' in obfuscated_details:
+                obfuscated_details = obfuscated_details.replace(self.db_config['access'], '***')
+            if 'secret' in obfuscated_details:
+                obfuscated_details = obfuscated_details.replace(self.db_config['secret'], '***')
+            
+            print(f"🔌 API CALL: {operation}")
+            if details:
+                print(f"   Details: {obfuscated_details}")
+            print()
         
     def connect(self) -> bool:
         """Establish connection to VAST Database"""
@@ -58,6 +74,12 @@ class VASTDatabaseManager:
             return True
             
         try:
+            # Log API call
+            self._log_api_call(
+                "vastdb.connect()",
+                f"endpoint={self.db_config['endpoint']}, ssl_verify={self.db_config['ssl_verify']}, timeout={self.db_config['timeout']}"
+            )
+            
             # Connect to VAST Database using the correct parameters
             self.connection = vastdb.connect(**self.db_config)
             logger.info(f"✅ Connected to VAST Database at {self.db_config['endpoint']}")
@@ -456,6 +478,12 @@ class VASTDatabaseManager:
                 if not self.connect():
                     return []
             
+            # Log API call
+            self._log_api_call(
+                "connection.transaction()",
+                f"bucket={self.bucket_name}"
+            )
+            
             # Use VAST DB transaction to search metadata
             with self.connection.transaction() as tx:
                 bucket = tx.bucket(self.bucket_name)
@@ -464,6 +492,12 @@ class VASTDatabaseManager:
                 try:
                     schema = bucket.schema(self.schema_name)
                     table = schema.table("swift_metadata")
+                    
+                    # Log API call
+                    self._log_api_call(
+                        "table.select()",
+                        f"schema={self.schema_name}, table=swift_metadata"
+                    )
                     
                     # For now, return all records (VAST DB predicate pushdown can be implemented later)
                     # This is a simplified search that gets all records and filters in Python
