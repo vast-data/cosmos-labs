@@ -332,6 +332,8 @@ class OrbitalDynamicsStorageManager:
             self.processed_data_path,
             self.temp_data_path
         ]
+        # Filter out None values
+        views_to_monitor = [path for path in views_to_monitor if path is not None]
         
         status = {}
         
