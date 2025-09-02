@@ -133,29 +133,45 @@ class Lab2CompleteSolution:
             logger.info("🔍 DRY RUN MODE: No actual processing")
             return {'processed': 0, 'inserted': 0, 'skipped': 0, 'failed': 0}
         
-        # Extract metadata from all files in the dataset
-        logger.info(f"🔧 Starting metadata extraction for dataset: {dataset_name}")
-        metadata_list = self.metadata_extractor.extract_metadata_from_dataset(dataset_path)
+        # Process files one by one - extract metadata and insert immediately
+        logger.info(f"🔧 Starting file-by-file processing for dataset: {dataset_name}")
         
-        if not metadata_list:
-            logger.warning(f"⚠️  No metadata extracted from dataset: {dataset_name}")
+        dataset_path = Path(dataset_path)
+        if not dataset_path.exists() or not dataset_path.is_dir():
+            logger.error(f"❌ Dataset directory not found: {dataset_path}")
             return {'processed': 0, 'inserted': 0, 'skipped': 0, 'failed': 0}
         
-        logger.info(f"📊 Extracted metadata for {len(metadata_list)} files")
-        logger.info(f"🔧 Starting database insertion process...")
+        # Find all files in the dataset
+        all_files = [f for f in dataset_path.rglob('*') if f.is_file()]
+        total_files = len(all_files)
         
-        # Process each metadata record
+        if total_files == 0:
+            logger.warning(f"⚠️  No files found in dataset: {dataset_name}")
+            return {'processed': 0, 'inserted': 0, 'skipped': 0, 'failed': 0}
+        
+        logger.info(f"📊 Found {total_files} files to process")
+        
+        # Process each file individually
         processed_count = 0
         inserted_count = 0
         skipped_count = 0
         failed_count = 0
         
-        logger.info(f"🔧 Processing {len(metadata_list)} metadata records...")
-        
-        for i, metadata in enumerate(metadata_list):
-            logger.info(f"🔧 Processing metadata record {i+1}/{len(metadata_list)}: {metadata.get('file_name', 'Unknown')}")
+        for file_path in all_files:
+            processed_count += 1
+            
+            # Progress logging
+            if processed_count % 10 == 0 or processed_count == 1:
+                logger.info(f"🔧 Processing file {processed_count}/{total_files}: {file_path.name}")
+            
             try:
-                processed_count += 1
+                # Extract metadata from this single file
+                metadata = self.metadata_extractor.extract_metadata_from_file(file_path, dataset_name)
+                
+                if not metadata:
+                    failed_count += 1
+                    logger.warning(f"⚠️  Failed to extract metadata from: {file_path.name}")
+                    continue
                 
                 # Check if metadata already exists in database
                 if self.db_manager.metadata_exists(metadata['file_path']):
@@ -163,21 +179,18 @@ class Lab2CompleteSolution:
                     skipped_count += 1
                     continue
                 
-                # Insert metadata into database
+                # Insert metadata into database immediately
                 if self.db_manager.insert_metadata(metadata):
                     inserted_count += 1
-                    logger.info(f"✅ Inserted metadata for: {metadata['file_name']}")
+                    if processed_count % 50 == 0:  # Less frequent success logging
+                        logger.info(f"✅ Inserted metadata for {file_path.name}")
                 else:
                     failed_count += 1
-                    logger.error(f"❌ Failed to insert metadata for: {metadata['file_name']}")
-                
-                # Progress logging
-                if processed_count % 10 == 0:
-                    logger.info(f"📊 Progress: {processed_count}/{len(metadata_list)} files processed")
-                
+                    logger.error(f"❌ Failed to insert metadata for: {file_path.name}")
+                    
             except Exception as e:
                 failed_count += 1
-                logger.error(f"❌ Error processing metadata for {metadata.get('file_name', 'unknown')}: {e}")
+                logger.error(f"❌ Error processing {file_path.name}: {e}")
         
         logger.info(f"✅ Dataset '{dataset_name}' processing completed:")
         logger.info(f"   📊 Processed: {processed_count}")
