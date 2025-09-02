@@ -504,6 +504,53 @@ class VASTDatabaseManager:
             logger.error(f"❌ Search failed: {e}")
             return []
     
+    def get_all_metadata(self) -> List[Dict[str, Any]]:
+        """Get all metadata records from the database"""
+        if not VASTDB_AVAILABLE:
+            logger.warning("⚠️  vastdb not available - mock metadata retrieval")
+            return []
+            
+        try:
+            if not self.connection:
+                if not self.connect():
+                    return []
+            
+            # Use VAST DB transaction to get all metadata
+            with self.connection.transaction() as tx:
+                bucket = tx.bucket(self.bucket_name)
+                
+                # Check if schema and table exist
+                try:
+                    schema = bucket.schema(self.schema_name)
+                    table = schema.table("swift_metadata")
+                    
+                    # Get all records
+                    reader = table.select()
+                    results = []
+                    
+                    for batch in reader:
+                        for i in range(len(batch)):
+                            record = {}
+                            # Convert PyArrow record to Python dict
+                            for col_name in batch.column_names:
+                                col_data = batch.column(col_name)
+                                if hasattr(col_data, 'to_pylist'):
+                                    record[col_name] = col_data.to_pylist()[i]
+                                else:
+                                    record[col_name] = col_data[i]
+                            results.append(record)
+                    
+                    logger.info(f"📊 Retrieved {len(results)} metadata records")
+                    return results
+                    
+                except Exception as e:
+                    logger.error(f"❌ Failed to access metadata table: {e}")
+                    return []
+                    
+        except Exception as e:
+            logger.error(f"❌ Failed to get all metadata: {e}")
+            return []
+    
     def get_latest_files(self, count: int) -> List[Dict[str, Any]]:
         """Get the N latest files by observation timestamp using VAST DB"""
         if not VASTDB_AVAILABLE:

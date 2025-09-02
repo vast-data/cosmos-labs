@@ -309,14 +309,69 @@ class Lab2CompleteSolution:
             return False
     
     def search_metadata(self, search_criteria: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Search metadata in the database"""
+        """Search metadata in the database with wildcard support"""
         try:
             logger.info(f"🔍 Searching metadata with criteria: {search_criteria}")
             
-            results = self.db_manager.search_metadata(search_criteria)
+            # Get all metadata first (since VAST DB doesn't support complex filtering yet)
+            all_metadata = self.db_manager.get_all_metadata()
             
-            logger.info(f"🔍 Search completed: {len(results)} results found")
-            return results
+            if not all_metadata:
+                logger.info("🔍 No metadata found in database")
+                return []
+            
+            # Filter results based on search criteria
+            filtered_results = []
+            
+            for record in all_metadata:
+                match = True
+                
+                for key, criteria in search_criteria.items():
+                    record_value = record.get(key, '')
+                    
+                    if criteria['type'] == 'exact':
+                        # Exact match
+                        if str(record_value).lower() != str(criteria['value']).lower():
+                            match = False
+                            break
+                    elif criteria['type'] == 'wildcard':
+                        # Wildcard match
+                        pattern = criteria['pattern']
+                        record_str = str(record_value).lower()
+                        pattern_lower = pattern.lower()
+                        
+                        if pattern_lower == '*':
+                            # Match everything
+                            continue
+                        elif pattern_lower.startswith('*') and pattern_lower.endswith('*'):
+                            # Contains pattern: *value*
+                            search_value = pattern_lower[1:-1]
+                            if search_value not in record_str:
+                                match = False
+                                break
+                        elif pattern_lower.startswith('*'):
+                            # Ends with pattern: *value
+                            search_value = pattern_lower[1:]
+                            if not record_str.endswith(search_value):
+                                match = False
+                                break
+                        elif pattern_lower.endswith('*'):
+                            # Starts with pattern: value*
+                            search_value = pattern_lower[:-1]
+                            if not record_str.startswith(search_value):
+                                match = False
+                                break
+                        else:
+                            # No wildcards, treat as exact match
+                            if record_str != pattern_lower:
+                                match = False
+                                break
+                
+                if match:
+                    filtered_results.append(record)
+            
+            logger.info(f"🔍 Search completed: {len(filtered_results)} results found")
+            return filtered_results
             
         except Exception as e:
             logger.error(f"❌ Search failed: {e}")
@@ -349,7 +404,7 @@ def main():
     parser.add_argument('--setup-only', action='store_true', help='Only set up database infrastructure')
     parser.add_argument('--process-only', action='store_true', help='Only process metadata (assumes setup is complete)')
     parser.add_argument('--stats', action='store_true', help='Show database statistics')
-    parser.add_argument('--search', type=str, help='Search metadata (e.g., "mission_id=SWIFT,target_object=GRB")')
+    parser.add_argument('--search', type=str, help='Search metadata (e.g., "mission_id=SWIFT,target_object=GRB*") - supports wildcards: *, value*, *value, *value*')
     parser.add_argument('--latest', type=int, help='Get the N latest files (e.g., --latest 10)')
     parser.add_argument('--demo-extraction', type=str, help='Demo metadata extraction from a file (e.g., --demo-extraction /path/to/file.fits)')
     parser.add_argument('--delete-schema', action='store_true', help='Delete VAST schema and recreate with new structure (DESTRUCTIVE)')
@@ -382,16 +437,33 @@ def main():
         elif args.search:
             # Search metadata
             # Parse search criteria (format: key1=value1,key2=value2)
+            # Supports wildcards: key1=value* (starts with), key1=*value (ends with), key1=*value* (contains)
             search_criteria = {}
             criteria_pairs = args.search.split(',')
             
             for pair in criteria_pairs:
                 if '=' in pair:
                     key, value = pair.split('=', 1)
-                    search_criteria[key.strip()] = value.strip()
+                    key = key.strip()
+                    value = value.strip()
+                    
+                    # Check for wildcard patterns
+                    if '*' in value:
+                        # Store wildcard pattern for special handling
+                        search_criteria[key] = {
+                            'type': 'wildcard',
+                            'pattern': value
+                        }
+                    else:
+                        # Exact match
+                        search_criteria[key] = {
+                            'type': 'exact',
+                            'value': value
+                        }
                 else:
                     print(f"⚠️  Invalid search criteria format: {pair}")
                     print("💡 Use format: key1=value1,key2=value2")
+                    print("💡 Wildcards supported: key1=value*, key1=*value, key1=*value*")
                     sys.exit(1)
             
             results = solution.search_metadata(search_criteria)
