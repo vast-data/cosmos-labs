@@ -351,6 +351,7 @@ def main():
     parser.add_argument('--stats', action='store_true', help='Show database statistics')
     parser.add_argument('--search', type=str, help='Search metadata (e.g., "mission_id=SWIFT,target_object=GRB")')
     parser.add_argument('--latest', type=int, help='Get the N latest files (e.g., --latest 10)')
+    parser.add_argument('--demo-extraction', type=str, help='Demo metadata extraction from a file (e.g., --demo-extraction /path/to/file.fits)')
     parser.add_argument('--delete-schema', action='store_true', help='Delete VAST schema and recreate with new structure (DESTRUCTIVE)')
     
     args = parser.parse_args()
@@ -455,6 +456,35 @@ def main():
                         print(f"   Size: 0.0 MB (file_size_bytes is {file_size})")
             else:
                 print("🕒 No files found")
+                
+        elif args.demo_extraction:
+            # Demo metadata extraction from a file
+            print(f"\n🔬 Metadata Extraction Demo")
+            print(f"📁 File: {args.demo_extraction}")
+            print("=" * 60)
+            
+            try:
+                # Extract metadata from the specified file
+                metadata = solution.metadata_extractor.extract_metadata(args.demo_extraction)
+                
+                if metadata:
+                    print("✅ Successfully extracted metadata:")
+                    print()
+                    
+                    # Display metadata in a nice format
+                    for key, value in metadata.items():
+                        if value is not None and value != '':
+                            # Format the key nicely
+                            display_key = key.replace('_', ' ').title()
+                            print(f"📋 {display_key}: {value}")
+                    
+                    print()
+                    print(f"📊 Total metadata fields: {len([k for k, v in metadata.items() if v is not None and v != ''])}")
+                else:
+                    print("❌ Failed to extract metadata from file")
+                    
+            except Exception as e:
+                print(f"❌ Error during metadata extraction: {e}")
                 
         elif args.delete_schema:
             # Delete VAST schema and recreate with new structure
