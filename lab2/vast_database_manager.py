@@ -96,14 +96,19 @@ class VASTDatabaseManager:
             from ibis import _
             predicates = []
             
+            logger.debug(f"🔧 Building ibis predicate for criteria: {search_criteria}")
+            
             for key, criteria in search_criteria.items():
                 try:
                     # Get the column reference
                     column = getattr(_, key)
+                    logger.debug(f"🔧 Processing column '{key}' with criteria: {criteria}")
                     
                     if criteria['type'] == 'exact':
                         # Exact match: key = value
-                        predicates.append(column == criteria['value'])
+                        pred = column == criteria['value']
+                        predicates.append(pred)
+                        logger.debug(f"🔧 Added exact predicate: {key} == {criteria['value']}")
                         
                     elif criteria['type'] == 'wildcard':
                         pattern = criteria['pattern']
@@ -113,18 +118,26 @@ class VASTDatabaseManager:
                         elif pattern.startswith('*') and pattern.endswith('*'):
                             # Contains: *value* -> contains() method
                             search_value = pattern[1:-1]
-                            predicates.append(column.contains(search_value))
+                            pred = column.contains(search_value)
+                            predicates.append(pred)
+                            logger.debug(f"🔧 Added contains predicate: {key}.contains('{search_value}')")
                         elif pattern.startswith('*'):
                             # Ends with: *value -> endswith() method
                             search_value = pattern[1:]
-                            predicates.append(column.endswith(search_value))
+                            pred = column.endswith(search_value)
+                            predicates.append(pred)
+                            logger.debug(f"🔧 Added endswith predicate: {key}.endswith('{search_value}')")
                         elif pattern.endswith('*'):
                             # Starts with: value* -> startswith() method
                             search_value = pattern[:-1]
-                            predicates.append(column.startswith(search_value))
+                            pred = column.startswith(search_value)
+                            predicates.append(pred)
+                            logger.debug(f"🔧 Added startswith predicate: {key}.startswith('{search_value}')")
                         else:
                             # No wildcards - treat as exact match
-                            predicates.append(column == pattern)
+                            pred = column == pattern
+                            predicates.append(pred)
+                            logger.debug(f"🔧 Added exact predicate (no wildcards): {key} == {pattern}")
                             
                     elif criteria['type'] == 'comparison':
                         operator = criteria['operator']
@@ -146,13 +159,21 @@ class VASTDatabaseManager:
                                 compare_value = value
                         
                         if operator == '>':
-                            predicates.append(column > compare_value)
+                            pred = column > compare_value
+                            predicates.append(pred)
+                            logger.debug(f"🔧 Added comparison predicate: {key} > {compare_value}")
                         elif operator == '<':
-                            predicates.append(column < compare_value)
+                            pred = column < compare_value
+                            predicates.append(pred)
+                            logger.debug(f"🔧 Added comparison predicate: {key} < {compare_value}")
                         elif operator == '>=':
-                            predicates.append(column >= compare_value)
+                            pred = column >= compare_value
+                            predicates.append(pred)
+                            logger.debug(f"🔧 Added comparison predicate: {key} >= {compare_value}")
                         elif operator == '<=':
-                            predicates.append(column <= compare_value)
+                            pred = column <= compare_value
+                            predicates.append(pred)
+                            logger.debug(f"🔧 Added comparison predicate: {key} <= {compare_value}")
                             
                 except AttributeError as e:
                     logger.warning(f"⚠️  Column '{key}' not found in ibis schema: {e}")
@@ -161,17 +182,25 @@ class VASTDatabaseManager:
             
             # Combine all predicates with AND using proper ibis syntax
             if predicates:
+                logger.debug(f"🔧 Combining {len(predicates)} predicates")
                 if len(predicates) == 1:
-                    return predicates[0]
+                    result = predicates[0]
+                    logger.debug(f"🔧 Single predicate result: {result}")
+                    return result
                 else:
                     # Use ibis.and_() function to combine predicates properly
                     from ibis import and_
-                    return and_(*predicates)
+                    result = and_(*predicates)
+                    logger.debug(f"🔧 Combined predicate result: {result}")
+                    return result
             
+            logger.debug("🔧 No predicates to combine")
             return None
             
         except Exception as e:
             logger.warning(f"⚠️  Failed to build ibis predicate: {e}")
+            import traceback
+            logger.debug(f"🔧 Full traceback: {traceback.format_exc()}")
             return None
         
     def connect(self) -> bool:
@@ -608,6 +637,7 @@ class VASTDatabaseManager:
                     
                     # Try to use ibis predicate pushdown for efficient filtering
                     predicate = self._build_ibis_predicate(search_criteria)
+                    logger.debug(f"🔧 Built predicate: {predicate}")
                     
                     if predicate and IBIS_AVAILABLE:
                         # Use ibis predicate pushdown (efficient)
@@ -615,7 +645,9 @@ class VASTDatabaseManager:
                             "table.select()",
                             f"table=swift_metadata, ibis_predicate_pushdown=True, conditions={len(search_criteria)}"
                         )
+                        logger.debug(f"🔧 Attempting table.select() with predicate: {predicate}")
                         reader = table.select(predicate=predicate)
+                        logger.debug(f"🔧 Successfully created reader with ibis predicate")
                     else:
                         # Fallback to Python-side filtering (less efficient but works)
                         if not IBIS_AVAILABLE:
