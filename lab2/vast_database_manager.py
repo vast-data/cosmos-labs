@@ -29,8 +29,8 @@ class VASTDatabaseManager:
     def __init__(self, config):
         """Initialize the database manager"""
         self.config = config
-        # Use the same bucket as S3, with a schema for metadata
-        self.bucket_name = config.get('lab2.vastdb.bucket', 'cosmos-lab-raw')
+        # Lab 2 database bucket – use only lab2.vastdb.bucket (not the general datastore/S3 bucket)
+        self.bucket_name = config.get('lab2.vastdb.bucket', 'cosmos-lab-metadata')
         self.schema_name = config.get('lab2.vastdb.schema', 'satellite_observations')
         
         # Database connection parameters for vastdb (using S3 credentials)
