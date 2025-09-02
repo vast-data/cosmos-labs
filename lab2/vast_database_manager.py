@@ -27,7 +27,7 @@ try:
         # Test basic ibis functionality
         test_expr = ibis.literal(1) == 1
         IBIS_AVAILABLE = True
-        print("✅ ibis-framework loaded successfully")
+        print("✅ ibis-framework 9.0.0 loaded successfully")
     except Exception as test_error:
         print(f"⚠️  ibis functionality test failed: {test_error}")
         print("🔧 Disabling ibis support to avoid connection issues")
