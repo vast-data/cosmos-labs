@@ -345,7 +345,8 @@ class OrbitalDynamicsStorageManager:
                 'timestamp': datetime.now().isoformat()
             }
             
-            logger.info(f"{view_path}: {utilization:.1f}% utilization - {status[view_path]['status']}")
+            utilization_str = f"{utilization:.1f}%" if utilization is not None else "Unknown"
+            logger.info(f"{view_path}: {utilization_str} utilization - {status[view_path]['status']}")
         
         return status
     
