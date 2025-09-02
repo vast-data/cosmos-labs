@@ -476,9 +476,6 @@ def main():
         # Initialize storage manager with production mode
         storage_manager = OrbitalDynamicsStorageManager(config, production_mode=production_mode)
         
-        # Show current view status before any operations
-        storage_manager.show_current_view_status()
-        
         # Handle different operation modes
         if args.setup_only:
             # Only set up initial views
@@ -498,6 +495,9 @@ def main():
             if not storage_manager.create_initial_views():
                 logger.error("Failed to create initial views")
                 return
+        
+        # Show current view status after setup
+        storage_manager.show_current_view_status()
         
         # Run continuous monitoring
         logger.info("Starting continuous monitoring...")
