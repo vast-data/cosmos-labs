@@ -187,10 +187,14 @@ class Lab2CompleteSolution:
                 else:
                     failed_count += 1
                     logger.error(f"❌ Failed to insert metadata for: {file_path.name}")
+                    logger.error(f"❌ STOPPING PROCESSING due to database insertion failure")
+                    break  # Stop processing immediately
                     
             except Exception as e:
                 failed_count += 1
                 logger.error(f"❌ Error processing {file_path.name}: {e}")
+                logger.error(f"❌ STOPPING PROCESSING due to exception")
+                break  # Stop processing immediately
         
         logger.info(f"✅ Dataset '{dataset_name}' processing completed:")
         logger.info(f"   📊 Processed: {processed_count}")

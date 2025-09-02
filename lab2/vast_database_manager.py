@@ -411,6 +411,10 @@ class VASTDatabaseManager:
                 logger.info(f"🔧 Table schema has {schema_columns} columns: {[col.name for col in schema]}")
                 logger.info(f"🔧 Data array has {data_columns} elements")
                 
+                # Debug: Show data types and values
+                logger.info(f"🔧 Schema data types: {[col.type for col in schema]}")
+                logger.info(f"🔧 Data values: {data[0]}")
+                
                 if data_columns != schema_columns:
                     error_msg = f"❌ SCHEMA MISMATCH: Data has {data_columns} elements but table schema expects {schema_columns} columns"
                     logger.error(error_msg)
