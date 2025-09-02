@@ -22,12 +22,13 @@ except ImportError as e:
 
 try:
     import ibis
-    # Check for compatibility issues
-    if hasattr(ibis.expr, 'types'):
+    # Check for basic ibis functionality
+    if hasattr(ibis, '_'):
         IBIS_AVAILABLE = True
+        print("✅ ibis-framework loaded successfully")
     else:
-        print(f"⚠️  ibis version compatibility issue with VAST DB SDK")
-        print("💡 ibis.expr.types not found - this version may be incompatible")
+        print(f"⚠️  ibis version compatibility issue")
+        print("💡 ibis._ not found - this version may be incompatible")
         print("🔧 Disabling ibis support to avoid connection issues")
         IBIS_AVAILABLE = False
 except ImportError as e:
