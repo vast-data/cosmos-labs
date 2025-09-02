@@ -183,8 +183,7 @@ class Lab2CompleteSolution:
                 # Insert metadata into database immediately
                 if self.db_manager.insert_metadata(metadata):
                     inserted_count += 1
-                    if processed_count % 50 == 0:  # Less frequent success logging
-                        # Success - no need to log every single file
+                    # Success - no need to log every single file
                 else:
                     failed_count += 1
                     logger.error(f"❌ Failed to insert metadata for: {file_path.name}")
