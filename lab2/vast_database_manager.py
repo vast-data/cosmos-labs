@@ -30,7 +30,7 @@ class VASTDatabaseManager:
         """Initialize the database manager"""
         self.config = config
         # Lab 2 database bucket – use only lab2.vastdb.bucket (not the general datastore/S3 bucket)
-        self.bucket_name = config.get('lab2.vastdb.bucket', 'cosmos-lab-metadata')
+        self.bucket_name = config.get('lab2.vastdb.bucket', 'your-tenant-metadata')
         self.schema_name = config.get('lab2.vastdb.schema', 'satellite_observations')
         
         # Database connection parameters for vastdb (using S3 credentials)
@@ -394,10 +394,13 @@ class VASTDatabaseManager:
                         return None
                 
                 # PyArrow expects data as column arrays, not row arrays
+                file_size_bytes = metadata.get('file_size_bytes', 0)
+                logger.info(f"💾 Inserting metadata: {metadata.get('file_name', 'Unknown')} | file_size_bytes: {file_size_bytes}")
+                
                 data = {
                     'file_path': [metadata.get('file_path', '')],
                     'file_name': [metadata.get('file_name', '')],
-                    'file_size_bytes': [metadata.get('file_size_bytes', 0)],
+                    'file_size_bytes': [file_size_bytes],
                     'file_format': [metadata.get('file_format', '')],
                     'dataset_name': [metadata.get('dataset_name', '')],
                     'mission_id': [metadata.get('mission_id', '')],
@@ -480,6 +483,10 @@ class VASTDatabaseManager:
                                     record[col_name] = value.as_py()
                                 else:
                                     record[col_name] = None
+                            
+                            # Debug: log file_size_bytes retrieval
+                            if 'file_size_bytes' in record:
+                                logger.info(f"🔍 Retrieved file_size_bytes: {record['file_size_bytes']} (type: {type(record['file_size_bytes'])}) for {record.get('file_name', 'Unknown')}")
                             
                             # Apply search criteria
                             matches = True

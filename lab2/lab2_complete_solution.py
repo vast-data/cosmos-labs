@@ -387,10 +387,17 @@ def main():
                     mission_id = result.get('mission_id', 'Unknown')
                     target_object = result.get('target_object', 'Unknown')
                     file_size = result.get('file_size_bytes', 0)
-                    size_mb = file_size / (1024 * 1024) if file_size else 0
                     
+                    # Debug: show raw file_size value
                     print(f"{i}. {file_name}")
-                    print(f"   Mission: {mission_id} | Object: {target_object} | Size: {size_mb:.1f} MB")
+                    print(f"   Mission: {mission_id} | Object: {target_object}")
+                    print(f"   Raw file_size_bytes: {file_size} (type: {type(file_size)})")
+                    
+                    if file_size and file_size > 0:
+                        size_mb = file_size / (1024 * 1024)
+                        print(f"   Size: {size_mb:.1f} MB")
+                    else:
+                        print(f"   Size: 0.0 MB (file_size_bytes is {file_size})")
                 
                 if len(results) > 10:
                     print(f"... and {len(results) - 10} more results")
