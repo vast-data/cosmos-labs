@@ -738,9 +738,138 @@ class VASTDatabaseManager:
                     logger.info(f"🔍 Found {len(results)} metadata records")
                     return results
                     
-                except Exception:
-                    # Schema or table doesn't exist yet
-                    logger.info(f"ℹ️  Schema '{self.schema_name}' or table 'swift_metadata' doesn't exist yet")
+                except Exception as e:
+                    # Check if it's a schema/table issue or something else
+                    error_msg = str(e).lower()
+                    if 'schema' in error_msg or 'table' in error_msg or 'not found' in error_msg:
+                        logger.info(f"ℹ️  Schema '{self.schema_name}' or table 'swift_metadata' doesn't exist yet")
+                    else:
+                        logger.error(f"❌ Search error: {e}")
+                        # If it's an ibis-related error, try fallback to Python filtering
+                        if 'ibis' in error_msg.lower() or 'predicate' in error_msg.lower():
+                            logger.info("🔄 Retrying with Python-side filtering...")
+                            try:
+                                # Retry without ibis predicate
+                                reader = table.select()
+                                results = []
+                                
+                                for batch in reader:
+                                    for i in range(len(batch)):
+                                        record = {}
+                                        for col_name in batch.column_names:
+                                            value = batch[col_name][i]
+                                            if value is not None:
+                                                record[col_name] = value.as_py()
+                                            else:
+                                                record[col_name] = None
+                                        
+                                        # Apply Python filtering
+                                        matches = True
+                                        for key, criteria in search_criteria.items():
+                                            if key not in record:
+                                                matches = False
+                                                break
+                                            
+                                            record_value = str(record[key]).lower()
+                                            
+                                            if criteria['type'] == 'exact':
+                                                if record_value != str(criteria['value']).lower():
+                                                    matches = False
+                                                    break
+                                            elif criteria['type'] == 'wildcard':
+                                                pattern = criteria['pattern'].lower()
+                                                if pattern == '*':
+                                                    continue
+                                                elif pattern.startswith('*') and pattern.endswith('*'):
+                                                    search_value = pattern[1:-1]
+                                                    if search_value not in record_value:
+                                                        matches = False
+                                                        break
+                                                elif pattern.startswith('*'):
+                                                    search_value = pattern[1:]
+                                                    if not record_value.endswith(search_value):
+                                                        matches = False
+                                                        break
+                                                elif pattern.endswith('*'):
+                                                    search_value = pattern[:-1]
+                                                    if not record_value.startswith(search_value):
+                                                        matches = False
+                                                        break
+                                                else:
+                                                    if record_value != pattern:
+                                                        matches = False
+                                                        break
+                                            elif criteria['type'] == 'comparison':
+                                                operator = criteria['operator']
+                                                compare_value = criteria['value']
+                                                
+                                                try:
+                                                    from datetime import datetime
+                                                    record_date = datetime.fromisoformat(record_value.replace('Z', '+00:00'))
+                                                    compare_date = datetime.fromisoformat(compare_value.replace('Z', '+00:00'))
+                                                    
+                                                    if operator == '>':
+                                                        if not (record_date > compare_date):
+                                                            matches = False
+                                                            break
+                                                    elif operator == '<':
+                                                        if not (record_date < compare_date):
+                                                            matches = False
+                                                            break
+                                                    elif operator == '>=':
+                                                        if not (record_date >= compare_date):
+                                                            matches = False
+                                                            break
+                                                    elif operator == '<=':
+                                                        if not (record_date <= compare_date):
+                                                            matches = False
+                                                            break
+                                                except (ValueError, TypeError):
+                                                    try:
+                                                        record_num = float(record_value)
+                                                        compare_num = float(compare_value)
+                                                        
+                                                        if operator == '>':
+                                                            if not (record_num > compare_num):
+                                                                matches = False
+                                                                break
+                                                        elif operator == '<':
+                                                            if not (record_num < compare_num):
+                                                                matches = False
+                                                                break
+                                                        elif operator == '>=':
+                                                            if not (record_num >= compare_num):
+                                                                matches = False
+                                                                break
+                                                        elif operator == '<=':
+                                                            if not (record_num <= compare_num):
+                                                                matches = False
+                                                                break
+                                                    except (ValueError, TypeError):
+                                                        if operator == '>':
+                                                            if not (record_value > compare_value):
+                                                                matches = False
+                                                                break
+                                                        elif operator == '<':
+                                                            if not (record_value < compare_value):
+                                                                matches = False
+                                                                break
+                                                        elif operator == '>=':
+                                                            if not (record_value >= compare_value):
+                                                                matches = False
+                                                                break
+                                                        elif operator == '<=':
+                                                            if not (record_value <= compare_value):
+                                                                matches = False
+                                                                break
+                                        
+                                        if matches:
+                                            results.append(record)
+                                
+                                logger.info(f"🔍 Found {len(results)} metadata records (fallback filtering)")
+                                return results
+                            except Exception as fallback_error:
+                                logger.error(f"❌ Fallback filtering also failed: {fallback_error}")
                     return []
             
         except Exception as e:
