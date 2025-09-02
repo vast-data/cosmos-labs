@@ -314,7 +314,7 @@ def main():
     
     try:
         # Use Rich Live display for auto-refresh
-        with Live(dashboard.create_rich_dashboard(), refresh_per_second=1, console=dashboard.console) as live:
+        with Live(refresh_per_second=1, console=dashboard.console) as live:
             while True:
                 live.update(dashboard.create_rich_dashboard())
                 time.sleep(dashboard.refresh_interval)
