@@ -487,7 +487,7 @@ def main():
         else:
             # Normal mode: setup + monitoring
             logger.info("Setting up initial storage views...")
-            if not storage_manager.create_initial_views():
+            if not storage_manager.check_initial_views():
                 logger.error("Failed to create initial views")
                 return
         
