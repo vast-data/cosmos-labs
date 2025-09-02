@@ -394,8 +394,14 @@ def main():
                     print(f"   Raw file_size_bytes: {file_size} (type: {type(file_size)})")
                     
                     if file_size and file_size > 0:
-                        size_mb = file_size / (1024 * 1024)
-                        print(f"   Size: {size_mb:.1f} MB")
+                        if file_size >= 1024 * 1024:  # >= 1 MB
+                            size_mb = file_size / (1024 * 1024)
+                            print(f"   Size: {size_mb:.1f} MB")
+                        elif file_size >= 1024:  # >= 1 KB
+                            size_kb = file_size / 1024
+                            print(f"   Size: {size_kb:.1f} KB")
+                        else:
+                            print(f"   Size: {file_size} bytes")
                     else:
                         print(f"   Size: 0.0 MB (file_size_bytes is {file_size})")
                 
