@@ -10,7 +10,15 @@ class StorageDashboard:
     
     def __init__(self):
         self.config = Lab1ConfigLoader()
-        self.client = VASTClient(**self.config.get_vast_config())
+        vast_config = self.config.get_vast_config()
+        self.client = VASTClient(
+            user=vast_config['user'],
+            password=vast_config.get('password'),
+            address=vast_config['address'],
+            token=vast_config.get('token'),
+            tenant_name=vast_config.get('tenant_name'),
+            version=vast_config.get('version', 'v1')
+        )
         
         # Get view paths from the correct config structure
         view_paths = self.config.get_data_directories()
