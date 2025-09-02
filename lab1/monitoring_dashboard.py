@@ -11,13 +11,32 @@ class StorageDashboard:
     def __init__(self):
         self.config = Lab1ConfigLoader()
         vast_config = self.config.get_vast_config()
-        self.client = VASTClient(
-            user=vast_config['user'],
-            password=vast_config.get('password'),
-            address=vast_config['address'],
-            token=vast_config.get('token'),
-            version=vast_config.get('version', 'v1')
-        )
+        # Build VAST client parameters dynamically based on what's available
+        client_params = {
+            'user': vast_config['user'],
+            'password': vast_config['password'],
+            'address': vast_config['address']
+        }
+        
+        # Add optional parameters only if they exist and are supported
+        if vast_config.get('token'):
+            client_params['token'] = vast_config['token']
+        if vast_config.get('version'):
+            client_params['version'] = vast_config['version']
+        
+        try:
+            self.client = VASTClient(**client_params)
+        except TypeError as e:
+            # Handle unsupported parameters gracefully
+            if "tenant_name" in str(e):
+                print("⚠️  tenant_name parameter not supported in this vastpy version, retrying without it")
+                # Remove tenant_name and retry
+                if 'tenant_name' in client_params:
+                    del client_params['tenant_name']
+                self.client = VASTClient(**client_params)
+            else:
+                # Re-raise other TypeError exceptions
+                raise
         
         # Get view paths from the correct config structure
         view_paths = self.config.get_data_directories()
