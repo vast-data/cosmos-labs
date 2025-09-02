@@ -164,11 +164,9 @@ class VASTDatabaseManager:
                 if len(predicates) == 1:
                     return predicates[0]
                 else:
-                    # Combine with AND operator using & (as shown in documentation)
-                    result = predicates[0]
-                    for pred in predicates[1:]:
-                        result = result & pred
-                    return result
+                    # Use ibis.and_() function to combine predicates properly
+                    from ibis import and_
+                    return and_(*predicates)
             
             return None
             
