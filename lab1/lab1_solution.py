@@ -168,8 +168,6 @@ class OrbitalDynamicsStorageManager:
     def create_initial_views(self):
         """Create the initial storage views for different data types"""
         try:
-            logger.info("Setting up initial storage views...")
-            
             # Get default policy for views
             policies = self.client.viewpolicies.get(name='default')
             if not policies:
