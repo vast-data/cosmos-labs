@@ -16,7 +16,6 @@ class StorageDashboard:
             password=vast_config.get('password'),
             address=vast_config['address'],
             token=vast_config.get('token'),
-            tenant_name=vast_config.get('tenant_name'),
             version=vast_config.get('version', 'v1')
         )
         
