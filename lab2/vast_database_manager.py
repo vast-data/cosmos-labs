@@ -344,6 +344,12 @@ class VASTDatabaseManager:
                 if not self.connect():
                     return False
             
+            # Log API call
+            self._log_api_call(
+                "connection.transaction()",
+                f"bucket={self.bucket_name} (check metadata exists)"
+            )
+            
             # Use VAST DB transaction to check if metadata exists
             with self.connection.transaction() as tx:
                 bucket = tx.bucket(self.bucket_name)
@@ -386,6 +392,12 @@ class VASTDatabaseManager:
                     return False
             
             logger.info(f"🔧 Attempting to insert metadata for: {metadata.get('file_name', 'Unknown')}")
+            
+            # Log API call
+            self._log_api_call(
+                "connection.transaction()",
+                f"bucket={self.bucket_name} (insert metadata)"
+            )
             
             # Use VAST DB transaction to insert metadata
             with self.connection.transaction() as tx:
@@ -747,6 +759,12 @@ class VASTDatabaseManager:
             if not self.connection:
                 if not self.connect():
                     return []
+            
+            # Log API call
+            self._log_api_call(
+                "connection.transaction()",
+                f"bucket={self.bucket_name} (get latest {count} files)"
+            )
             
             # Use VAST DB transaction to get latest files
             with self.connection.transaction() as tx:
