@@ -104,7 +104,7 @@ class OrbitalDynamicsStorageManager:
         for view_path in view_paths:
             try:
                 existing = self.client.views.get(path=view_path)
-                if existing:
+                if existing and len(existing) > 0:
                     view = existing[0]
                     view_id = view['id']
                     
