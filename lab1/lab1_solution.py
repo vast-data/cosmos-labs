@@ -375,6 +375,8 @@ class OrbitalDynamicsStorageManager:
             return 'UNKNOWN'
         elif utilization >= self.critical_threshold:
             return 'NEEDS_EXPANSION'
+        elif utilization >= self.warning_threshold:
+            return 'WARNING'
         else:
             return 'NORMAL'
     
