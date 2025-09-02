@@ -381,6 +381,18 @@ class VASTDatabaseManager:
                 import json
                 
                 # Prepare data for insertion (matching the complete table schema - 17 columns)
+                # Convert timestamp strings to datetime objects for PyArrow
+                def parse_timestamp(ts_str):
+                    if not ts_str:
+                        return None
+                    if isinstance(ts_str, datetime):
+                        return ts_str
+                    try:
+                        # Try parsing ISO format timestamp
+                        return datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
+                    except:
+                        return None
+                
                 data = [
                     [
                         metadata.get('file_path', ''),
@@ -391,11 +403,11 @@ class VASTDatabaseManager:
                         metadata.get('mission_id', ''),
                         metadata.get('satellite_name', ''),
                         metadata.get('instrument_type', ''),
-                        metadata.get('observation_timestamp', datetime.now()),
+                        parse_timestamp(metadata.get('observation_timestamp', datetime.now())),
                         metadata.get('target_object', ''),
                         metadata.get('processing_status', ''),
-                        metadata.get('ingestion_timestamp', datetime.now()),
-                        metadata.get('last_modified', None),
+                        parse_timestamp(metadata.get('ingestion_timestamp', datetime.now())),
+                        parse_timestamp(metadata.get('last_modified')),
                         metadata.get('checksum', ''),
                         metadata.get('metadata_version', '1.0'),
                         datetime.now(),  # created_at
