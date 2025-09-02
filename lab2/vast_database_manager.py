@@ -84,69 +84,76 @@ class VASTDatabaseManager:
             predicates = []
             
             for key, criteria in search_criteria.items():
-                if criteria['type'] == 'exact':
-                    # Exact match: key = value
-                    predicates.append(getattr(_, key) == criteria['value'])
+                try:
+                    # Get the column reference
+                    column = getattr(_, key)
                     
-                elif criteria['type'] == 'wildcard':
-                    pattern = criteria['pattern']
-                    if pattern == '*':
-                        # Match all - no predicate needed
-                        continue
-                    elif pattern.startswith('*') and pattern.endswith('*'):
-                        # Contains: *value* -> LIKE '%value%'
-                        search_value = pattern[1:-1]
-                        predicates.append(getattr(_, key).contains(search_value))
-                    elif pattern.startswith('*'):
-                        # Ends with: *value -> LIKE '%value'
-                        search_value = pattern[1:]
-                        predicates.append(getattr(_, key).endswith(search_value))
-                    elif pattern.endswith('*'):
-                        # Starts with: value* -> LIKE 'value%'
-                        search_value = pattern[:-1]
-                        predicates.append(getattr(_, key).startswith(search_value))
-                    else:
-                        # No wildcards - treat as exact match
-                        predicates.append(getattr(_, key) == pattern)
+                    if criteria['type'] == 'exact':
+                        # Exact match: key = value
+                        predicates.append(column == criteria['value'])
                         
-                elif criteria['type'] == 'comparison':
-                    operator = criteria['operator']
-                    value = criteria['value']
-                    
-                    # Try to convert to appropriate type for comparison
-                    try:
-                        # Try date comparison first
-                        from datetime import datetime
-                        datetime.fromisoformat(value.replace('Z', '+00:00'))
-                        # It's a valid date, keep as string for comparison
-                        compare_value = value
-                    except (ValueError, TypeError):
+                    elif criteria['type'] == 'wildcard':
+                        pattern = criteria['pattern']
+                        if pattern == '*':
+                            # Match all - no predicate needed
+                            continue
+                        elif pattern.startswith('*') and pattern.endswith('*'):
+                            # Contains: *value* -> LIKE '%value%'
+                            search_value = pattern[1:-1]
+                            predicates.append(column.contains(search_value))
+                        elif pattern.startswith('*'):
+                            # Ends with: *value -> LIKE '%value'
+                            search_value = pattern[1:]
+                            predicates.append(column.endswith(search_value))
+                        elif pattern.endswith('*'):
+                            # Starts with: value* -> LIKE 'value%'
+                            search_value = pattern[:-1]
+                            predicates.append(column.startswith(search_value))
+                        else:
+                            # No wildcards - treat as exact match
+                            predicates.append(column == pattern)
+                            
+                    elif criteria['type'] == 'comparison':
+                        operator = criteria['operator']
+                        value = criteria['value']
+                        
+                        # Try to convert to appropriate type for comparison
                         try:
-                            # Try numeric comparison
-                            compare_value = float(value)
-                        except (ValueError, TypeError):
-                            # Fallback to string comparison
+                            # Try date comparison first
+                            from datetime import datetime
+                            datetime.fromisoformat(value.replace('Z', '+00:00'))
+                            # It's a valid date, keep as string for comparison
                             compare_value = value
-                    
-                    if operator == '>':
-                        predicates.append(getattr(_, key) > compare_value)
-                    elif operator == '<':
-                        predicates.append(getattr(_, key) < compare_value)
-                    elif operator == '>=':
-                        predicates.append(getattr(_, key) >= compare_value)
-                    elif operator == '<=':
-                        predicates.append(getattr(_, key) <= compare_value)
+                        except (ValueError, TypeError):
+                            try:
+                                # Try numeric comparison
+                                compare_value = float(value)
+                            except (ValueError, TypeError):
+                                # Fallback to string comparison
+                                compare_value = value
+                        
+                        if operator == '>':
+                            predicates.append(column > compare_value)
+                        elif operator == '<':
+                            predicates.append(column < compare_value)
+                        elif operator == '>=':
+                            predicates.append(column >= compare_value)
+                        elif operator == '<=':
+                            predicates.append(column <= compare_value)
+                            
+                except AttributeError as e:
+                    logger.warning(f"⚠️  Column '{key}' not found in ibis schema: {e}")
+                    # Skip this predicate if column doesn't exist
+                    continue
             
             # Combine all predicates with AND
             if predicates:
                 if len(predicates) == 1:
                     return predicates[0]
                 else:
-                    # Combine with AND operator
-                    result = predicates[0]
-                    for pred in predicates[1:]:
-                        result = result & pred
-                    return result
+                    # Combine with AND operator using ibis.and_()
+                    from ibis import and_
+                    return and_(*predicates)
             
             return None
             
