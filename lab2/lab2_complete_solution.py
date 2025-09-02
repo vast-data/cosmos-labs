@@ -176,7 +176,8 @@ class Lab2CompleteSolution:
                 
                 # Check if metadata already exists in database
                 if self.db_manager.metadata_exists(metadata['file_path']):
-                    logger.debug(f"ℹ️  Metadata already exists for: {metadata['file_name']}")
+                    if processed_count % 100 == 0:  # Log every 100 skipped files
+                        logger.info(f"ℹ️  Skipping {processed_count} files (already exist in database)")
                     skipped_count += 1
                     continue
                 
@@ -521,6 +522,15 @@ def main():
             print("=" * 60)
             
             try:
+                # Check file size first
+                import os
+                file_size = os.path.getsize(args.demo_extraction)
+                
+                if file_size == 0:
+                    print("⚠️  File is empty (0 bytes) - cannot extract metadata")
+                    print("💡 This is common in datasets where some files failed to download or are placeholders")
+                    return
+                
                 # Extract metadata from the specified file
                 metadata = solution.metadata_extractor.extract_metadata_from_file(args.demo_extraction)
                 
@@ -539,6 +549,10 @@ def main():
                     print(f"📊 Total metadata fields: {len([k for k, v in metadata.items() if v is not None and v != ''])}")
                 else:
                     print("❌ Failed to extract metadata from file")
+                    print("💡 This could be due to:")
+                    print("   - File format not supported")
+                    print("   - Corrupted file")
+                    print("   - Missing required libraries (astropy)")
                     
             except Exception as e:
                 print(f"❌ Error during metadata extraction: {e}")

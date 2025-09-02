@@ -359,6 +359,10 @@ class VASTDatabaseManager:
                     table = schema.table("swift_metadata")
                     
                     # Search for the file_path
+                    self._log_api_call(
+                        "table.select()",
+                        f"table=swift_metadata, checking if file_path exists"
+                    )
                     reader = table.select()
                     
                     for batch in reader:
