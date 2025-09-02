@@ -20,6 +20,15 @@ except ImportError as e:
     print("🔧 For now, using mock database operations")
     VASTDB_AVAILABLE = False
 
+try:
+    import ibis
+    IBIS_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️  ibis not found. ImportError: {e}")
+    print("💡 This enables efficient predicate pushdown for queries")
+    print("🔧 Falling back to Python-side filtering")
+    IBIS_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 class VASTDatabaseManager:
@@ -64,6 +73,86 @@ class VASTDatabaseManager:
             if details:
                 print(f"   Details: {obfuscated_details}")
             print()
+    
+    def _build_ibis_predicate(self, search_criteria: Dict[str, Any]):
+        """Build ibis predicate from search criteria for efficient database filtering"""
+        if not IBIS_AVAILABLE:
+            return None
+            
+        try:
+            from ibis import _
+            predicates = []
+            
+            for key, criteria in search_criteria.items():
+                if criteria['type'] == 'exact':
+                    # Exact match: key = value
+                    predicates.append(getattr(_, key) == criteria['value'])
+                    
+                elif criteria['type'] == 'wildcard':
+                    pattern = criteria['pattern']
+                    if pattern == '*':
+                        # Match all - no predicate needed
+                        continue
+                    elif pattern.startswith('*') and pattern.endswith('*'):
+                        # Contains: *value* -> LIKE '%value%'
+                        search_value = pattern[1:-1]
+                        predicates.append(getattr(_, key).contains(search_value))
+                    elif pattern.startswith('*'):
+                        # Ends with: *value -> LIKE '%value'
+                        search_value = pattern[1:]
+                        predicates.append(getattr(_, key).endswith(search_value))
+                    elif pattern.endswith('*'):
+                        # Starts with: value* -> LIKE 'value%'
+                        search_value = pattern[:-1]
+                        predicates.append(getattr(_, key).startswith(search_value))
+                    else:
+                        # No wildcards - treat as exact match
+                        predicates.append(getattr(_, key) == pattern)
+                        
+                elif criteria['type'] == 'comparison':
+                    operator = criteria['operator']
+                    value = criteria['value']
+                    
+                    # Try to convert to appropriate type for comparison
+                    try:
+                        # Try date comparison first
+                        from datetime import datetime
+                        datetime.fromisoformat(value.replace('Z', '+00:00'))
+                        # It's a valid date, keep as string for comparison
+                        compare_value = value
+                    except (ValueError, TypeError):
+                        try:
+                            # Try numeric comparison
+                            compare_value = float(value)
+                        except (ValueError, TypeError):
+                            # Fallback to string comparison
+                            compare_value = value
+                    
+                    if operator == '>':
+                        predicates.append(getattr(_, key) > compare_value)
+                    elif operator == '<':
+                        predicates.append(getattr(_, key) < compare_value)
+                    elif operator == '>=':
+                        predicates.append(getattr(_, key) >= compare_value)
+                    elif operator == '<=':
+                        predicates.append(getattr(_, key) <= compare_value)
+            
+            # Combine all predicates with AND
+            if predicates:
+                if len(predicates) == 1:
+                    return predicates[0]
+                else:
+                    # Combine with AND operator
+                    result = predicates[0]
+                    for pred in predicates[1:]:
+                        result = result & pred
+                    return result
+            
+            return None
+            
+        except Exception as e:
+            logger.warning(f"⚠️  Failed to build ibis predicate: {e}")
+            return None
         
     def connect(self) -> bool:
         """Establish connection to VAST Database"""
@@ -491,13 +580,28 @@ class VASTDatabaseManager:
                     schema = bucket.schema(self.schema_name)
                     table = schema.table("swift_metadata")
                     
-                    # For now, return all records (VAST DB predicate pushdown can be implemented later)
-                    # This is a simplified search that gets all records and filters in Python
-                    self._log_api_call(
-                        "table.select()",
-                        f"table=swift_metadata, search_criteria={len(search_criteria)} conditions"
-                    )
-                    reader = table.select()
+                    # Try to use ibis predicate pushdown for efficient filtering
+                    predicate = self._build_ibis_predicate(search_criteria)
+                    
+                    if predicate and IBIS_AVAILABLE:
+                        # Use ibis predicate pushdown (efficient)
+                        self._log_api_call(
+                            "table.select()",
+                            f"table=swift_metadata, ibis_predicate_pushdown=True, conditions={len(search_criteria)}"
+                        )
+                        reader = table.select(predicate=predicate)
+                    else:
+                        # Fallback to Python-side filtering (less efficient but works)
+                        if not IBIS_AVAILABLE:
+                            logger.debug("⚠️  ibis not available, using Python-side filtering")
+                        else:
+                            logger.debug("⚠️  Could not build ibis predicate, using Python-side filtering")
+                            
+                        self._log_api_call(
+                            "table.select()",
+                            f"table=swift_metadata, python_filtering=True, conditions={len(search_criteria)}"
+                        )
+                        reader = table.select()
                     results = []
                     
                     for batch in reader:
@@ -511,121 +615,125 @@ class VASTDatabaseManager:
                                 else:
                                     record[col_name] = None
                             
-
-                            # Apply search criteria with wildcard support
-                            matches = True
-                            for key, criteria in search_criteria.items():
-                                if key not in record:
-                                    matches = False
-                                    break
-                                
-                                record_value = str(record[key]).lower()
-                                
-                                if criteria['type'] == 'exact':
-                                    # Exact match
-                                    if record_value != str(criteria['value']).lower():
+                            # Only apply Python filtering if we didn't use ibis predicate pushdown
+                            if predicate and IBIS_AVAILABLE:
+                                # Results are already filtered by ibis predicate
+                                results.append(record)
+                            else:
+                                # Apply search criteria with wildcard support (Python filtering)
+                                matches = True
+                                for key, criteria in search_criteria.items():
+                                    if key not in record:
                                         matches = False
                                         break
-                                elif criteria['type'] == 'wildcard':
-                                    # Wildcard match
-                                    pattern = criteria['pattern'].lower()
                                     
-                                    if pattern == '*':
-                                        # Match everything
-                                        continue
-                                    elif pattern.startswith('*') and pattern.endswith('*'):
-                                        # Contains pattern: *value*
-                                        search_value = pattern[1:-1]
-                                        if search_value not in record_value:
+                                    record_value = str(record[key]).lower()
+                                
+                                    if criteria['type'] == 'exact':
+                                        # Exact match
+                                        if record_value != str(criteria['value']).lower():
                                             matches = False
                                             break
-                                    elif pattern.startswith('*'):
-                                        # Ends with pattern: *value
-                                        search_value = pattern[1:]
-                                        if not record_value.endswith(search_value):
-                                            matches = False
-                                            break
-                                    elif pattern.endswith('*'):
-                                        # Starts with pattern: value*
-                                        search_value = pattern[:-1]
-                                        if not record_value.startswith(search_value):
-                                            matches = False
-                                            break
-                                    else:
-                                        # No wildcards, treat as exact match
-                                        if record_value != pattern:
-                                            matches = False
-                                            break
-                                elif criteria['type'] == 'comparison':
-                                    # Comparison match (for dates, numbers, etc.)
-                                    operator = criteria['operator']
-                                    compare_value = criteria['value']
-                                    
-                                    # Try to parse as date first
-                                    try:
-                                        from datetime import datetime
-                                        record_date = datetime.fromisoformat(record_value.replace('Z', '+00:00'))
-                                        compare_date = datetime.fromisoformat(compare_value.replace('Z', '+00:00'))
+                                    elif criteria['type'] == 'wildcard':
+                                        # Wildcard match
+                                        pattern = criteria['pattern'].lower()
                                         
-                                        if operator == '>':
-                                            if not (record_date > compare_date):
+                                        if pattern == '*':
+                                            # Match everything
+                                            continue
+                                        elif pattern.startswith('*') and pattern.endswith('*'):
+                                            # Contains pattern: *value*
+                                            search_value = pattern[1:-1]
+                                            if search_value not in record_value:
                                                 matches = False
                                                 break
-                                        elif operator == '<':
-                                            if not (record_date < compare_date):
+                                        elif pattern.startswith('*'):
+                                            # Ends with pattern: *value
+                                            search_value = pattern[1:]
+                                            if not record_value.endswith(search_value):
                                                 matches = False
                                                 break
-                                        elif operator == '>=':
-                                            if not (record_date >= compare_date):
+                                        elif pattern.endswith('*'):
+                                            # Starts with pattern: value*
+                                            search_value = pattern[:-1]
+                                            if not record_value.startswith(search_value):
                                                 matches = False
                                                 break
-                                        elif operator == '<=':
-                                            if not (record_date <= compare_date):
+                                        else:
+                                            # No wildcards, treat as exact match
+                                            if record_value != pattern:
                                                 matches = False
                                                 break
-                                    except (ValueError, TypeError):
-                                        # Not a date, try numeric comparison
+                                    elif criteria['type'] == 'comparison':
+                                        # Comparison match (for dates, numbers, etc.)
+                                        operator = criteria['operator']
+                                        compare_value = criteria['value']
+                                        
+                                        # Try to parse as date first
                                         try:
-                                            record_num = float(record_value)
-                                            compare_num = float(compare_value)
+                                            from datetime import datetime
+                                            record_date = datetime.fromisoformat(record_value.replace('Z', '+00:00'))
+                                            compare_date = datetime.fromisoformat(compare_value.replace('Z', '+00:00'))
                                             
                                             if operator == '>':
-                                                if not (record_num > compare_num):
+                                                if not (record_date > compare_date):
                                                     matches = False
                                                     break
                                             elif operator == '<':
-                                                if not (record_num < compare_num):
+                                                if not (record_date < compare_date):
                                                     matches = False
                                                     break
                                             elif operator == '>=':
-                                                if not (record_num >= compare_num):
+                                                if not (record_date >= compare_date):
                                                     matches = False
                                                     break
                                             elif operator == '<=':
-                                                if not (record_num <= compare_num):
+                                                if not (record_date <= compare_date):
                                                     matches = False
                                                     break
                                         except (ValueError, TypeError):
-                                            # Not numeric either, do string comparison
-                                            if operator == '>':
-                                                if not (record_value > compare_value):
-                                                    matches = False
-                                                    break
-                                            elif operator == '<':
-                                                if not (record_value < compare_value):
-                                                    matches = False
-                                                    break
-                                            elif operator == '>=':
-                                                if not (record_value >= compare_value):
-                                                    matches = False
-                                                    break
-                                            elif operator == '<=':
-                                                if not (record_value <= compare_value):
-                                                    matches = False
-                                                    break
-                            
-                            if matches:
-                                results.append(record)
+                                            # Not a date, try numeric comparison
+                                            try:
+                                                record_num = float(record_value)
+                                                compare_num = float(compare_value)
+                                                
+                                                if operator == '>':
+                                                    if not (record_num > compare_num):
+                                                        matches = False
+                                                        break
+                                                elif operator == '<':
+                                                    if not (record_num < compare_num):
+                                                        matches = False
+                                                        break
+                                                elif operator == '>=':
+                                                    if not (record_num >= compare_num):
+                                                        matches = False
+                                                        break
+                                                elif operator == '<=':
+                                                    if not (record_num <= compare_num):
+                                                        matches = False
+                                                        break
+                                            except (ValueError, TypeError):
+                                                # Not numeric either, do string comparison
+                                                if operator == '>':
+                                                    if not (record_value > compare_value):
+                                                        matches = False
+                                                        break
+                                                elif operator == '<':
+                                                    if not (record_value < compare_value):
+                                                        matches = False
+                                                        break
+                                                elif operator == '>=':
+                                                    if not (record_value >= compare_value):
+                                                        matches = False
+                                                        break
+                                                elif operator == '<=':
+                                                    if not (record_value <= compare_value):
+                                                        matches = False
+                                                        break
+                                
+                                if matches:
+                                    results.append(record)
                     
                     logger.info(f"🔍 Found {len(results)} metadata records")
                     return results

@@ -10,6 +10,9 @@ pyyaml>=6.0
 # Metadata catalog functionality
 vastdb>=0.1.0
 
+# Query optimization and predicate pushdown
+ibis>=4.0.0  # For efficient database filtering
+
 # Astronomical data processing
 astropy>=5.0.0  # For FITS file handling
 
