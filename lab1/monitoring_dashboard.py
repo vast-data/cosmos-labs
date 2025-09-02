@@ -148,11 +148,11 @@ class StorageDashboard:
                 soft_limit = 0
                 hard_limit = 0
             
-            # Use soft limit for utilization calculation if available, otherwise hard limit
-            quota_for_calc = soft_limit if soft_limit > 0 else hard_limit
+            # Use hard limit for utilization calculation (actual storage capacity)
+            quota_for_calc = hard_limit if hard_limit > 0 else soft_limit
             if quota_for_calc > 0:
                 utilization = (size / quota_for_calc) * 100
-                # Available should be based on hard limit (actual storage limit), not soft limit (warning threshold)
+                # Available should be based on hard limit (actual storage limit)
                 available_limit = hard_limit if hard_limit > 0 else soft_limit
                 available = available_limit - size
             else:
@@ -167,6 +167,9 @@ class StorageDashboard:
                 'soft_limit_formatted': self.format_storage_size(soft_limit),
                 'hard_limit_formatted': self.format_storage_size(hard_limit),
                 'available_formatted': self.format_storage_size(available),
+                'size_bytes': size,  # Raw values for comparison
+                'soft_limit_bytes': soft_limit,
+                'hard_limit_bytes': hard_limit,
                 'last_updated': datetime.now().isoformat()
             }
             
@@ -245,7 +248,16 @@ class StorageDashboard:
             }.get(view_data['status'], '❓')
             
             if view_data['status'] in ['NORMAL', 'WARNING', 'CRITICAL']:
+                # Check if soft limit is exceeded
+                size_bytes = view_data.get('size_bytes', 0)
+                soft_limit_bytes = view_data.get('soft_limit_bytes', 0)
+                soft_limit_exceeded = soft_limit_bytes > 0 and size_bytes > soft_limit_bytes
+                
+                # Add warning indicator if soft limit exceeded
                 utilization_text = f"{view_data['utilization']}%"
+                if soft_limit_exceeded:
+                    utilization_text += " ⚠️"
+                
                 size_text = view_data['size_formatted']
                 soft_limit_text = view_data['soft_limit_formatted'] if view_data['soft_limit_formatted'] != "0 B" else "N/A"
                 hard_limit_text = view_data['hard_limit_formatted'] if view_data['hard_limit_formatted'] != "0 B" else "N/A"
