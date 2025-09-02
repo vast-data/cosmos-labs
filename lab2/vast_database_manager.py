@@ -597,6 +597,39 @@ class VASTDatabaseManager:
             logger.error(f"❌ Failed to remove database: {e}")
             return False
     
+    def delete_vast_schema(self) -> bool:
+        """Delete the VAST schema and all its tables (DESTRUCTIVE OPERATION)"""
+        try:
+            logger.info(f"🗑️  Starting VAST schema deletion for schema: {self.schema_name}")
+            
+            if not self.connection:
+                if not self.connect():
+                    return False
+            
+            # Use VAST DB transaction to delete schema and tables
+            with self.connection.transaction() as tx:
+                try:
+                    # Get bucket
+                    bucket = tx.bucket(self.bucket_name)
+                    
+                    # Delete schema (this will also delete all tables in the schema)
+                    try:
+                        schema = bucket.schema(self.schema_name)
+                        schema.delete()
+                        logger.info(f"✅ Deleted VAST schema '{self.schema_name}' and all its tables")
+                        return True
+                    except Exception as e:
+                        logger.warning(f"⚠️  Schema '{self.schema_name}' may not exist: {e}")
+                        return True  # Consider it successful if schema doesn't exist
+                    
+                except Exception as e:
+                    logger.error(f"❌ Failed to delete VAST schema: {e}")
+                    return False
+                    
+        except Exception as e:
+            logger.error(f"❌ Failed to delete VAST schema: {e}")
+            return False
+    
     def close(self):
         """Close database connection"""
         if self.connection and VASTDB_AVAILABLE:

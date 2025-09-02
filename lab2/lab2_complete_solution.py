@@ -332,6 +332,7 @@ def main():
     parser.add_argument('--process-only', action='store_true', help='Only process metadata (assumes setup is complete)')
     parser.add_argument('--stats', action='store_true', help='Show database statistics')
     parser.add_argument('--search', type=str, help='Search metadata (e.g., "mission_id=SWIFT")')
+    parser.add_argument('--delete-schema', action='store_true', help='Delete VAST schema and recreate with new structure (DESTRUCTIVE)')
     
     args = parser.parse_args()
     
@@ -376,6 +377,25 @@ def main():
                     print(f"... and {len(results) - 10} more results")
             else:
                 print("🔍 No search results found")
+                
+        elif args.delete_schema:
+            # Delete VAST schema and recreate with new structure
+            if not args.pushtoprod:
+                print("❌ ERROR: --delete-schema requires --pushtoprod flag for safety")
+                return 1
+            
+            print("🗑️  Deleting VAST schema and recreating with new structure...")
+            if solution.db_manager.delete_vast_schema():
+                print("✅ VAST schema deleted successfully")
+                print("🔧 Recreating schema with new structure...")
+                if solution.setup_database_infrastructure():
+                    print("✅ Database infrastructure recreated successfully")
+                else:
+                    print("❌ Database infrastructure recreation failed")
+                    return 1
+            else:
+                print("❌ VAST schema deletion failed")
+                return 1
                 
         elif args.setup_only:
             # Only set up database infrastructure
