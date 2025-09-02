@@ -134,6 +134,7 @@ class Lab2CompleteSolution:
             return {'processed': 0, 'inserted': 0, 'skipped': 0, 'failed': 0}
         
         # Extract metadata from all files in the dataset
+        logger.info(f"🔧 Starting metadata extraction for dataset: {dataset_name}")
         metadata_list = self.metadata_extractor.extract_metadata_from_dataset(dataset_path)
         
         if not metadata_list:
@@ -141,6 +142,7 @@ class Lab2CompleteSolution:
             return {'processed': 0, 'inserted': 0, 'skipped': 0, 'failed': 0}
         
         logger.info(f"📊 Extracted metadata for {len(metadata_list)} files")
+        logger.info(f"🔧 Starting database insertion process...")
         
         # Process each metadata record
         processed_count = 0
@@ -148,7 +150,10 @@ class Lab2CompleteSolution:
         skipped_count = 0
         failed_count = 0
         
-        for metadata in metadata_list:
+        logger.info(f"🔧 Processing {len(metadata_list)} metadata records...")
+        
+        for i, metadata in enumerate(metadata_list):
+            logger.info(f"🔧 Processing metadata record {i+1}/{len(metadata_list)}: {metadata.get('file_name', 'Unknown')}")
             try:
                 processed_count += 1
                 
