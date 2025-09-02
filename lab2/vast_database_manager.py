@@ -510,6 +510,73 @@ class VASTDatabaseManager:
             logger.error(f"❌ Search failed: {e}")
             return []
     
+    def get_latest_files(self, count: int) -> List[Dict[str, Any]]:
+        """Get the N latest files by observation timestamp using VAST DB"""
+        if not VASTDB_AVAILABLE:
+            logger.warning("⚠️  vastdb not available - mock latest files")
+            return []
+            
+        try:
+            if not self.connection:
+                if not self.connect():
+                    return []
+            
+            # Use VAST DB transaction to get latest files
+            with self.connection.transaction() as tx:
+                bucket = tx.bucket(self.bucket_name)
+                
+                # Check if schema and table exist
+                try:
+                    schema = bucket.schema(self.schema_name)
+                    table = schema.table("swift_metadata")
+                    
+                    # Get all records and sort by observation_timestamp
+                    reader = table.select()
+                    all_records = []
+                    
+                    for batch in reader:
+                        for i in range(len(batch)):
+                            record = {}
+                            # Convert PyArrow record to Python dict
+                            for col_name in batch.column_names:
+                                value = batch[col_name][i]
+                                if value is not None:
+                                    record[col_name] = value.as_py()
+                                else:
+                                    record[col_name] = None
+                            
+                            all_records.append(record)
+                    
+                    # Sort by observation_timestamp (descending - latest first)
+                    # Handle both datetime objects and string timestamps
+                    def get_timestamp(record):
+                        obs_time = record.get('observation_timestamp')
+                        if obs_time is None:
+                            return datetime.min
+                        if isinstance(obs_time, str):
+                            try:
+                                return datetime.fromisoformat(obs_time.replace('Z', '+00:00'))
+                            except:
+                                return datetime.min
+                        return obs_time
+                    
+                    all_records.sort(key=get_timestamp, reverse=True)
+                    
+                    # Return the requested number of latest files
+                    latest_files = all_records[:count]
+                    
+                    logger.info(f"🕒 Retrieved {len(latest_files)} latest files")
+                    return latest_files
+                    
+                except Exception:
+                    # Schema or table doesn't exist yet
+                    logger.info(f"ℹ️  Schema '{self.schema_name}' or table 'swift_metadata' doesn't exist yet")
+                    return []
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to get latest files: {e}")
+            return []
+    
     def get_metadata_stats(self) -> Dict[str, Any]:
         """Get statistics about the metadata catalog using VAST DB"""
         if not VASTDB_AVAILABLE:

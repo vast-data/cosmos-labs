@@ -322,6 +322,20 @@ class Lab2CompleteSolution:
             logger.error(f"❌ Search failed: {e}")
             return []
     
+    def get_latest_files(self, count: int) -> List[Dict[str, Any]]:
+        """Get the N latest files by observation timestamp"""
+        try:
+            logger.info(f"🕒 Getting latest {count} files")
+            
+            results = self.db_manager.get_latest_files(count)
+            
+            logger.info(f"🕒 Retrieved {len(results)} latest files")
+            return results
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to get latest files: {e}")
+            return []
+    
     def close(self):
         """Clean up resources"""
         if self.db_manager:
@@ -336,6 +350,7 @@ def main():
     parser.add_argument('--process-only', action='store_true', help='Only process metadata (assumes setup is complete)')
     parser.add_argument('--stats', action='store_true', help='Show database statistics')
     parser.add_argument('--search', type=str, help='Search metadata (e.g., "mission_id=SWIFT,target_object=GRB")')
+    parser.add_argument('--latest', type=int, help='Get the N latest files (e.g., --latest 10)')
     parser.add_argument('--delete-schema', action='store_true', help='Delete VAST schema and recreate with new structure (DESTRUCTIVE)')
     
     args = parser.parse_args()
@@ -409,6 +424,37 @@ def main():
                     print(f"... and {len(results) - 10} more results")
             else:
                 print("🔍 No search results found")
+                
+        elif args.latest:
+            # Get the N latest files
+            results = solution.get_latest_files(args.latest)
+            
+            if results:
+                print(f"\n🕒 Latest {len(results)} Files:")
+                for i, result in enumerate(results, 1):
+                    file_name = result.get('file_name', 'Unknown')
+                    mission_id = result.get('mission_id', 'Unknown')
+                    target_object = result.get('target_object', 'Unknown')
+                    file_size = result.get('file_size_bytes', 0)
+                    observation_time = result.get('observation_timestamp', 'Unknown')
+                    
+                    print(f"{i}. {file_name}")
+                    print(f"   Mission: {mission_id} | Object: {target_object}")
+                    print(f"   Observed: {observation_time}")
+                    
+                    if file_size and file_size > 0:
+                        if file_size >= 1024 * 1024:  # >= 1 MB
+                            size_mb = file_size / (1024 * 1024)
+                            print(f"   Size: {size_mb:.1f} MB")
+                        elif file_size >= 1024:  # >= 1 KB
+                            size_kb = file_size / 1024
+                            print(f"   Size: {size_kb:.1f} KB")
+                        else:
+                            print(f"   Size: {file_size} bytes")
+                    else:
+                        print(f"   Size: 0.0 MB (file_size_bytes is {file_size})")
+            else:
+                print("🕒 No files found")
                 
         elif args.delete_schema:
             # Delete VAST schema and recreate with new structure
