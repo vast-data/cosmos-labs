@@ -30,10 +30,17 @@ class OrbitalDynamicsStorageManager:
         vast_config = config.get_vast_config()
         
         # Build VAST client parameters dynamically based on what's available
+        # vastpy constructs URLs as https://{address}/... so we need to strip protocol
+        address = vast_config['address']
+        if address.startswith('https://'):
+            address = address[8:]  # Remove 'https://' prefix
+        elif address.startswith('http://'):
+            address = address[7:]   # Remove 'http://' prefix
+        
         client_params = {
             'user': vast_config['user'],
             'password': vast_config['password'],
-            'address': vast_config['address']
+            'address': address
         }
         
         # Add optional parameters only if they exist and are supported
@@ -65,9 +72,13 @@ class OrbitalDynamicsStorageManager:
         self.config = config
         
         # Storage configuration - ALL VALUES MUST BE EXPLICITLY CONFIGURED
-        self.raw_data_path = config.get('data.directories')[0]  # First directory from data.directories
-        self.processed_data_path = config.get('data.directories')[1]  # Second directory from data.directories
-        self.temp_data_path = config.get('data.directories')[2] if len(config.get('data.directories')) > 2 else None
+        data_dirs = config.get('data.directories', [])
+        if len(data_dirs) < 2:
+            raise ValueError("data.directories must contain at least 2 directories")
+        
+        self.raw_data_path = data_dirs[0]  # First directory from data.directories
+        self.processed_data_path = data_dirs[1]  # Second directory from data.directories
+        self.temp_data_path = data_dirs[2] if len(data_dirs) > 2 else None
         
         # Quota thresholds - ALL VALUES MUST BE EXPLICITLY CONFIGURED
         self.warning_threshold = config.get('lab1.monitoring.alert_threshold')
