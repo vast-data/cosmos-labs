@@ -95,39 +95,27 @@ def main():
                 healthy_nodes = 0
                 total_nodes = len(nodes)
                 
-                # Debug: Show available fields in the first node (if any)
-                if nodes:
-                    print(f"   🔍 Debug: Available fields in node object: {list(nodes[0].keys())}")
-                    print(f"   🔍 Debug: First node data: {nodes[0]}")
-                    print()
-                
                 for node in nodes:
-                    # Try different possible field names for node information
-                    node_name = (node.get('name') or 
-                               node.get('hostname') or 
-                               node.get('id') or 
-                               node.get('guid') or 
-                               'Unknown')
+                    # Use the correct field names from vastpy node objects
+                    node_name = node.get('hostname', 'Unknown')
+                    node_type = node.get('node_type', 'Unknown')
                     
-                    node_state = (node.get('state') or 
-                                node.get('status') or 
-                                node.get('health') or 
-                                'Unknown')
+                    # Determine health status from available fields
+                    install_state = node.get('install_state', '')
+                    upgrade_state = node.get('upgrade_state', '')
                     
-                    node_role = (node.get('role') or 
-                               node.get('type') or 
-                               node.get('node_type') or 
-                               'Unknown')
-                    
-                    if node_state.lower() == 'healthy':
+                    if install_state == 'INSTALLED' and upgrade_state == 'DONE':
+                        node_state = 'Healthy'
                         node_emoji = "🟢"
                         healthy_nodes += 1
-                    elif node_state.lower() == 'degraded':
+                    elif install_state == 'INSTALLED':
+                        node_state = 'Installed'
                         node_emoji = "🟡"
                     else:
+                        node_state = 'Not Ready'
                         node_emoji = "🔴"
                     
-                    print(f"   {node_emoji} {node_name} ({node_role}): {node_state}")
+                    print(f"   {node_emoji} {node_name} ({node_type}): {node_state}")
                 
                 print(f"   📊 Healthy Nodes: {healthy_nodes}/{total_nodes}")
                 
