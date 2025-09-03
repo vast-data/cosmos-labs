@@ -65,6 +65,14 @@ def main():
         print(f"📊 Found {len(snapshots)} snapshots:")
         print()
         
+        # Debug: Show available fields in first snapshot
+        if snapshots:
+            print("🔍 DEBUG: Available fields in first snapshot:")
+            first_snapshot = snapshots[0]
+            for key, value in first_snapshot.items():
+                print(f"   {key}: {value}")
+            print()
+        
         # Sort snapshots by creation time
         sorted_snapshots = sorted(snapshots, key=lambda x: x.get('creation_time', 0))
         
