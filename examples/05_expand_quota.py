@@ -4,6 +4,7 @@ Example 5: Simple Quota Expansion
 Demonstrate how to expand a quota (DRY RUN by default)
 """
 
+import sys
 from examples_config import ExamplesConfigLoader
 from vastpy import VASTClient
 
