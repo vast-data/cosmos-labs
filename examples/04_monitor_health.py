@@ -84,15 +84,36 @@ def main():
                                 pass
                             else:
                                 continue
-                                
-                            # Try to find capacity fields
+                            
+                            # Special handling for capacity endpoint - explore details
+                            if endpoint_name == 'capacity' and 'details' in data:
+                                print(f"   🔍 Debug: capacity.details type: {type(data['details'])}")
+                                if isinstance(data['details'], dict):
+                                    print(f"   🔍 Debug: capacity.details fields: {list(data['details'].keys())}")
+                                    # Look in details for capacity info
+                                    details = data['details']
+                                    for field in ['total_usable', 'used_capacity', 'free_capacity', 'total_capacity', 'usable_capacity']:
+                                        if details.get(field, 0) > 0:
+                                            total_capacity = details.get(field)
+                                            print(f"   🔍 Debug: Found capacity in {endpoint_name}.details.{field}: {total_capacity}")
+                                            break
+                                    
+                                    # Look for data reduction in details
+                                    for field in ['data_reduction_ratio', 'compression_ratio', 'dedup_ratio']:
+                                        if details.get(field, 0) > 0:
+                                            data_reduction_ratio = details.get(field)
+                                            data_reduction = f"{data_reduction_ratio:.1f}:1"
+                                            print(f"   🔍 Debug: Found data reduction in {endpoint_name}.details.{field}: {data_reduction}")
+                                            break
+                            
+                            # Try to find capacity fields in main data
                             for field in ['total_capacity', 'usable_capacity', 'logical_capacity', 'capacity', 'total_usable', 'used_capacity', 'free_capacity']:
                                 if data.get(field, 0) > 0:
                                     total_capacity = data.get(field)
                                     print(f"   🔍 Debug: Found capacity in {endpoint_name}.{field}: {total_capacity}")
                                     break
                             
-                            # Try to find data reduction
+                            # Try to find data reduction in main data
                             if not data_reduction_ratio:
                                 for field in ['data_reduction_ratio', 'compression_ratio', 'dedup_ratio']:
                                     if data.get(field, 0) > 0:
