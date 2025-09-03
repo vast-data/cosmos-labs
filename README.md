@@ -8,7 +8,14 @@
 
 Orbital Dynamics is a mid-sized space technology company that processes astronomical data and manages satellite constellation networks for research institutions, government agencies, and private space companies. They've recently landed a major NASA contract for real-time processing of deep space telescope data, which is pushing their infrastructure to new limits.
 
-This series of hands-on labs follows the journey of the Orbital Dynamics team as they tackle real-world challenges using the VAST Management System and VAST Database. Through these labs, you'll learn how to use `vastpy` and `vastdb_sdk` to solve complex data management and processing problems in a space technology environment.
+This series of hands-on labs follows the journey of the Orbital Dynamics team as they tackle real-world challenges using the VAST Management System and VAST Database. Through these labs, you'll learn how to use `vastpy` and `vastdb` to solve complex data management and processing problems in a space technology environment.
+
+## ⚠️ Important Disclaimer
+
+**This repository contains educational code and examples only. All code, scripts, and configurations are provided for learning and demonstration purposes. They are NOT intended for production use and should NOT be deployed in production environments without proper review, testing, and modification.**
+
+- **Educational Purpose Only** - These labs are designed to teach VAST SDK concepts
+- **Review Before Use** - Always review and test any code before using it in your environment
 
 ## The Team
 
@@ -26,23 +33,22 @@ Meet the characters who will guide you through these challenges:
 **Challenge:** Monitor existing storage infrastructure and automatically expand quotas when needed
 - Use `vastpy` to monitor storage utilization across multiple views
 - Build automated quota expansion with comprehensive safety checks
-- Create predictive scaling systems that prevent storage crises
+- Create basic predictive scaling systems that prevent storage crises
 - Implement real-time monitoring and alerting for storage health
 - **Focus:** Monitoring existing infrastructure, not creating new views
-- **NEW:** Comprehensive safety system with dry-run/production modes
 
-### [Lab 2: Metadata Catalog & Search System](Lab_2_Metadata_Infrastructure_Project.md)
-**Challenge:** Build a comprehensive metadata catalog system for efficient data discovery and management
-- Use `vastdb` to create and manage metadata catalogs
+### [Lab 2: Metadata Database & Search System](Lab_2_Metadata_Infrastructure_Project.md)
+**Challenge:** Build a comprehensive metadata database system for efficient data discovery and management
+- Use `vastdb` to create and manage VAST databases
 - Build automated metadata extraction workflows for various file formats (FITS, JSON, etc.)
 - Create powerful search interfaces with wildcard and date range support
-- Implement metadata storage and querying with VAST Database
 - **Focus:** Metadata management and search capabilities
-- **NEW:** Comprehensive safety system with dry-run/production modes
 
-### [Lab 3: The Multi-Mission Data Pipeline](Lab_3_Multi_Mission_Data_Pipeline.md)
+## Upcoming labs
+
+### [Lab 3: The Multi-Mission Data Pipeline](Lab_3_Multi_Mission_Data_Pipeline.md) 
 **Challenge:** Orchestrate processing for three different satellite constellations
-- Combine `vastpy` and `vastdb_sdk` for unified pipeline orchestration
+- Combine `vastpy` and `vastdb` for unified pipeline orchestration
 - Build automated job management with failure handling
 - Create real-time monitoring dashboards
 - Support different data formats and processing requirements
@@ -56,7 +62,7 @@ Meet the characters who will guide you through these challenges:
 
 ### [Lab 5: The Real-Time Alert System](Lab_5_Real_Time_Alert_System.md)
 **Challenge:** Detect astronomical events in real-time and alert appropriate teams
-- Use `vastdb_sdk` for real-time data ingestion and analysis
+- Use `vastdb` for real-time data ingestion and analysis
 - Build automated detection for specific astronomical events
 - Create multi-level alerting based on event type and urgency
 - Develop APIs for external system integration
@@ -92,7 +98,7 @@ The following Python packages are required:
 
 - **pyyaml** - YAML configuration file parsing
 - **vastpy** - VAST Management System SDK (version 0.3.17+)
-- **vastdb_sdk** - VAST Database SDK for metadata catalog functionality
+- **vastdb** - VAST Database SDK for metadata catalog functionality
 - **astropy** - Astronomical data processing (for Lab 2)
 - **h5py** - HDF5 file format support (for Lab 2)
 
@@ -181,7 +187,7 @@ python lab2/lab2_solution.py --pushtoprod
 # Lab-specific operations
 python lab1/lab1_solution.py --setup-only      # Only check if views exist
 python lab1/lab1_solution.py --monitor-only    # Only run monitoring
-python lab2/lab2_solution.py --setup-only      # Only create database schema
+python lab2/lab2_solution.py --setup-only      # Only create bucket/schema/tables
 python lab2/lab2_solution.py --process-only    # Only process metadata
 python lab2/lab2_solution.py --search "mission_id=SWIFT"  # Search metadata
 python lab2/lab2_solution.py --stats           # Show database statistics
@@ -290,7 +296,7 @@ These labs are designed to mirror real-world challenges faced by organizations d
 
 - **VAST Documentation** - [https://vastdata.com/docs](https://vastdata.com/docs)
 - **vastpy GitHub** - [https://github.com/vast-data/vastpy](https://github.com/vast-data/vastpy)
-- **vastdb_sdk GitHub** - [https://github.com/vast-data/vastdb_sdk](https://github.com/vast-data/vastdb_sdk)
+- **vastdb GitHub** - [https://github.com/vast-data/vastdb](https://github.com/vast-data/vastdb)
 - **Community Support** - Join the VAST community for additional help and examples
 
 ## Contributing
