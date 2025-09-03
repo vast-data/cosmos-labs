@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Example 6: Show Latest and Oldest Snapshots
+Example 5: Show Latest, Oldest, and Largest Snapshots
 Demonstrate snapshot management and display snapshot information
 """
 
@@ -32,7 +32,7 @@ def format_timestamp(timestamp):
     return str(timestamp)
 
 def main():
-    print("📸 Example 6: Show Latest and Oldest Snapshots")
+    print("📸 Example 5: Show Latest, Oldest, and Largest Snapshots")
     print("=" * 50)
     
     try:

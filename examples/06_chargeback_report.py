@@ -47,20 +47,23 @@ def main():
     print("=" * 50)
     
     try:
-        # Load configuration
+        # Load configuration and connect
         config = ExamplesConfigLoader()
-        print(f"🔧 Connecting to VAST Management System...")
+        vast_config = config.get_vast_config()
         
-        # Initialize VAST client
-        from vastpy import VASTClient
+        address = vast_config['address']
+        if address.startswith('https://'):
+            address = address[8:]
+        elif address.startswith('http://'):
+            address = address[7:]
+        
+        print("🔧 Connecting to VAST Management System...")
         client = VASTClient(
-            host=config.vast_host,
-            username=config.vast_username,
-            password=config.vast_password,
-            verify_ssl=config.vast_verify_ssl
+            user=vast_config['user'],
+            password=vast_config['password'],
+            address=address
         )
-        
-        print(f"✅ Connected to VAST at {config.vast_host}")
+        print(f"✅ Connected to VAST at {vast_config['address']}")
         
         # Get all views
         print(f"📊 Fetching storage views...")
