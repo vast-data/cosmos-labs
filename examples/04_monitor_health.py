@@ -78,7 +78,18 @@ def main():
         # Get node information
         print("🖥️  NODE STATUS:")
         try:
-            nodes = client.nodes.get()
+            # Try different possible node endpoints
+            nodes = None
+            try:
+                nodes = client.nodes.get()
+            except:
+                try:
+                    nodes = client.hosts.get()
+                except:
+                    try:
+                        nodes = client.servers.get()
+                    except:
+                        pass
             
             if nodes:
                 healthy_nodes = 0
@@ -108,7 +119,8 @@ def main():
                 else:
                     print("   🚨 No healthy nodes found")
             else:
-                print("   📭 No node information available")
+                print("   📭 Node information not available via vastpy")
+                print("   💡 Node details may require different API endpoints")
                 
         except Exception as e:
             print(f"   ⚠️  Node information not available: {e}")
@@ -139,7 +151,19 @@ def main():
         
         # Check for any alerts
         try:
-            alerts = client.alerts.get()
+            # Try different possible alert endpoints
+            alerts = None
+            try:
+                alerts = client.alerts.get()
+            except:
+                try:
+                    alerts = client.events.get()
+                except:
+                    try:
+                        alerts = client.notifications.get()
+                    except:
+                        pass
+            
             if alerts:
                 active_alerts = [a for a in alerts if a.get('state', '').lower() == 'active']
                 if active_alerts:
@@ -150,6 +174,7 @@ def main():
                     print("   ✅ No Active Alerts")
             else:
                 print("   ✅ No Alerts Found")
+                print("   💡 Alert system may use different API endpoints")
         except Exception as e:
             print(f"   ⚠️  Alert information not available: {e}")
         
