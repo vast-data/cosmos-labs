@@ -58,113 +58,34 @@ def main():
             if data_reduction_ratio > 0:
                 data_reduction = f"{data_reduction_ratio:.1f}:1"
             
-            # If still no capacity, try different endpoints
+            # If still no capacity, try to get from capacity endpoint
             if total_capacity == 0:
-                # Debug: Try different endpoints to find capacity data
-                endpoints_to_try = [
-                    ('capacity', client.capacity),
-                    ('stats', client.stats),
-                    ('metrics', client.metrics),
-                    ('monitors', client.monitors),
-                    ('system', client.system),
-                    ('cluster', client.cluster)
-                ]
-                
-                for endpoint_name, endpoint_client in endpoints_to_try:
-                    try:
-                        print(f"   🔍 Debug: Trying {endpoint_name} endpoint...")
-                        data = endpoint_client.get()
-                        if data:
-                            print(f"   🔍 Debug: {endpoint_name} fields: {list(data[0].keys()) if isinstance(data, list) and data else list(data.keys()) if isinstance(data, dict) else 'Not a dict/list'}")
-                            
-                            # Look for capacity-related fields
-                            if isinstance(data, list) and data:
-                                data = data[0]
-                            elif isinstance(data, dict):
-                                pass
-                            else:
-                                continue
-                            
-                            # Special handling for capacity endpoint - explore details
-                            if endpoint_name == 'capacity' and 'details' in data:
-                                print(f"   🔍 Debug: capacity.details type: {type(data['details'])}")
-                                if isinstance(data['details'], list) and data['details']:
-                                    print(f"   🔍 Debug: capacity.details length: {len(data['details'])}")
-                                    print(f"   🔍 Debug: capacity.details[0] type: {type(data['details'][0])}")
-                                    if isinstance(data['details'][0], dict):
-                                        print(f"   🔍 Debug: capacity.details[0] fields: {list(data['details'][0].keys())}")
-                                    else:
-                                        print(f"   🔍 Debug: capacity.details[0] value: {data['details'][0]}")
+                try:
+                    capacity_data = client.capacity.get()
+                    if capacity_data and 'details' in capacity_data:
+                        details = capacity_data['details']
+                        if isinstance(details, list) and details:
+                            # Look for root path (/) which contains total cluster capacity
+                            for item in details:
+                                if isinstance(item, list) and len(item) >= 2:
+                                    path = item[0]
+                                    data_dict = item[1]
                                     
-                                    # Look in details list for capacity info
-                                    for i, item in enumerate(data['details']):
-                                        if isinstance(item, list) and len(item) >= 2:
-                                            path = item[0]  # First element is the path
-                                            data_dict = item[1]  # Second element is the data dict
+                                    if path == '/' and isinstance(data_dict, dict) and 'data' in data_dict:
+                                        data_array = data_dict['data']
+                                        if isinstance(data_array, list) and len(data_array) >= 3:
+                                            used_capacity = data_array[0]
+                                            free_capacity = data_array[1] 
+                                            # The third element might not be total - calculate it from used + free
+                                            total_capacity = used_capacity + free_capacity
                                             
-                                            if isinstance(data_dict, dict) and 'data' in data_dict:
-                                                # The data array contains [used, free, total] or similar
-                                                data_array = data_dict['data']
-                                                if isinstance(data_array, list) and len(data_array) >= 3:
-                                                    used_capacity = data_array[0]
-                                                    free_capacity = data_array[1] 
-                                                    total_capacity = data_array[2]
-                                                    
-                                                    print(f"   🔍 Debug: Found capacity in {endpoint_name}.details[{i}] ({path}): used={used_capacity}, free={free_capacity}, total={total_capacity}")
-                                                    
-                                                    # Use the total capacity (third element)
-                                                    if total_capacity > 0:
-                                                        total_capacity = total_capacity
-                                                        break
-                                        
-                                        elif isinstance(item, dict):
-                                            for field in ['total_usable', 'used_capacity', 'free_capacity', 'total_capacity', 'usable_capacity']:
-                                                if item.get(field, 0) > 0:
-                                                    total_capacity = item.get(field)
-                                                    print(f"   🔍 Debug: Found capacity in {endpoint_name}.details[{i}].{field}: {total_capacity}")
-                                                    break
-                                            
-                                            if total_capacity > 0:
-                                                break
-                                elif isinstance(data['details'], dict):
-                                    print(f"   🔍 Debug: capacity.details fields: {list(data['details'].keys())}")
-                                    # Look in details for capacity info
-                                    details = data['details']
-                                    for field in ['total_usable', 'used_capacity', 'free_capacity', 'total_capacity', 'usable_capacity']:
-                                        if details.get(field, 0) > 0:
-                                            total_capacity = details.get(field)
-                                            print(f"   🔍 Debug: Found capacity in {endpoint_name}.details.{field}: {total_capacity}")
+                                            # Calculate data reduction ratio from used vs total
+                                            if used_capacity > 0 and total_capacity > used_capacity:
+                                                data_reduction_ratio = total_capacity / used_capacity
+                                                data_reduction = f"{data_reduction_ratio:.1f}:1"
                                             break
-                                    
-                                    # Look for data reduction in details
-                                    for field in ['data_reduction_ratio', 'compression_ratio', 'dedup_ratio']:
-                                        if details.get(field, 0) > 0:
-                                            data_reduction_ratio = details.get(field)
-                                            data_reduction = f"{data_reduction_ratio:.1f}:1"
-                                            print(f"   🔍 Debug: Found data reduction in {endpoint_name}.details.{field}: {data_reduction}")
-                                            break
-                            
-                            # Try to find capacity fields in main data
-                            for field in ['total_capacity', 'usable_capacity', 'logical_capacity', 'capacity', 'total_usable', 'used_capacity', 'free_capacity']:
-                                if data.get(field, 0) > 0:
-                                    total_capacity = data.get(field)
-                                    print(f"   🔍 Debug: Found capacity in {endpoint_name}.{field}: {total_capacity}")
-                                    break
-                            
-                            # Try to find data reduction in main data
-                            if not data_reduction_ratio:
-                                for field in ['data_reduction_ratio', 'compression_ratio', 'dedup_ratio']:
-                                    if data.get(field, 0) > 0:
-                                        data_reduction_ratio = data.get(field)
-                                        data_reduction = f"{data_reduction_ratio:.1f}:1"
-                                        print(f"   🔍 Debug: Found data reduction in {endpoint_name}.{field}: {data_reduction}")
-                                        break
-                            
-                            if total_capacity > 0:
-                                break
-                    except Exception as e:
-                        print(f"   🔍 Debug: {endpoint_name} failed: {e}")
-                        continue
+                except:
+                    pass
             
             # Show cluster health information
             print("🏥 CLUSTER HEALTH:")
