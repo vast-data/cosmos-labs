@@ -74,7 +74,9 @@ def main():
             print("🕰️  OLDEST SNAPSHOT:")
             print(f"   📸 Name: {oldest.get('name', 'Unknown')}")
             print(f"   📅 Created: {format_timestamp(oldest.get('created'))}")
-            print(f"   📏 Size: {format_size(oldest.get('aggr_phys_estimation', 0))}")
+            # Try unique_phys_estimation first, fallback to aggr_phys_estimation
+            size = oldest.get('unique_phys_estimation', 0) or oldest.get('aggr_phys_estimation', 0)
+            print(f"   📏 Size: {format_size(size)}")
             print(f"   📁 View: {oldest.get('path', 'Unknown')}")
             print(f"   🆔 ID: {oldest.get('id', 'Unknown')}")
             print()
@@ -85,13 +87,15 @@ def main():
             print("🆕 LATEST SNAPSHOT:")
             print(f"   📸 Name: {latest.get('name', 'Unknown')}")
             print(f"   📅 Created: {format_timestamp(latest.get('created'))}")
-            print(f"   📏 Size: {format_size(latest.get('aggr_phys_estimation', 0))}")
+            # Try unique_phys_estimation first, fallback to aggr_phys_estimation
+            size = latest.get('unique_phys_estimation', 0) or latest.get('aggr_phys_estimation', 0)
+            print(f"   📏 Size: {format_size(size)}")
             print(f"   📁 View: {latest.get('path', 'Unknown')}")
             print(f"   🆔 ID: {latest.get('id', 'Unknown')}")
             print()
         
-        # Show summary statistics
-        total_size = sum(s.get('aggr_phys_estimation', 0) for s in snapshots)
+        # Show summary statistics - use unique_phys_estimation for individual sizes
+        total_size = sum(s.get('unique_phys_estimation', 0) or s.get('aggr_phys_estimation', 0) for s in snapshots)
         avg_size = total_size / len(snapshots) if snapshots else 0
         
         print("📈 SNAPSHOT SUMMARY:")
@@ -133,7 +137,7 @@ def main():
             for snapshot in sorted_snapshots:
                 name = snapshot.get('name', 'Unknown')[:18]
                 created = format_timestamp(snapshot.get('created'))[:18]
-                size = format_size(snapshot.get('aggr_phys_estimation', 0))[:10]
+                size = format_size(snapshot.get('unique_phys_estimation', 0) or snapshot.get('aggr_phys_estimation', 0))[:10]
                 view = snapshot.get('path', 'Unknown')[:18]
                 
                 print(f"{name:<20} {created:<20} {size:<12} {view:<20}")
