@@ -70,27 +70,9 @@ def main():
         print(f"📊 Fetching storage views...")
         views = client.views.get()
         
-        # Debug: Show view information
-        print(f"🔍 DEBUG: Found {len(views)} views")
-        if views:
-            print("🔍 DEBUG: First view fields:")
-            first_view = views[0]
-            for key, value in first_view.items():
-                print(f"   {key}: {value}")
-            print()
-        
         # Get all quotas
         print(f"📊 Fetching quota information...")
         quotas = client.quotas.get()
-        
-        # Debug: Show quota information
-        print(f"🔍 DEBUG: Found {len(quotas)} quotas")
-        if quotas:
-            print("🔍 DEBUG: First quota fields:")
-            first_quota = quotas[0]
-            for key, value in first_quota.items():
-                print(f"   {key}: {value}")
-            print()
         
         # Create a mapping of view paths to quotas
         quota_map = {}
@@ -114,14 +96,10 @@ def main():
             
             if has_quota:
                 quota = quota_map[view_path]
-                print(f"🔍 DEBUG: Found quota for view {view_path}")
-                print(f"   Quota state: {quota.get('state')}, enable_alarms: {quota.get('enable_alarms')}")
-                print(f"   Used capacity: {quota.get('used_capacity', 0)} bytes")
-                
                 root_view = get_root_view(view_path)
                 
-                # Get storage size (use logical_size if available, otherwise physical_size)
-                size_bytes = view.get('logical_size', 0) or view.get('physical_size', 0)
+                # Get storage size from quota (used_capacity is what we should charge for)
+                size_bytes = quota.get('used_capacity', 0)
                 
                 if size_bytes > 0:
                     # Convert to TB and calculate monthly cost
