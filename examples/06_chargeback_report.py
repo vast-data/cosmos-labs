@@ -13,6 +13,7 @@ Usage:
 import sys
 import os
 from datetime import datetime
+from vastpy import VASTClient
 
 # Add parent directory to path to import config
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
