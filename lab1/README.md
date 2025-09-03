@@ -1,8 +1,8 @@
-# Lab 1: The Satellite Data Deluge Automation
+# Lab 1: Storage Monitoring & Auto-Expansion
 
 ## Overview
 
-This solution demonstrates how to use `vastpy` to automate storage provisioning, quota management, and monitoring for Orbital Dynamics' satellite data processing pipeline. We'll build a system that automatically scales storage resources and provides proactive alerts before Jordan's processing pipeline hits quota limits.
+This solution demonstrates how to use `vastpy` to monitor existing storage infrastructure and automatically expand quotas when needed. We'll build a system that monitors storage utilization across multiple views and provides proactive quota expansion with comprehensive safety checks to prevent storage crises.
 
 ## Files
 
@@ -42,7 +42,7 @@ python lab1_solution.py
 # PRODUCTION MODE (actual changes will be made)
 python lab1_solution.py --pushtoprod
 
-# Setup only (create views, then exit)
+# Setup only (check if views exist, then exit)
 python lab1_solution.py --setup-only
 
 # Monitor only (skip setup, start monitoring)
@@ -96,7 +96,7 @@ vast_token: "your_vast_api_token_here"
 
 ## Features
 
-### ✅ Automated Storage Provisioning
+### ✅ Automated Storage Monitoring & Quota Expansion
 - Automatically expands quotas when utilization exceeds 90%
 - Fixed expansion size (1TB per expansion)
 - Supports multiple storage views (raw, processed)
@@ -195,10 +195,10 @@ python test_solution.py
 
 ## Success Criteria
 
-1. **Zero Manual Intervention** - Storage provisioning happens automatically without human intervention
+1. **Zero Manual Intervention** - Storage monitoring and quota expansion happens automatically without human intervention
 2. **Predictive Scaling** - System anticipates storage needs based on data ingestion patterns
 3. **Pipeline Resilience** - Jordan's processing pipeline never fails due to storage constraints
-4. **Real-time Visibility** - Maya's team has complete visibility into storage utilization and provisioning status
+4. **Real-time Visibility** - Maya's team has complete visibility into storage utilization and quota expansion status
 5. **NASA SLA Compliance** - Meet all data processing deadlines without storage-related delays
 
 ## Troubleshooting
