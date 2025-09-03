@@ -65,25 +65,17 @@ def main():
         print(f"📊 Found {len(snapshots)} snapshots:")
         print()
         
-        # Debug: Show available fields in first snapshot
-        if snapshots:
-            print("🔍 DEBUG: Available fields in first snapshot:")
-            first_snapshot = snapshots[0]
-            for key, value in first_snapshot.items():
-                print(f"   {key}: {value}")
-            print()
-        
         # Sort snapshots by creation time
-        sorted_snapshots = sorted(snapshots, key=lambda x: x.get('creation_time', 0))
+        sorted_snapshots = sorted(snapshots, key=lambda x: x.get('created', ''))
         
         # Show oldest snapshot
         if sorted_snapshots:
             oldest = sorted_snapshots[0]
             print("🕰️  OLDEST SNAPSHOT:")
             print(f"   📸 Name: {oldest.get('name', 'Unknown')}")
-            print(f"   📅 Created: {format_timestamp(oldest.get('creation_time'))}")
-            print(f"   📏 Size: {format_size(oldest.get('logical_size', 0))}")
-            print(f"   📁 View: {oldest.get('view_path', 'Unknown')}")
+            print(f"   📅 Created: {format_timestamp(oldest.get('created'))}")
+            print(f"   📏 Size: {format_size(oldest.get('aggr_phys_estimation', 0))}")
+            print(f"   📁 View: {oldest.get('path', 'Unknown')}")
             print(f"   🆔 ID: {oldest.get('id', 'Unknown')}")
             print()
         
@@ -92,14 +84,14 @@ def main():
             latest = sorted_snapshots[-1]
             print("🆕 LATEST SNAPSHOT:")
             print(f"   📸 Name: {latest.get('name', 'Unknown')}")
-            print(f"   📅 Created: {format_timestamp(latest.get('creation_time'))}")
-            print(f"   📏 Size: {format_size(latest.get('logical_size', 0))}")
-            print(f"   📁 View: {latest.get('view_path', 'Unknown')}")
+            print(f"   📅 Created: {format_timestamp(latest.get('created'))}")
+            print(f"   📏 Size: {format_size(latest.get('aggr_phys_estimation', 0))}")
+            print(f"   📁 View: {latest.get('path', 'Unknown')}")
             print(f"   🆔 ID: {latest.get('id', 'Unknown')}")
             print()
         
         # Show summary statistics
-        total_size = sum(s.get('logical_size', 0) for s in snapshots)
+        total_size = sum(s.get('aggr_phys_estimation', 0) for s in snapshots)
         avg_size = total_size / len(snapshots) if snapshots else 0
         
         print("📈 SNAPSHOT SUMMARY:")
@@ -109,8 +101,8 @@ def main():
         
         # Show age range
         if len(sorted_snapshots) > 1:
-            oldest_time = sorted_snapshots[0].get('creation_time', 0)
-            latest_time = sorted_snapshots[-1].get('creation_time', 0)
+            oldest_time = sorted_snapshots[0].get('created', '')
+            latest_time = sorted_snapshots[-1].get('created', '')
             
             if oldest_time and latest_time:
                 try:
@@ -140,9 +132,9 @@ def main():
             
             for snapshot in sorted_snapshots:
                 name = snapshot.get('name', 'Unknown')[:18]
-                created = format_timestamp(snapshot.get('creation_time'))[:18]
-                size = format_size(snapshot.get('logical_size', 0))[:10]
-                view = snapshot.get('view_path', 'Unknown')[:18]
+                created = format_timestamp(snapshot.get('created'))[:18]
+                size = format_size(snapshot.get('aggr_phys_estimation', 0))[:10]
+                view = snapshot.get('path', 'Unknown')[:18]
                 
                 print(f"{name:<20} {created:<20} {size:<12} {view:<20}")
         else:
