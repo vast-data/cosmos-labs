@@ -98,25 +98,34 @@ def main():
                                     
                                     # Look in details list for capacity info
                                     for i, item in enumerate(data['details']):
-                                        if isinstance(item, dict):
+                                        if isinstance(item, list) and len(item) >= 2:
+                                            path = item[0]  # First element is the path
+                                            data_dict = item[1]  # Second element is the data dict
+                                            
+                                            if isinstance(data_dict, dict) and 'data' in data_dict:
+                                                # The data array contains [used, free, total] or similar
+                                                data_array = data_dict['data']
+                                                if isinstance(data_array, list) and len(data_array) >= 3:
+                                                    used_capacity = data_array[0]
+                                                    free_capacity = data_array[1] 
+                                                    total_capacity = data_array[2]
+                                                    
+                                                    print(f"   🔍 Debug: Found capacity in {endpoint_name}.details[{i}] ({path}): used={used_capacity}, free={free_capacity}, total={total_capacity}")
+                                                    
+                                                    # Use the total capacity (third element)
+                                                    if total_capacity > 0:
+                                                        total_capacity = total_capacity
+                                                        break
+                                        
+                                        elif isinstance(item, dict):
                                             for field in ['total_usable', 'used_capacity', 'free_capacity', 'total_capacity', 'usable_capacity']:
                                                 if item.get(field, 0) > 0:
                                                     total_capacity = item.get(field)
                                                     print(f"   🔍 Debug: Found capacity in {endpoint_name}.details[{i}].{field}: {total_capacity}")
                                                     break
                                             
-                                            # Look for data reduction in details
-                                            for field in ['data_reduction_ratio', 'compression_ratio', 'dedup_ratio']:
-                                                if item.get(field, 0) > 0:
-                                                    data_reduction_ratio = item.get(field)
-                                                    data_reduction = f"{data_reduction_ratio:.1f}:1"
-                                                    print(f"   🔍 Debug: Found data reduction in {endpoint_name}.details[{i}].{field}: {data_reduction}")
-                                                    break
-                                            
                                             if total_capacity > 0:
                                                 break
-                                        else:
-                                            print(f"   🔍 Debug: capacity.details[{i}] is not a dict: {type(item)}")
                                 elif isinstance(data['details'], dict):
                                     print(f"   🔍 Debug: capacity.details fields: {list(data['details'].keys())}")
                                     # Look in details for capacity info
