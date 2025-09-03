@@ -111,7 +111,7 @@ def main():
         print(f"📈 Proposed Expansion:")
         print(f"   ➕ Add: {format_size(expansion_size)}")
         print(f"   🆕 New Limit: {format_size(new_limit)}")
-        print(f"   📊 New Utilization: {(current_usage / new_limit) * 100:.1f}%")
+        print(f"   📊 New Utilization: {(used_capacity / new_limit) * 100:.1f}%")
         
         if production_mode:
             print()
