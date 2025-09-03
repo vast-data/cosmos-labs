@@ -113,6 +113,11 @@ def main():
             has_quota = view_path in quota_map
             
             if has_quota:
+                quota = quota_map[view_path]
+                print(f"🔍 DEBUG: Found quota for view {view_path}")
+                print(f"   Quota state: {quota.get('state')}, enable_alarms: {quota.get('enable_alarms')}")
+                print(f"   Used capacity: {quota.get('used_capacity', 0)} bytes")
+                
                 root_view = get_root_view(view_path)
                 
                 # Get storage size (use logical_size if available, otherwise physical_size)
