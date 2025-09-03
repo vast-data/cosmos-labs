@@ -50,11 +50,7 @@ def main():
         print(f"📊 Found {len(quotas)} quota configurations:")
         print()
         
-        # Debug: Show available fields in the first quota (if any)
-        if quotas:
-            print(f"🔍 Debug: Available fields in quota object: {list(quotas[0].keys())}")
-            print(f"🔍 Debug: First quota data: {quotas[0]}")
-            print()
+
         
         for i, quota in enumerate(quotas, 1):
             # Try different possible field names for the view path
@@ -64,23 +60,13 @@ def main():
                         quota.get('id') or 
                         'Unknown')
             
-            # Try different possible field names for limits and usage
-            soft_limit = (quota.get('soft_limit') or 
-                         quota.get('soft_limit_bytes') or 
-                         quota.get('soft_quota') or 0)
-            hard_limit = (quota.get('hard_limit') or 
-                         quota.get('hard_limit_bytes') or 
-                         quota.get('hard_quota') or 0)
-            current_usage = (quota.get('current_usage') or 
-                           quota.get('used_bytes') or 
-                           quota.get('usage') or 
-                           quota.get('used') or 0)
+            # Use the correct field names from vastpy quota objects
+            soft_limit = quota.get('soft_limit', 0) or 0
+            hard_limit = quota.get('hard_limit', 0) or 0
+            current_usage = quota.get('used_capacity', 0) or 0
             
-            # Calculate utilization percentage
-            if hard_limit and hard_limit > 0:
-                utilization = (current_usage / hard_limit) * 100
-            else:
-                utilization = 0
+            # Use the pre-calculated percentage from vastpy
+            utilization = quota.get('percent_capacity', 0) or 0
             
             # Status emoji based on utilization
             if utilization > 90:
