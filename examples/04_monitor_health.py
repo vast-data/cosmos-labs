@@ -43,57 +43,11 @@ def main():
         if clusters:
             cluster = clusters[0]  # Get the first cluster
             
-            # Try to get capacity information from different sources
-            total_capacity = 0
-            data_reduction = "Unknown"
-            
-            # Try different capacity fields from cluster
-            for field in ['total_capacity', 'usable_capacity', 'logical_capacity', 'capacity']:
-                if cluster.get(field, 0) > 0:
-                    total_capacity = cluster.get(field)
-                    break
-            
-            # Try to get data reduction ratio
-            data_reduction_ratio = cluster.get('data_reduction_ratio', 0)
-            if data_reduction_ratio > 0:
-                data_reduction = f"{data_reduction_ratio:.1f}:1"
-            
-            # If still no capacity, try to get from capacity endpoint
-            if total_capacity == 0:
-                try:
-                    capacity_data = client.capacity.get()
-                    if capacity_data and 'details' in capacity_data:
-                        details = capacity_data['details']
-                        if isinstance(details, list) and details:
-                            # Look for root path (/) which contains total cluster capacity
-                            for item in details:
-                                if isinstance(item, list) and len(item) >= 2:
-                                    path = item[0]
-                                    data_dict = item[1]
-                                    
-                                    if path == '/' and isinstance(data_dict, dict) and 'data' in data_dict:
-                                        data_array = data_dict['data']
-                                        if isinstance(data_array, list) and len(data_array) >= 3:
-                                            used_capacity = data_array[0]
-                                            free_capacity = data_array[1] 
-                                            # The third element might not be total - calculate it from used + free
-                                            total_capacity = used_capacity + free_capacity
-                                            
-                                            # Calculate data reduction ratio from used vs total
-                                            if used_capacity > 0 and total_capacity > used_capacity:
-                                                data_reduction_ratio = total_capacity / used_capacity
-                                                data_reduction = f"{data_reduction_ratio:.1f}:1"
-                                            break
-                except:
-                    pass
-            
             # Show cluster health information
             print("🏥 CLUSTER HEALTH:")
             print(f"   🟢 Status: HEALTHY (Connected)")
             print(f"   🏢 Cluster: {cluster.get('name', 'Unknown')}")
             print(f"   🆔 Cluster ID: {cluster.get('id', 'Unknown')}")
-            print(f"   📏 Total Capacity: {format_size(total_capacity) if total_capacity > 0 else 'Unknown'}")
-            print(f"   🗜️  Data Reduction: {data_reduction}")
         else:
             print("🏥 CLUSTER HEALTH:")
             print("   ⚠️  No cluster information available")
