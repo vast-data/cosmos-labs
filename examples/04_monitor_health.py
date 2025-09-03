@@ -58,24 +58,54 @@ def main():
             if data_reduction_ratio > 0:
                 data_reduction = f"{data_reduction_ratio:.1f}:1"
             
-            # If still no capacity, try to get from capacity endpoint
+            # If still no capacity, try different endpoints
             if total_capacity == 0:
-                try:
-                    capacity_info = client.capacity.get()
-                    if capacity_info:
-                        # Try different capacity fields
-                        for field in ['total_usable', 'usable_capacity', 'total_capacity']:
-                            if capacity_info.get(field, 0) > 0:
-                                total_capacity = capacity_info.get(field)
+                # Debug: Try different endpoints to find capacity data
+                endpoints_to_try = [
+                    ('capacity', client.capacity),
+                    ('stats', client.stats),
+                    ('metrics', client.metrics),
+                    ('monitors', client.monitors),
+                    ('system', client.system),
+                    ('cluster', client.cluster)
+                ]
+                
+                for endpoint_name, endpoint_client in endpoints_to_try:
+                    try:
+                        print(f"   🔍 Debug: Trying {endpoint_name} endpoint...")
+                        data = endpoint_client.get()
+                        if data:
+                            print(f"   🔍 Debug: {endpoint_name} fields: {list(data[0].keys()) if isinstance(data, list) and data else list(data.keys()) if isinstance(data, dict) else 'Not a dict/list'}")
+                            
+                            # Look for capacity-related fields
+                            if isinstance(data, list) and data:
+                                data = data[0]
+                            elif isinstance(data, dict):
+                                pass
+                            else:
+                                continue
+                                
+                            # Try to find capacity fields
+                            for field in ['total_capacity', 'usable_capacity', 'logical_capacity', 'capacity', 'total_usable', 'used_capacity', 'free_capacity']:
+                                if data.get(field, 0) > 0:
+                                    total_capacity = data.get(field)
+                                    print(f"   🔍 Debug: Found capacity in {endpoint_name}.{field}: {total_capacity}")
+                                    break
+                            
+                            # Try to find data reduction
+                            if not data_reduction_ratio:
+                                for field in ['data_reduction_ratio', 'compression_ratio', 'dedup_ratio']:
+                                    if data.get(field, 0) > 0:
+                                        data_reduction_ratio = data.get(field)
+                                        data_reduction = f"{data_reduction_ratio:.1f}:1"
+                                        print(f"   🔍 Debug: Found data reduction in {endpoint_name}.{field}: {data_reduction}")
+                                        break
+                            
+                            if total_capacity > 0:
                                 break
-                        
-                        # Get data reduction from capacity info
-                        if not data_reduction_ratio:
-                            data_reduction_ratio = capacity_info.get('data_reduction_ratio', 0)
-                            if data_reduction_ratio > 0:
-                                data_reduction = f"{data_reduction_ratio:.1f}:1"
-                except:
-                    pass
+                    except Exception as e:
+                        print(f"   🔍 Debug: {endpoint_name} failed: {e}")
+                        continue
             
             # Show cluster health information
             print("🏥 CLUSTER HEALTH:")
