@@ -9,6 +9,10 @@ from vastpy import VASTClient
 
 def format_size(bytes_size):
     """Convert bytes to human readable format"""
+    if bytes_size is None:
+        return "0.0 B"
+    
+    bytes_size = float(bytes_size)
     for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
         if bytes_size < 1024.0:
             return f"{bytes_size:.1f} {unit}"
@@ -46,14 +50,25 @@ def main():
         print(f"📊 Found {len(quotas)} quota configurations:")
         print()
         
+        # Debug: Show available fields in the first quota (if any)
+        if quotas:
+            print(f"🔍 Debug: Available fields in quota object: {list(quotas[0].keys())}")
+            print()
+        
         for i, quota in enumerate(quotas, 1):
-            view_path = quota.get('view_path', 'Unknown')
-            soft_limit = quota.get('soft_limit', 0)
-            hard_limit = quota.get('hard_limit', 0)
-            current_usage = quota.get('current_usage', 0)
+            # Try different possible field names for the view path
+            view_path = (quota.get('path') or 
+                        quota.get('view_path') or 
+                        quota.get('name') or 
+                        quota.get('id') or 
+                        'Unknown')
+            
+            soft_limit = quota.get('soft_limit', 0) or 0
+            hard_limit = quota.get('hard_limit', 0) or 0
+            current_usage = quota.get('current_usage', 0) or 0
             
             # Calculate utilization percentage
-            if hard_limit > 0:
+            if hard_limit and hard_limit > 0:
                 utilization = (current_usage / hard_limit) * 100
             else:
                 utilization = 0
