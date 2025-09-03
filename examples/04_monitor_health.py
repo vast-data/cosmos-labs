@@ -95,10 +95,29 @@ def main():
                 healthy_nodes = 0
                 total_nodes = len(nodes)
                 
+                # Debug: Show available fields in the first node (if any)
+                if nodes:
+                    print(f"   🔍 Debug: Available fields in node object: {list(nodes[0].keys())}")
+                    print(f"   🔍 Debug: First node data: {nodes[0]}")
+                    print()
+                
                 for node in nodes:
-                    node_name = node.get('name', 'Unknown')
-                    node_state = node.get('state', 'Unknown')
-                    node_role = node.get('role', 'Unknown')
+                    # Try different possible field names for node information
+                    node_name = (node.get('name') or 
+                               node.get('hostname') or 
+                               node.get('id') or 
+                               node.get('guid') or 
+                               'Unknown')
+                    
+                    node_state = (node.get('state') or 
+                                node.get('status') or 
+                                node.get('health') or 
+                                'Unknown')
+                    
+                    node_role = (node.get('role') or 
+                               node.get('type') or 
+                               node.get('node_type') or 
+                               'Unknown')
                     
                     if node_state.lower() == 'healthy':
                         node_emoji = "🟢"
