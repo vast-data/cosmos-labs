@@ -88,7 +88,28 @@ def main():
                             # Special handling for capacity endpoint - explore details
                             if endpoint_name == 'capacity' and 'details' in data:
                                 print(f"   🔍 Debug: capacity.details type: {type(data['details'])}")
-                                if isinstance(data['details'], dict):
+                                if isinstance(data['details'], list) and data['details']:
+                                    print(f"   🔍 Debug: capacity.details length: {len(data['details'])}")
+                                    print(f"   🔍 Debug: capacity.details[0] fields: {list(data['details'][0].keys())}")
+                                    # Look in details list for capacity info
+                                    for item in data['details']:
+                                        for field in ['total_usable', 'used_capacity', 'free_capacity', 'total_capacity', 'usable_capacity']:
+                                            if item.get(field, 0) > 0:
+                                                total_capacity = item.get(field)
+                                                print(f"   🔍 Debug: Found capacity in {endpoint_name}.details[].{field}: {total_capacity}")
+                                                break
+                                        
+                                        # Look for data reduction in details
+                                        for field in ['data_reduction_ratio', 'compression_ratio', 'dedup_ratio']:
+                                            if item.get(field, 0) > 0:
+                                                data_reduction_ratio = item.get(field)
+                                                data_reduction = f"{data_reduction_ratio:.1f}:1"
+                                                print(f"   🔍 Debug: Found data reduction in {endpoint_name}.details[].{field}: {data_reduction}")
+                                                break
+                                        
+                                        if total_capacity > 0:
+                                            break
+                                elif isinstance(data['details'], dict):
                                     print(f"   🔍 Debug: capacity.details fields: {list(data['details'].keys())}")
                                     # Look in details for capacity info
                                     details = data['details']
