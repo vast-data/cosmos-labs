@@ -94,6 +94,20 @@ def main():
             print(f"   🆔 ID: {latest.get('id', 'Unknown')}")
             print()
         
+        # Show largest snapshot by unique usage
+        largest_snapshots = sorted(snapshots, key=lambda x: x.get('unique_phys_estimation', 0) or x.get('aggr_phys_estimation', 0), reverse=True)
+        if largest_snapshots:
+            largest = largest_snapshots[0]
+            largest_size = largest.get('unique_phys_estimation', 0) or largest.get('aggr_phys_estimation', 0)
+            if largest_size > 0:  # Only show if it has actual size
+                print("📏 LARGEST SNAPSHOT:")
+                print(f"   📸 Name: {largest.get('name', 'Unknown')}")
+                print(f"   📅 Created: {format_timestamp(largest.get('created'))}")
+                print(f"   📏 Size: {format_size(largest_size)}")
+                print(f"   📁 View: {largest.get('path', 'Unknown')}")
+                print(f"   🆔 ID: {largest.get('id', 'Unknown')}")
+                print()
+        
         # Show summary statistics - use unique_phys_estimation for individual sizes
         total_size = sum(s.get('unique_phys_estimation', 0) or s.get('aggr_phys_estimation', 0) for s in snapshots)
         avg_size = total_size / len(snapshots) if snapshots else 0
