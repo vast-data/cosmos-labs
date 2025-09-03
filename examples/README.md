@@ -1,6 +1,6 @@
 # VAST SDK Examples
 
-This folder contains 7 simple examples demonstrating key vastpy concepts, which are then built upon in the labs.
+This folder contains 6 simple examples demonstrating key vastpy concepts, which are then built upon in the labs.
 
 ## 🚀 Quick Start
 
@@ -50,39 +50,28 @@ All examples use the centralized configuration system via `examples_config.py`. 
 
 **Run:** `python 04_monitor_health.py`
 
-### 5. [Simple Quota Expansion](05_expand_quota.py)
-**Purpose:** Demonstrate quota expansion (with safety)
-- ✅ Finds quotas that need expansion (>70% utilization)
-- ✅ Calculates proposed expansion (adds 1TB)
-- ✅ **DRY RUN by default** - no actual changes
-- ✅ Production mode available with `--production` flag
-
-**Run:** 
-- `python 05_expand_quota.py` (dry run)
-- `python 05_expand_quota.py --production` (actual changes)
-
-### 6. [Show Snapshots](06_show_snapshots.py)
+### 5. [Show Snapshots](05_show_snapshots.py)
 **Purpose:** Display snapshot information and management
 - ✅ Shows oldest and latest snapshots
 - ✅ Displays snapshot sizes and creation times
 - ✅ Provides summary statistics
 - ✅ Shows all snapshots in table format (if ≤10 snapshots)
 
-**Run:** `python 06_show_snapshots.py`
+**Run:** `python 05_show_snapshots.py`
 
-### 7. [Chargeback Report](07_chargeback_report.py)
+### 6. [Chargeback Report](06_chargeback_report.py)
 **Purpose:** Generate cost analysis for storage usage
 - ✅ Shows top 5 most expensive root views (e.g., /jonas, /benny)
 - ✅ Calculates costs at $42/TB/month for views with enabled quotas
 - ✅ Displays storage usage and monthly costs per root view
 - ✅ Provides summary statistics and cost breakdown
 
-**Run:** `python 07_chargeback_report.py`
+**Run:** `python 06_chargeback_report.py`
 
 ## ⚠️ Safety Notes
 
 - **All examples are safe by default** - No destructive operations
-- **Example 5 has production mode** - Only use with `--production` flag
+- **All examples are read-only** - No changes made to VAST systems
 - **Uses centralized config** - Same credentials as the main labs
 - **Educational purpose only** - Not for production use without review
 
