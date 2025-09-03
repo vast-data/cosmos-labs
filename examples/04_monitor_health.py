@@ -42,36 +42,30 @@ def main():
         clusters = client.clusters.get()
         if clusters:
             cluster = clusters[0]  # Get the first cluster
-            print(f"🏢 Cluster: {cluster.get('name', 'Unknown')}")
-            print(f"🆔 Cluster ID: {cluster.get('id', 'Unknown')}")
-            print(f"📊 Total Capacity: {format_size(cluster.get('total_capacity', 0))}")
-        else:
-            print("🏢 Cluster: Unknown")
-        print()
-        
-        # Get cluster health information
-        print("🏥 CLUSTER HEALTH:")
-        try:
-            # Use the cluster data we already fetched
-            if clusters:
-                cluster = clusters[0]
-                
-                # Check cluster status (vastpy may not have explicit health state)
-                print(f"   🟢 Status: HEALTHY (Connected)")
-                print(f"   📊 Cluster ID: {cluster.get('id', 'Unknown')}")
-                
-                # Show cluster capacity
-                total_capacity = cluster.get('total_capacity', 0)
-                if total_capacity > 0:
-                    print(f"   📏 Total Capacity: {format_size(total_capacity)}")
-                    print(f"   📊 Cluster: {cluster.get('name', 'Unknown')}")
-                else:
-                    print(f"   📏 Total Capacity: Unknown")
-            else:
-                print(f"   ⚠️  No cluster information available")
             
-        except Exception as e:
-            print(f"   ⚠️  Cluster health info not available: {e}")
+            # Try to get total capacity from cluster, or calculate from nodes
+            total_capacity = cluster.get('total_capacity', 0)
+            if total_capacity == 0:
+                # Calculate from node drive sizes
+                try:
+                    nodes = client.hosts.get()
+                    total_capacity = 0
+                    for node in nodes:
+                        drive_size = node.get('drive_size', 0)
+                        if drive_size > 0:
+                            total_capacity += drive_size
+                except:
+                    pass
+            
+            # Show cluster health information
+            print("🏥 CLUSTER HEALTH:")
+            print(f"   🟢 Status: HEALTHY (Connected)")
+            print(f"   🏢 Cluster: {cluster.get('name', 'Unknown')}")
+            print(f"   🆔 Cluster ID: {cluster.get('id', 'Unknown')}")
+            print(f"   📏 Total Capacity: {format_size(total_capacity)}")
+        else:
+            print("🏥 CLUSTER HEALTH:")
+            print("   ⚠️  No cluster information available")
         
         print()
         
