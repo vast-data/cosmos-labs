@@ -26,20 +26,26 @@ def main():
         print(f"📡 Connecting to: {address}")
         print(f"👤 User: {vast_config['user']}")
         
-        # Create VAST client
+        # Create VAST client using the correct parameter names from vastpy docs
         client = VASTClient(
             user=vast_config['user'],
             password=vast_config['password'],
             address=address
         )
         
-        # Test connection by getting system info
+        # Test connection by getting cluster info
         print("🔍 Testing connection...")
-        system_info = client.system.get()
+        clusters = client.clusters.get()
         
-        print("✅ Connection successful!")
-        print(f"📊 VAST Version: {system_info.get('version', 'Unknown')}")
-        print(f"🏢 Cluster Name: {system_info.get('cluster_name', 'Unknown')}")
+        if clusters:
+            cluster = clusters[0]  # Get the first cluster
+            print("✅ Connection successful!")
+            print(f"🏢 Cluster ID: {cluster.get('id', 'Unknown')}")
+            print(f"📊 Cluster Name: {cluster.get('name', 'Unknown')}")
+            print(f"💾 Total Capacity: {cluster.get('total_capacity', 'Unknown')}")
+        else:
+            print("✅ Connection successful!")
+            print("📊 No cluster information available")
         
     except Exception as e:
         print(f"❌ Connection failed: {e}")
