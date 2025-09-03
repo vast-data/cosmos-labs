@@ -59,32 +59,53 @@ def main():
         # Find a quota that's over 70% utilization
         target_quota = None
         for quota in quotas:
-            current_usage = quota.get('current_usage', 0)
-            hard_limit = quota.get('hard_limit', 0)
+            # Use the correct field names from vastpy quota objects
+            used_capacity = quota.get('used_capacity', 0) or 0
+            hard_limit = quota.get('hard_limit', 0) or 0
+            percent_capacity = quota.get('percent_capacity', 0) or 0
             
-            if hard_limit > 0:
-                utilization = (current_usage / hard_limit) * 100
-                if utilization > 70:  # Over 70% utilization
-                    target_quota = quota
-                    break
+            # Use pre-calculated percentage if available, otherwise calculate
+            if percent_capacity > 0:
+                utilization = percent_capacity
+            elif hard_limit > 0:
+                utilization = (used_capacity / hard_limit) * 100
+            else:
+                utilization = 0
+            
+            if utilization > 70:  # Over 70% utilization
+                target_quota = quota
+                break
         
         if not target_quota:
             print("✅ All quotas are healthy (under 70% utilization)")
             return True
         
-        view_path = target_quota.get('view_path', 'Unknown')
-        current_usage = target_quota.get('current_usage', 0)
-        current_limit = target_quota.get('hard_limit', 0)
-        utilization = (current_usage / current_limit) * 100
+        # Use the correct field names from vastpy quota objects
+        view_path = (target_quota.get('path') or 
+                    target_quota.get('view_path') or 
+                    target_quota.get('name') or 
+                    target_quota.get('id') or 
+                    'Unknown')
+        used_capacity = target_quota.get('used_capacity', 0) or 0
+        hard_limit = target_quota.get('hard_limit', 0) or 0
+        percent_capacity = target_quota.get('percent_capacity', 0) or 0
+        
+        # Use pre-calculated percentage if available, otherwise calculate
+        if percent_capacity > 0:
+            utilization = percent_capacity
+        elif hard_limit > 0:
+            utilization = (used_capacity / hard_limit) * 100
+        else:
+            utilization = 0
         
         print(f"🎯 Target: {view_path}")
-        print(f"   📏 Current Usage: {format_size(current_usage)}")
-        print(f"   🚫 Current Limit: {format_size(current_limit)}")
+        print(f"   📏 Current Usage: {format_size(used_capacity)}")
+        print(f"   🚫 Current Limit: {format_size(hard_limit)}")
         print(f"   📈 Utilization: {utilization:.1f}%")
         
         # Calculate new limit (add 1TB)
         expansion_size = 1024**4  # 1TB in bytes
-        new_limit = current_limit + expansion_size
+        new_limit = hard_limit + expansion_size
         
         print()
         print(f"📈 Proposed Expansion:")
