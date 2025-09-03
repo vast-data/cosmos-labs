@@ -70,9 +70,27 @@ def main():
         print(f"📊 Fetching storage views...")
         views = client.views.get()
         
+        # Debug: Show view information
+        print(f"🔍 DEBUG: Found {len(views)} views")
+        if views:
+            print("🔍 DEBUG: First view fields:")
+            first_view = views[0]
+            for key, value in first_view.items():
+                print(f"   {key}: {value}")
+            print()
+        
         # Get all quotas
         print(f"📊 Fetching quota information...")
         quotas = client.quotas.get()
+        
+        # Debug: Show quota information
+        print(f"🔍 DEBUG: Found {len(quotas)} quotas")
+        if quotas:
+            print("🔍 DEBUG: First quota fields:")
+            first_quota = quotas[0]
+            for key, value in first_quota.items():
+                print(f"   {key}: {value}")
+            print()
         
         # Create a mapping of view paths to quotas
         quota_map = {}
