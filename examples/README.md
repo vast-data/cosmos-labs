@@ -68,6 +68,16 @@ All examples use the centralized configuration system via `examples_config.py`. 
 
 **Run:** `python 06_chargeback_report.py`
 
+### 7. [Orphaned Data Discovery](07_orphaned_data_discovery.py)
+**Purpose:** Identify deleted views from event logs and check for orphaned directories
+- ✅ Retrieves event logs to find view deletion events
+- ✅ Extracts deleted view paths, users, and timestamps
+- ✅ Compares against current views to identify orphaned directories
+- ✅ Reports on potentially orphaned data that may need cleanup
+- ✅ Provides event log statistics and user activity analysis
+
+**Run:** `python 07_orphaned_data_discovery.py`
+
 ## ⚠️ Safety Notes
 
 - **All examples are safe by default** - No destructive operations
