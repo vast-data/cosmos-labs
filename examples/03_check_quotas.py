@@ -53,6 +53,7 @@ def main():
         # Debug: Show available fields in the first quota (if any)
         if quotas:
             print(f"🔍 Debug: Available fields in quota object: {list(quotas[0].keys())}")
+            print(f"🔍 Debug: First quota data: {quotas[0]}")
             print()
         
         for i, quota in enumerate(quotas, 1):
@@ -63,9 +64,17 @@ def main():
                         quota.get('id') or 
                         'Unknown')
             
-            soft_limit = quota.get('soft_limit', 0) or 0
-            hard_limit = quota.get('hard_limit', 0) or 0
-            current_usage = quota.get('current_usage', 0) or 0
+            # Try different possible field names for limits and usage
+            soft_limit = (quota.get('soft_limit') or 
+                         quota.get('soft_limit_bytes') or 
+                         quota.get('soft_quota') or 0)
+            hard_limit = (quota.get('hard_limit') or 
+                         quota.get('hard_limit_bytes') or 
+                         quota.get('hard_quota') or 0)
+            current_usage = (quota.get('current_usage') or 
+                           quota.get('used_bytes') or 
+                           quota.get('usage') or 
+                           quota.get('used') or 0)
             
             # Calculate utilization percentage
             if hard_limit and hard_limit > 0:
