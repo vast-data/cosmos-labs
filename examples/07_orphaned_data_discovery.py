@@ -2,8 +2,16 @@
 """
 Example 7: Orphaned Data Discovery
 
-This script identifies deleted views from audit logs and checks if their
-associated directories still exist on the VAST system.
+This script identifies deleted views from event logs and checks if their
+associated directories still exist on the VAST system using the stat_path API.
+
+The script:
+1. Queries VAST event logs for view deletion events
+2. Deduplicates events to get unique view deletions
+3. Checks if views have been recreated (skips if so)
+4. Uses the stat_path API to check if directories still exist
+5. Categorizes results as orphaned (need cleanup) or clean (properly deleted)
+6. Generates a comprehensive report with ownership and metadata
 """
 
 import sys
@@ -121,10 +129,8 @@ def check_directory_existence(client, view_deletions, config, vast_config):
         print(f"   ... and {len(unique_deletions) - 5} more")
     
     # Process only unique view deletions
-    processed_count = 0
     for i, (view_path, deletion) in enumerate(unique_deletions.items(), 1):
-        processed_count += 1
-        print(f"   {i}. Checking: {view_path} (processed: {processed_count}/{len(unique_deletions)})")
+        print(f"   {i}. Checking: {view_path}")
         
         # First, verify the view is actually deleted (not recreated)
         print(f"      🔍 Verifying view is still deleted...")
@@ -240,29 +246,7 @@ def check_directory_existence(client, view_deletions, config, vast_config):
                     
             except Exception as stat_error:
                 print(f"      ⚠️  Stat path API failed: {stat_error}")
-                
-                # Fallback: Try files API
-                try:
-                    files = client.files.get(path=view_path)
-                    if files and len(files) > 0:
-                        path_exists = True
-                        print(f"      ❌ Path exists (found {len(files)} files)")
-                except Exception as files_error:
-                    # Method 2: Try directories API
-                    try:
-                        dirs = client.directories.get(path=view_path)
-                        if dirs and len(dirs) > 0:
-                            path_exists = True
-                            print(f"      ❌ Path exists (found {len(dirs)} directories)")
-                    except Exception as dirs_error:
-                        # Method 3: Try to get files with a wildcard pattern
-                        try:
-                            files = client.files.get(path=f"{view_path}/*")
-                            if files and len(files) > 0:
-                                path_exists = True
-                                print(f"      ❌ Path exists (found {len(files)} items)")
-                        except Exception:
-                            pass
+                print(f"      ❌ Cannot determine if path exists - API unavailable")
             
             if path_exists:
                 # Path still exists - this is ORPHANED DATA (BAD)
@@ -304,7 +288,6 @@ def check_directory_existence(client, view_deletions, config, vast_config):
     # Verify math
     total_processed = len(recreated_views) + len(orphaned_directories) + len(existing_directories) + len(error_views)
     print(f"   📊 Math check: {total_processed}/{len(unique_deletions)} unique views processed")
-    print(f"   🔍 Debug: processed_count = {processed_count}, unique_deletions = {len(unique_deletions)}")
     
     if orphaned_directories:
         print(f"\n🚨 ORPHANED Directories (still exist but view deleted - NEEDS CLEANUP):")
