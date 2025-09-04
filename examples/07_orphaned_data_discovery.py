@@ -87,13 +87,58 @@ def check_directory_existence(client, view_deletions, config, vast_config):
     
     orphaned_directories = []
     existing_directories = []
+    recreated_views = []
+    error_views = []
+    no_path_views = 0
     
-    for i, deletion in enumerate(view_deletions, 1):  # Check all deleted views
+    # Get current views once to avoid repeated API calls
+    print("🔍 Getting current active views for comparison...")
+    try:
+        current_views = client.views.get()
+        current_view_paths = {view.get('path') for view in current_views if view.get('path')}
+        print(f"✅ Found {len(current_view_paths)} active views")
+    except Exception as e:
+        print(f"⚠️  Could not get current views: {e}")
+        current_view_paths = set()
+    
+    # Deduplicate view deletions - keep only the most recent deletion for each path
+    print("🔍 Deduplicating view deletions...")
+    unique_deletions = {}
+    for deletion in view_deletions:
         view_path = deletion.get('object_name', '')
-        if not view_path:
+        if view_path:  # Only process views with valid paths
+            # Keep the most recent deletion for each path
+            if view_path not in unique_deletions or deletion.get('timestamp', '') > unique_deletions[view_path].get('timestamp', ''):
+                unique_deletions[view_path] = deletion
+    
+    print(f"✅ Deduplicated: {len(view_deletions)} → {len(unique_deletions)} unique view deletions")
+    
+    # Debug: Show some of the unique deletions
+    print(f"🔍 Sample unique deletions:")
+    for i, (path, deletion) in enumerate(list(unique_deletions.items())[:5], 1):
+        print(f"   {i}. {path} (deleted: {deletion.get('timestamp', 'Unknown')})")
+    if len(unique_deletions) > 5:
+        print(f"   ... and {len(unique_deletions) - 5} more")
+    
+    # Process only unique view deletions
+    processed_count = 0
+    for i, (view_path, deletion) in enumerate(unique_deletions.items(), 1):
+        processed_count += 1
+        print(f"   {i}. Checking: {view_path} (processed: {processed_count}/{len(unique_deletions)})")
+        
+        # First, verify the view is actually deleted (not recreated)
+        print(f"      🔍 Verifying view is still deleted...")
+        
+        if view_path in current_view_paths:
+            recreated_views.append({
+                'path': view_path,
+                'deleted_at': deletion.get('timestamp', 'Unknown'),
+                'event': deletion.get('event_message', 'Unknown')
+            })
+            print(f"      ⚠️  View has been recreated - skipping (not orphaned)")
             continue
-            
-        print(f"   {i}. Checking: {view_path}")
+        else:
+            print(f"      ✅ View confirmed deleted - proceeding with directory check")
         
         try:
             # Try to check if the directory/path still exists and get ownership info
@@ -131,10 +176,15 @@ def check_directory_existence(client, view_deletions, config, vast_config):
                 
                 if response.status_code == 200:
                     path_ownership = response.json()
-                    path_exists = True
-                    owner = path_ownership.get('owner', 'Unknown')
-                    group = path_ownership.get('group', 'Unknown')
-                    print(f"      ❌ Path exists with ownership: {owner}:{group}")
+                    is_directory = path_ownership.get('is_directory', False)
+                    owner = path_ownership.get('owning_user', 'Unknown')
+                    group = path_ownership.get('owning_group', 'Unknown')
+                    
+                    if is_directory:
+                        path_exists = True
+                        print(f"      ❌ Directory exists with ownership: {owner}:{group}")
+                    else:
+                        print(f"      ⚠️  Path exists but is not a directory (file?): {owner}:{group}")
                 elif response.status_code == 404:
                     print(f"      ✅ Path not found (404)")
                 elif response.status_code == 400:
@@ -145,10 +195,15 @@ def check_directory_existence(client, view_deletions, config, vast_config):
                     response = requests.post(stat_url, auth=auth, json=stat_data, verify=False)
                     if response.status_code == 200:
                         path_ownership = response.json()
-                        path_exists = True
-                        owner = path_ownership.get('owner', 'Unknown')
-                        group = path_ownership.get('group', 'Unknown')
-                        print(f"      ❌ Path exists with ownership: {owner}:{group} (using tenant {tenant_id})")
+                        is_directory = path_ownership.get('is_directory', False)
+                        owner = path_ownership.get('owning_user', 'Unknown')
+                        group = path_ownership.get('owning_group', 'Unknown')
+                        
+                        if is_directory:
+                            path_exists = True
+                            print(f"      ❌ Directory exists with ownership: {owner}:{group} (using tenant {tenant_id})")
+                        else:
+                            print(f"      ⚠️  Path exists but is not a directory (file?): {owner}:{group} (using tenant {tenant_id})")
                     elif response.status_code == 404:
                         print(f"      ✅ Path not found with tenant {tenant_id} (404)")
                     elif response.status_code == 503:
@@ -166,10 +221,15 @@ def check_directory_existence(client, view_deletions, config, vast_config):
                     response = requests.post(stat_url, auth=auth, json=stat_data, verify=False)
                     if response.status_code == 200:
                         path_ownership = response.json()
-                        path_exists = True
-                        owner = path_ownership.get('owner', 'Unknown')
-                        group = path_ownership.get('group', 'Unknown')
-                        print(f"      ❌ Path exists with ownership: {owner}:{group} (after retry)")
+                        is_directory = path_ownership.get('is_directory', False)
+                        owner = path_ownership.get('owning_user', 'Unknown')
+                        group = path_ownership.get('owning_group', 'Unknown')
+                        
+                        if is_directory:
+                            path_exists = True
+                            print(f"      ❌ Directory exists with ownership: {owner}:{group} (after retry)")
+                        else:
+                            print(f"      ⚠️  Path exists but is not a directory (file?): {owner}:{group} (after retry)")
                     else:
                         print(f"      ✅ Path not found after retry: {response.status_code}")
                 else:
@@ -224,13 +284,27 @@ def check_directory_existence(client, view_deletions, config, vast_config):
                 
         except Exception as e:
             print(f"      ⚠️  Error checking directory: {e}")
+            error_views.append({
+                'path': view_path,
+                'deleted_at': deletion.get('timestamp', 'Unknown'),
+                'event': deletion.get('event_message', 'Unknown'),
+                'error': f"Directory check failed: {str(e)}"
+            })
             continue
     
     # Report results
     print(f"\n📊 Directory Existence Report:")
-    print(f"   Total deleted views checked: {len(view_deletions)}")
+    print(f"   Total view deletion events: {len(view_deletions)}")
+    print(f"   📝 Views with no path (skipped): {no_path_views}")
+    print(f"   🔄 Views recreated (skipped): {len(recreated_views)}")
     print(f"   🚨 ORPHANED directories (still exist): {len(orphaned_directories)}")
     print(f"   ✅ CLEAN deletions (properly removed): {len(existing_directories)}")
+    print(f"   ⚠️  Errors during processing: {len(error_views)}")
+    
+    # Verify math
+    total_processed = len(recreated_views) + len(orphaned_directories) + len(existing_directories) + len(error_views)
+    print(f"   📊 Math check: {total_processed}/{len(unique_deletions)} unique views processed")
+    print(f"   🔍 Debug: processed_count = {processed_count}, unique_deletions = {len(unique_deletions)}")
     
     if orphaned_directories:
         print(f"\n🚨 ORPHANED Directories (still exist but view deleted - NEEDS CLEANUP):")
@@ -242,9 +316,11 @@ def check_directory_existence(client, view_deletions, config, vast_config):
             # Show ownership information if available
             if dir_info.get('ownership'):
                 ownership = dir_info['ownership']
-                owner = ownership.get('owner', 'Unknown')
-                group = ownership.get('group', 'Unknown')
+                owner = ownership.get('owning_user', 'Unknown')
+                group = ownership.get('owning_group', 'Unknown')
+                is_directory = ownership.get('is_directory', False)
                 print(f"      Ownership: {owner}:{group}")
+                print(f"      Type: {'Directory' if is_directory else 'File'}")
                 
                 # Show additional metadata if available
                 if 'permissions' in ownership:
@@ -255,6 +331,24 @@ def check_directory_existence(client, view_deletions, config, vast_config):
         
         if len(orphaned_directories) > 10:
             print(f"   ... and {len(orphaned_directories) - 10} more orphaned directories")
+    
+    if recreated_views:
+        print(f"\n🔄 Views Recreated (skipped - not orphaned):")
+        for i, view_info in enumerate(recreated_views[:5], 1):
+            print(f"   {i}. {view_info['path']}")
+            print(f"      Originally deleted: {view_info['deleted_at']}")
+        
+        if len(recreated_views) > 5:
+            print(f"   ... and {len(recreated_views) - 5} more recreated views")
+    
+    if error_views:
+        print(f"\n⚠️  Processing Errors (could not complete check):")
+        for i, error_info in enumerate(error_views[:5], 1):
+            print(f"   {i}. {error_info['path']}")
+            print(f"      Error: {error_info['error']}")
+        
+        if len(error_views) > 5:
+            print(f"   ... and {len(error_views) - 5} more errors")
     
     if existing_directories:
         print(f"\n✅ CLEAN Deletions (directories properly removed - No action needed):")
@@ -276,9 +370,16 @@ def check_directory_existence(client, view_deletions, config, vast_config):
             report_file.write("VAST Orphaned Data Discovery Report\n")
             report_file.write("=" * 50 + "\n")
             report_file.write(f"Generated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            report_file.write(f"Total deleted views checked: {len(view_deletions)}\n")
+            report_file.write(f"Total view deletion events: {len(view_deletions)}\n")
+            report_file.write(f"📝 Views with no path (skipped): {no_path_views}\n")
+            report_file.write(f"🔄 Views recreated (skipped): {len(recreated_views)}\n")
             report_file.write(f"🚨 ORPHANED directories (still exist): {len(orphaned_directories)}\n")
-            report_file.write(f"✅ CLEAN deletions (properly removed): {len(existing_directories)}\n\n")
+            report_file.write(f"✅ CLEAN deletions (properly removed): {len(existing_directories)}\n")
+            report_file.write(f"⚠️  Processing errors: {len(error_views)}\n\n")
+            
+            # Math verification
+            total_processed = len(recreated_views) + len(orphaned_directories) + len(existing_directories) + len(error_views)
+            report_file.write(f"Math verification: {total_processed}/{len(unique_deletions)} unique views processed\n\n")
             
             if orphaned_directories:
                 report_file.write("🚨 ORPHANED DIRECTORIES (still exist but view deleted - NEEDS CLEANUP):\n")
@@ -291,9 +392,11 @@ def check_directory_existence(client, view_deletions, config, vast_config):
                     # Show ownership information if available
                     if dir_info.get('ownership'):
                         ownership = dir_info['ownership']
-                        owner = ownership.get('owner', 'Unknown')
-                        group = ownership.get('group', 'Unknown')
+                        owner = ownership.get('owning_user', 'Unknown')
+                        group = ownership.get('owning_group', 'Unknown')
+                        is_directory = ownership.get('is_directory', False)
                         report_file.write(f"   Ownership: {owner}:{group}\n")
+                        report_file.write(f"   Type: {'Directory' if is_directory else 'File'}\n")
                         
                         # Show additional metadata if available
                         if 'permissions' in ownership:
@@ -301,6 +404,23 @@ def check_directory_existence(client, view_deletions, config, vast_config):
                         if 'size' in ownership:
                             report_file.write(f"   Size: {ownership['size']}\n")
                     report_file.write("\n")
+            
+            if recreated_views:
+                report_file.write("🔄 VIEWS RECREATED (skipped - not orphaned):\n")
+                report_file.write("-" * 50 + "\n")
+                for i, view_info in enumerate(recreated_views, 1):
+                    report_file.write(f"{i}. {view_info['path']}\n")
+                    report_file.write(f"   Originally deleted: {view_info['deleted_at']}\n")
+                    report_file.write(f"   Event: {view_info['event']}\n\n")
+            
+            if error_views:
+                report_file.write("⚠️  PROCESSING ERRORS (could not complete check):\n")
+                report_file.write("-" * 50 + "\n")
+                for i, error_info in enumerate(error_views, 1):
+                    report_file.write(f"{i}. {error_info['path']}\n")
+                    report_file.write(f"   Deleted at: {error_info['deleted_at']}\n")
+                    report_file.write(f"   Event: {error_info['event']}\n")
+                    report_file.write(f"   Error: {error_info['error']}\n\n")
             
             if existing_directories:
                 report_file.write("✅ CLEAN DELETIONS (directories properly removed - No action needed):\n")
