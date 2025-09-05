@@ -72,6 +72,39 @@ Meet the characters who will guide you through these challenges:
 - Integrate storage validation with processing scripts
 - Provide seamless storage management for data processing jobs
 
+## Installation
+
+1. **Clone this repository**
+   ```bash
+   git clone <repository-url>
+   cd cosmos-labs
+   ```
+
+2. **Install Python dependencies**
+   ```bash
+   # Install all dependencies (recommended)
+   pip install -r requirements.txt
+   
+   # Or use the helper script
+   python3 install_dependencies.py
+   
+   # Or install individually
+   pip install pyyaml      # YAML configuration parsing
+   pip install vastpy      # VAST Management System SDK
+   pip install vastdb      # VAST Database SDK for metadata catalog
+   ```
+
+3. **Verify installation**
+   ```bash
+   # Test basic imports
+   python3 lab1/test_basic_imports.py
+   
+   # Or test individually
+   python -c "import yaml; print('pyyaml installed successfully')"
+   python -c "import vastpy; print('vastpy installed successfully')"
+   python -c "import vastdb; print('vastdb installed successfully')"
+   ```
+
 ## Prerequisites
 
 Before starting these labs, you should have:
@@ -90,16 +123,6 @@ Before starting these labs, you should have:
 - **Jupyter Notebook** (optional) - For interactive development
 - **Git** - For version control
 
-## Python Dependencies
-
-The following Python packages are required:
-
-- **pyyaml** - YAML configuration file parsing
-- **vastpy** - VAST Management System SDK (version 0.3.17+)
-- **vastdb** - VAST Database SDK for metadata catalog functionality
-- **astropy** - Astronomical data processing (for Lab 2)
-- **h5py** - HDF5 file format support (for Lab 2)
-
 **Note:** vastpy 0.3.17 supports basic authentication with `user`, `password`, and `address` parameters. Advanced features like `token`, `tenant_name`, and `version` are not yet supported in this version.
 
 ## Configuration Management
@@ -115,7 +138,7 @@ Each lab has its own `config_loader.py` that inherits from the centralized loade
 
 ### **Initial Setup**
 
-Before running any labs, you need to create your configuration files:
+After installing the dependencies (see Installation section above), you need to create your configuration files:
 
 ```bash
 # Copy the example configuration files
@@ -202,49 +225,6 @@ python lab2/lab2_solution.py --stats           # Show database statistics
 - **`test_login.py`** - Test script to verify VAST VMS connectivity and authentication
 - **`test_config_validation.py`** - Test script to verify configuration validation system
 
-## Installation
-
-1. **Clone this repository**
-   ```bash
-   git clone <repository-url>
-   cd lab-guides-2
-   ```
-
-2. **Install Python dependencies**
-   ```bash
-   # Install all dependencies (recommended)
-   pip install -r requirements.txt
-   
-   # Or use the helper script
-   python3 install_dependencies.py
-   
-   # Or install individually
-   pip install pyyaml      # YAML configuration parsing
-   pip install vastpy      # VAST Management System SDK
-   pip install vastdb      # VAST Database SDK for metadata catalog
-   ```
-
-3. **Verify installation**
-   ```bash
-   # Test basic imports
-   python3 lab1/test_basic_imports.py
-   
-   # Or test individually
-   python -c "import yaml; print('pyyaml installed successfully')"
-   python -c "import vastpy; print('vastpy installed successfully')"
-   python -c "import vastdb; print('vastdb installed successfully')"
-   ```
-
-4. **Configure your environment**
-   ```bash
-   # Copy the example configuration files
-   cp config.yaml.example config.yaml
-   cp secrets.yaml.example secrets.yaml
-   
-   # Edit the files with your specific settings
-   # config.yaml - Update with your environment settings
-   # secrets.yaml - Update with your actual VAST credentials
-   ```
 
 ## Lab Structure
 
