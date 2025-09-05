@@ -85,13 +85,8 @@ Meet the characters who will guide you through these challenges:
    # Install all dependencies (recommended)
    pip install -r requirements.txt
    
-   # Or use the helper script
+   # Or use the helper script for guided installation
    python3 install_dependencies.py
-   
-   # Or install individually
-   pip install pyyaml      # YAML configuration parsing
-   pip install vastpy      # VAST Management System SDK
-   pip install vastdb      # VAST Database SDK for metadata catalog
    ```
 
 3. **Verify installation**
@@ -107,23 +102,10 @@ Meet the characters who will guide you through these challenges:
 
 ## Prerequisites
 
-Before starting these labs, you should have:
-
-- Basic Python programming experience
-- Familiarity with REST APIs and JSON
-- Understanding of data processing concepts
-- Access to a VAST Management System cluster
-- Python 3.7+ installed
-
-## Required Tools
-
-- **vastpy** - Python SDK for VAST Management System (storage, views, monitoring)
-- **vastdb** - Python SDK for VAST Database (metadata catalog, queries)
-- **Python 3.7+** - Programming language
-- **Jupyter Notebook** (optional) - For interactive development
-- **Git** - For version control
-
-**Note:** vastpy 0.3.17 supports basic authentication with `user`, `password`, and `address` parameters. Advanced features like `token`, `tenant_name`, and `version` are not yet supported in this version.
+- **Python 3.7+** with basic programming experience
+- **VAST Management System cluster** access
+- **Git** for version control
+- **vastpy** and **vastdb** SDKs (installed via requirements.txt)
 
 ## Configuration Management
 
@@ -160,65 +142,13 @@ cp secrets.yaml.example secrets.yaml
 
 ## Safety System
 
-Both Lab 1 and Lab 2 include comprehensive **dual-mode safety systems** to prevent accidental changes to production VAST systems:
+All labs include comprehensive **dual-mode safety systems** to prevent accidental changes to production VAST systems:
 
-### **🛡️ Dry Run Mode (Default)**
-- **No actual changes** are made to the VAST system
-- **Preview operations** before execution
-- **Comprehensive safety checks** run automatically
-- **Estimated results** are shown for all operations
-- **Perfect for testing and validation**
+- **🛡️ Dry Run Mode (Default)** - Preview operations without making changes
+- **🚀 Production Mode** - Requires explicit confirmation (`--pushtoprod` flag)
+- **🔍 Comprehensive Safety Checks** - Multiple validation layers before any changes
 
-### **🚀 Production Mode**
-- **Explicit confirmation** required (`--pushtoprod` flag)
-- **Actual changes** made to VAST views, storage, and metadata
-- **User must type 'YES'** to confirm production operations
-- **All safety checks must pass** before any changes
-- **Comprehensive logging** of all operations
-
-### **🔍 Safety Checks Performed**
-
-#### **Lab 1: Storage Monitoring Safety**
-- View existence and permissions validation
-- Monitoring system status verification
-- Quota limits and backup status checks
-- Network connectivity and system health validation
-- Storage expansion impact assessment
-- **Focus:** Monitoring existing views, not creating new ones
-
-#### **Lab 2: Metadata Database Safety**
-- VAST Database health and responsiveness
-- Schema and table validation
-- Directory access and file count limits
-- Storage impact estimation and capacity checks
-- Processing capacity and backup status validation
-- **Focus:** Metadata catalog operations, not view creation
-
-### **📋 Command Line Usage**
-
-```bash
-# DRY RUN MODE (default - no changes)
-python lab1/lab1_solution.py
-python lab2/lab2_solution.py
-
-# PRODUCTION MODE (actual changes - requires confirmation)
-python lab1/lab1_solution.py --pushtoprod
-python lab2/lab2_solution.py --pushtoprod
-
-# Lab-specific operations
-python lab1/lab1_solution.py --setup-only      # Only check if views exist
-python lab1/lab1_solution.py --monitor-only    # Only run monitoring
-python lab2/lab2_solution.py --setup-only      # Only create bucket/schema/tables
-python lab2/lab2_solution.py --process-only    # Only process metadata
-python lab2/lab2_solution.py --search "mission_id=SWIFT"  # Search metadata
-python lab2/lab2_solution.py --stats           # Show database statistics
-```
-
-### **💡 Safety Philosophy**
-- **"Look before you leap"** - Always preview operations first
-- **"Fail safe"** - Better to block an operation than cause damage
-- **"Explicit consent"** - Production changes require user confirmation
-- **"Comprehensive validation"** - Multiple layers of safety checks
+See individual lab READMEs for detailed safety information and command-line usage.
 
 ## Utilities
 
@@ -272,7 +202,7 @@ These labs are designed to mirror real-world challenges faced by organizations d
 
 ## Support and Resources
 
-- **VAST Documentation** - [https://vastdata.com/docs](https://vastdata.com/docs)
+- **VAST Documentation** - [https://support.vastdata.com/s/](https://support.vastdata.com/s/)
 - **vastpy GitHub** - [https://github.com/vast-data/vastpy](https://github.com/vast-data/vastpy)
 - **vastdb GitHub** - [https://github.com/vast-data/vastdb](https://github.com/vast-data/vastdb)
 - **Community Support** - Join the VAST community for additional help and examples
