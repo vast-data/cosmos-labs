@@ -292,66 +292,47 @@ class AutomatedDataDownloader:
             logger.info("   📥 Attempting to download data products...")
             
             try:
-                # Try to get data products for the first few observations
-                for i, obs in enumerate(result[:3]):  # Try first 3 observations
+                # Look for the exact ObsID we're targeting
+                target_obs = None
+                for obs in result:
                     obs_id_found = obs.get('OBSID', obs_id)
-                    logger.info(f"   📥 Trying to download data for ObsID {obs_id_found}...")
+                    if obs_id_found == obs_id:
+                        target_obs = obs
+                        break
+                
+                if target_obs:
+                    logger.info(f"   🎯 Found exact match for target ObsID {obs_id}")
+                    logger.info(f"   ✅ Found observation: {obs_id} - {target_obs.get('TARGET_NAME', 'Unknown')}")
                     
-                    # Try to get data products (this might not work with current astroquery API)
+                    # Create the download directory
+                    swift_dir = self.data_dir / event_name / "swift"
+                    swift_dir.mkdir(parents=True, exist_ok=True)
+                    
                     try:
-                        # This is where we'd actually download the data
-                        # For now, just report what we found
-                        logger.info(f"   ✅ Found observation: {obs_id_found} - {obs.get('TARGET_NAME', 'Unknown')}")
+                        logger.info(f"   📥 Creating download directory: {swift_dir}")
+                        logger.info(f"   📥 Data structure prepared for {obs_id}")
                         
-                        # Check if this is the exact ObsID we're looking for
-                        if obs_id_found == obs_id:
-                            logger.info(f"   🎯 Found exact match for target ObsID {obs_id}")
-                            # Try to actually download this specific observation
-                            try:
-                                # Attempt to get data products for this specific observation
-                                logger.info(f"   📥 Attempting to get data products for {obs_id_found}...")
-                                
-                                # Try to get data products using the observation data
-                                try:
-                                    # Try to download data using the observation data
-                                    logger.info(f"   📥 Attempting to download data for {obs_id_found}...")
-                                    
-                                    # Create the download directory
-                                    swift_dir = self.data_dir / event_name / "swift"
-                                    swift_dir.mkdir(parents=True, exist_ok=True)
-                                    
-                                    # Try to download using the observation data
-                                    try:
-                                        # Use the observation data to download
-                                        # This is a simplified approach - we'll create a placeholder for now
-                                        # but provide clear instructions for manual download
-                                        logger.info(f"   📥 Creating download directory: {swift_dir}")
-                                        logger.info(f"   📥 Data structure prepared for {obs_id_found}")
-                                        
-                                        # Create a simple metadata file
-                                        metadata_file = swift_dir / f"{obs_id_found}_metadata.txt"
-                                        with open(metadata_file, 'w') as f:
-                                            f.write(f"SWIFT Observation ID: {obs_id_found}\n")
-                                            f.write(f"Target: {obs.get('TARGET_NAME', 'Unknown')}\n")
-                                            f.write(f"Coordinates: RA={event_data['ra']}, Dec={event_data['dec']}\n")
-                                            f.write(f"Download Date: {datetime.now().isoformat()}\n")
-                                            f.write(f"Manual Download Links:\n")
-                                            f.write(f"- UKSSDC: https://www.swift.ac.uk/swift_portal/\n")
-                                            f.write(f"- HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl\n")
-                                            f.write(f"- Direct Archive: https://heasarc.gsfc.nasa.gov/FTP/swift/data/obs/\n")
-                                        
-                                        logger.info(f"   ✅ Metadata file created: {metadata_file}")
-                                        logger.info(f"   ✅ Data structure prepared for {obs_id_found}")
-                                        
-                                    except Exception as download_error:
-                                        logger.warning(f"   ⚠️ Could not prepare data structure for {obs_id_found}: {download_error}")
-                                        
-                                except Exception as products_error:
-                                    logger.warning(f"   ⚠️ Could not process data for {obs_id_found}: {products_error}")
-                            except Exception as download_error:
-                                logger.warning(f"   ⚠️ Could not download data products for {obs_id_found}: {download_error}")
-                    except Exception as e:
-                        logger.warning(f"   ⚠️ Could not process {obs_id_found}: {e}")
+                        # Create a simple metadata file
+                        metadata_file = swift_dir / f"{obs_id}_metadata.txt"
+                        with open(metadata_file, 'w') as f:
+                            f.write(f"SWIFT Observation ID: {obs_id}\n")
+                            f.write(f"Target: {target_obs.get('TARGET_NAME', 'Unknown')}\n")
+                            f.write(f"Coordinates: RA={event_data['ra']}, Dec={event_data['dec']}\n")
+                            f.write(f"Download Date: {datetime.now().isoformat()}\n")
+                            f.write(f"Manual Download Links:\n")
+                            f.write(f"- UKSSDC: https://www.swift.ac.uk/swift_portal/\n")
+                            f.write(f"- HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl\n")
+                            f.write(f"- Direct Archive: https://heasarc.gsfc.nasa.gov/FTP/swift/data/obs/\n")
+                        
+                        logger.info(f"   ✅ Metadata file created: {metadata_file}")
+                        logger.info(f"   ✅ Data structure prepared for {obs_id}")
+                        
+                    except Exception as download_error:
+                        logger.warning(f"   ⚠️ Could not prepare data structure for {obs_id}: {download_error}")
+                        return False
+                else:
+                    logger.warning(f"   ⚠️ Target ObsID {obs_id} not found in search results")
+                    return False
                 
                 # Since we can't actually download via API, provide manual instructions
                 logger.info(f"   💡 To download real SWIFT data:")
@@ -592,16 +573,21 @@ class AutomatedDataDownloader:
         print(f"📁 Data directory: {self.data_dir}")
         
         print("\n📡 Event Details:")
-        for event_name, event_data in self.notable_examples.items():
-            status = "✅" if results[event_name]["overall"] else "❌"
-            swift_status = "✅" if results[event_name]["swift"] else "❌"
-            chandra_status = "✅" if results[event_name]["chandra"] else "❌"
-            
-            print(f"  {status} {event_data['name']}")
-            print(f"     SWIFT: {swift_status} {event_data['swift_obs_id']}")
-            print(f"     Chandra: {chandra_status} {event_data['chandra_obs_id']}")
-            print(f"     Significance: {event_data['significance']}")
-            print()
+        for event_name in results.keys():
+            if event_name in self.notable_examples:
+                event_data = self.notable_examples[event_name]
+                status = "✅" if results[event_name]["overall"] else "❌"
+                swift_status = "✅" if results[event_name]["swift"] else "❌"
+                chandra_status = "✅" if results[event_name]["chandra"] else "❌"
+                
+                print(f"  {status} {event_data['name']}")
+                print(f"     SWIFT: {swift_status} {event_data['swift_obs_id']}")
+                print(f"     Chandra: {chandra_status} {event_data['chandra_obs_id']}")
+                print(f"     Significance: {event_data['significance']}")
+                print()
+            else:
+                print(f"  ❌ {event_name} - Event not found in notable examples")
+                print()
         
         if successful < total:
             print("📋 Note: Some downloads failed. Check the logs for details.")
