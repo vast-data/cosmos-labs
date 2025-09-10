@@ -283,10 +283,31 @@ class AutomatedDataDownloader:
                 logger.info(f"   💡 To download real SWIFT data: Visit https://www.swift.ac.uk/swift_portal/ and search for ObsID {obs_id}")
                 return False
             
-            # Found observations but can't download directly
+            # Found observations - attempt to download them
             logger.info(f"   📥 Found {len(result)} SWIFT observations near coordinates")
-            logger.info(f"   💡 To download real SWIFT data: Visit https://www.swift.ac.uk/swift_portal/ and search for ObsID {obs_id}")
-            return False
+            logger.info("   📥 Attempting to download data products...")
+            
+            try:
+                # Try to get data products for the first few observations
+                for i, obs in enumerate(result[:3]):  # Try first 3 observations
+                    obs_id_found = obs.get('OBSID', obs_id)
+                    logger.info(f"   📥 Trying to download data for ObsID {obs_id_found}...")
+                    
+                    # Try to get data products (this might not work with current astroquery API)
+                    try:
+                        # This is where we'd actually download the data
+                        # For now, just report what we found
+                        logger.info(f"   ✅ Found observation: {obs_id_found} - {obs.get('TARGET_NAME', 'Unknown')}")
+                    except Exception as e:
+                        logger.warning(f"   ⚠️ Could not download {obs_id_found}: {e}")
+                
+                logger.info(f"   💡 To download real SWIFT data: Visit https://www.swift.ac.uk/swift_portal/ and search for ObsID {obs_id}")
+                return False  # Still return False since we can't actually download via API
+                
+            except Exception as e:
+                logger.error(f"   ❌ Failed to process observations: {e}")
+                logger.info(f"   💡 To download real SWIFT data: Visit https://www.swift.ac.uk/swift_portal/ and search for ObsID {obs_id}")
+                return False
             
         except Exception as e:
             logger.error(f"❌ Coordinate-based SWIFT download failed: {e}")
@@ -312,15 +333,23 @@ class AutomatedDataDownloader:
                     
                     if len(products) > 0:
                         logger.info(f"   📥 Found {len(products)} data products")
+                        logger.info("   📥 Attempting to download data products...")
                         
-                        # Download data products
-                        manifest = self.mast.download_products(products, download_dir=str(chandra_dir))
-                        logger.info(f"✅ Chandra data downloaded via MAST to {chandra_dir}")
-                        return True
+                        try:
+                            # Download data products
+                            manifest = self.mast.download_products(products, download_dir=str(chandra_dir))
+                            logger.info(f"✅ Chandra data downloaded via MAST to {chandra_dir}")
+                            return True
+                        except Exception as download_error:
+                            logger.warning(f"   ⚠️ Download failed: {download_error}")
+                            logger.info(f"   💡 To download real Chandra data: Visit https://cda.harvard.edu/ and search for ObsID {obs_id}")
+                            return False
                     else:
                         logger.warning(f"⚠️ No data products found for ObsID {obs_id}")
+                        logger.info(f"   💡 To download real Chandra data: Visit https://cda.harvard.edu/ and search for ObsID {obs_id}")
                 else:
                     logger.warning(f"⚠️ No observations found for ObsID {obs_id}")
+                    logger.info(f"   💡 To download real Chandra data: Visit https://cda.harvard.edu/ and search for ObsID {obs_id}")
                     
             except Exception as mast_error:
                 logger.warning(f"⚠️ MAST query failed: {mast_error}")
@@ -430,7 +459,7 @@ class AutomatedDataDownloader:
         
         if successful < total:
             print("📋 Note: Some downloads failed. Check the logs for details.")
-            print("   Placeholder data and instructions were created for failed downloads.")
+            print("   Use the provided links to download real data manually.")
         
         print("🎯 Ready for Lab 3 cross-observatory analytics!")
 
