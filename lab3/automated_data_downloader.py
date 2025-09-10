@@ -401,6 +401,48 @@ class AutomatedDataDownloader:
             return False
     
     
+    def download_first_dataset(self) -> Dict[str, Dict[str, bool]]:
+        """Download only the first dataset (GRB 050724) for testing."""
+        logger.info("🚀 Starting automated data download (first dataset only)...")
+        
+        # Check dependencies
+        if not self.check_dependencies():
+            logger.error("❌ Cannot proceed without required dependencies")
+            return {}
+        
+        # Get only the first event
+        first_event_name = list(self.notable_examples.keys())[0]
+        first_event_data = self.notable_examples[first_event_name]
+        
+        logger.info(f"📡 Processing {first_event_data['name']}...")
+        
+        # Download SWIFT data
+        swift_success = self.download_swift_data(
+            first_event_data["swift_obs_id"], 
+            first_event_name,
+            first_event_data
+        )
+        
+        # Download Chandra data
+        chandra_success = self.download_chandra_data(
+            first_event_data["chandra_obs_id"], 
+            first_event_name,
+            first_event_data
+        )
+        
+        results = {
+            first_event_name: {
+                "swift": swift_success,
+                "chandra": chandra_success,
+                "overall": swift_success and chandra_success
+            }
+        }
+        
+        # Create metadata
+        self._create_metadata(results)
+        
+        return results
+
     def download_all_datasets(self) -> Dict[str, bool]:
         """Download all notable SWIFT-Chandra collaboration datasets."""
         logger.info("🚀 Starting automated data download...")
@@ -503,6 +545,14 @@ class AutomatedDataDownloader:
 
 def main():
     """Main function to run the automated data downloader."""
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Download SWIFT and Chandra datasets for Lab 3')
+    parser.add_argument('--all', action='store_true', 
+                       help='Download all 4 datasets (default: download only GRB 050724)')
+    
+    args = parser.parse_args()
+    
     try:
         # Load configuration
         config = Lab3ConfigLoader()
@@ -510,8 +560,11 @@ def main():
         # Create downloader
         downloader = AutomatedDataDownloader(config)
         
-        # Download all datasets
-        results = downloader.download_all_datasets()
+        # Download datasets based on argument
+        if args.all:
+            results = downloader.download_all_datasets()
+        else:
+            results = downloader.download_first_dataset()
         
         # Show summary
         downloader.show_download_summary(results)
