@@ -276,7 +276,7 @@ class AutomatedDataDownloader:
             
             # Query by coordinates
             logger.info(f"   📥 Searching by coordinates: RA={event_data['ra']}°, Dec={event_data['dec']}°")
-            result = self.heasarc.query_region(coord, mission='swiftmastr', radius=0.1*u.deg)
+            result = self.heasarc.query_region(coord, catalog='swiftmastr', radius=0.1*u.deg)
             
             if len(result) == 0:
                 logger.warning(f"⚠️ No SWIFT data found near coordinates")
@@ -306,8 +306,8 @@ class AutomatedDataDownloader:
             # Query Chandra data using MAST
             # MAST provides access to Chandra data through the Mikulski Archive for Space Telescopes
             try:
-                # Search for Chandra observations
-                obs_table = self.mast.query_observations(obs_id=obs_id)
+                # Search for Chandra observations using query_criteria
+                obs_table = self.mast.query_criteria(obs_id=obs_id)
                 
                 if len(obs_table) > 0:
                     logger.info(f"   📥 Found {len(obs_table)} Chandra observations for ObsID {obs_id}")
@@ -442,7 +442,7 @@ class AutomatedDataDownloader:
             f.write("heasarc.download_data(data_products)\n")
             f.write("```\n")
     
-    def _create_chandra_placeholder(self, obs_id: str, event_name: str, chandra_dir: Path) -> None:
+    def _create_chandra_placeholder(self, obs_id: str, event_name: str, chandra_dir: Path, is_fallback: bool = False) -> None:
         """Create placeholder Chandra data with download instructions."""
         placeholder_files = [
             "chandra_acis_data.fits",
@@ -468,13 +468,16 @@ class AutomatedDataDownloader:
             f.write("1. Install CIAO: https://cxc.cfa.harvard.edu/ciao/download/\n")
             f.write(f"2. Run: download_chandra_obsid {obs_id}\n")
             f.write("3. Move files to this directory\n\n")
-            f.write("Or use Python:\n")
+            f.write("Or use Python with MAST:\n")
             f.write("```python\n")
-            f.write("from astroquery.cda import CDA\n")
-            f.write("cda = CDA()\n")
-            f.write(f"result = cda.query_region('{obs_id}')\n")
-            f.write("cda.download_data(result)\n")
+            f.write("from astroquery.mast import Observations\n")
+            f.write("mast = Observations()\n")
+            f.write(f"obs_table = mast.query_criteria(obs_id='{obs_id}')\n")
+            f.write("products = mast.get_product_list(obs_table[0])\n")
+            f.write("manifest = mast.download_products(products)\n")
             f.write("```\n")
+            if is_fallback:
+                f.write(f"\nNote: MAST query failed for ObsID {obs_id}, this is placeholder data.\n")
     
     def download_all_datasets(self) -> Dict[str, bool]:
         """Download all notable SWIFT-Chandra collaboration datasets."""
