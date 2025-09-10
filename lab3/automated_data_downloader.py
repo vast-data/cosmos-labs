@@ -305,11 +305,13 @@ class AutomatedDataDownloader:
                     except Exception as e:
                         logger.warning(f"   ⚠️ Could not download {obs_id_found}: {e}")
                 
+                # Since we can't actually download via API, provide manual instructions
                 logger.info(f"   💡 To download real SWIFT data:")
                 logger.info(f"      - UKSSDC: https://www.swift.ac.uk/swift_portal/ (search for ObsID: {obs_id})")
                 logger.info(f"      - HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl")
                 logger.info(f"        Use coordinates: {event_data['ra']}, {event_data['dec']} (select 'SWIFT' mission)")
                 logger.info(f"      - Direct archive: https://heasarc.gsfc.nasa.gov/FTP/swift/data/obs/")
+                logger.info(f"   📝 Note: Found {len(result)} observations but cannot download via API")
                 return False  # Still return False since we can't actually download via API
                 
             except Exception as e:
@@ -371,6 +373,7 @@ class AutomatedDataDownloader:
                         logger.info(f"      - HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl")
                         logger.info(f"        Use coordinates: {event_data['ra']}, {event_data['dec']} (select 'Chandra' mission)")
                         logger.info(f"      - Direct archive: https://heasarc.gsfc.nasa.gov/FTP/chandra/data/")
+                        return False
                 else:
                     logger.warning(f"⚠️ No observations found for ObsID {obs_id}")
                     logger.info(f"   💡 To download real Chandra data:")
@@ -378,18 +381,16 @@ class AutomatedDataDownloader:
                     logger.info(f"      - HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl")
                     logger.info(f"        Use coordinates: {event_data['ra']}, {event_data['dec']} (select 'Chandra' mission)")
                     logger.info(f"      - Direct archive: https://heasarc.gsfc.nasa.gov/FTP/chandra/data/")
+                    return False
                     
             except Exception as mast_error:
                 logger.warning(f"⚠️ MAST query failed: {mast_error}")
-            
-            # Fallback: Provide error message
-            logger.warning(f"⚠️ No Chandra data found for ObsID {obs_id}")
-            logger.info(f"   💡 To download real Chandra data:")
-            logger.info(f"      - CDA: https://cda.harvard.edu/ (search for ObsID: {obs_id})")
-            logger.info(f"      - HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl")
-            logger.info(f"        Use coordinates: RA={event_data['ra']}°, Dec={event_data['dec']}° (select 'Chandra' mission)")
-            logger.info(f"      - Direct archive: https://heasarc.gsfc.nasa.gov/FTP/chandra/data/")
-            return False
+                logger.info(f"   💡 To download real Chandra data:")
+                logger.info(f"      - CDA: https://cda.harvard.edu/ (search for ObsID: {obs_id})")
+                logger.info(f"      - HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl")
+                logger.info(f"        Use coordinates: {event_data['ra']}, {event_data['dec']} (select 'Chandra' mission)")
+                logger.info(f"      - Direct archive: https://heasarc.gsfc.nasa.gov/FTP/chandra/data/")
+                return False
             
         except Exception as e:
             logger.error(f"❌ astroquery MAST Chandra download failed: {e}")
@@ -482,16 +483,17 @@ class AutomatedDataDownloader:
         
         return results
     
-    def _create_metadata(self, results: Dict[str, bool]) -> None:
+    def _create_metadata(self, results: Dict[str, Dict[str, bool]]) -> None:
         """Create metadata file for downloaded datasets."""
         metadata = {
             "download_timestamp": datetime.now().isoformat(),
-            "total_events": len(self.notable_examples),
+            "total_events": len(results),
             "successful_downloads": sum(1 for r in results.values() if r["overall"]),
             "events": {}
         }
         
-        for event_name, event_data in self.notable_examples.items():
+        for event_name in results.keys():
+            event_data = self.notable_examples[event_name]
             metadata["events"][event_name] = {
                 "name": event_data["name"],
                 "swift_obs_id": event_data["swift_obs_id"],
