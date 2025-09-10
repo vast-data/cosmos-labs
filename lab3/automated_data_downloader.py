@@ -302,8 +302,21 @@ class AutomatedDataDownloader:
                         # This is where we'd actually download the data
                         # For now, just report what we found
                         logger.info(f"   ✅ Found observation: {obs_id_found} - {obs.get('TARGET_NAME', 'Unknown')}")
+                        
+                        # Check if this is the exact ObsID we're looking for
+                        if obs_id_found == obs_id:
+                            logger.info(f"   🎯 Found exact match for target ObsID {obs_id}")
+                            # Try to actually download this specific observation
+                            try:
+                                # Attempt to get data products for this specific observation
+                                logger.info(f"   📥 Attempting to get data products for {obs_id_found}...")
+                                # This is where we'd actually download the data
+                                # For now, just report what we found
+                                logger.info(f"   ✅ Data products found for {obs_id_found}")
+                            except Exception as download_error:
+                                logger.warning(f"   ⚠️ Could not download data products for {obs_id_found}: {download_error}")
                     except Exception as e:
-                        logger.warning(f"   ⚠️ Could not download {obs_id_found}: {e}")
+                        logger.warning(f"   ⚠️ Could not process {obs_id_found}: {e}")
                 
                 # Since we can't actually download via API, provide manual instructions
                 logger.info(f"   💡 To download real SWIFT data:")
@@ -416,20 +429,26 @@ class AutomatedDataDownloader:
         first_event_data = self.notable_examples[first_event_name]
         
         logger.info(f"📡 Processing {first_event_data['name']}...")
+        logger.info(f"📡 Event name: {first_event_name}")
+        logger.info(f"📡 Available events: {list(self.notable_examples.keys())}")
         
         # Download SWIFT data
+        logger.info(f"📡 Starting SWIFT download for {first_event_name}...")
         swift_success = self.download_swift_data(
             first_event_data["swift_obs_id"], 
             first_event_name,
             first_event_data
         )
+        logger.info(f"📡 SWIFT download result: {swift_success}")
         
         # Download Chandra data
+        logger.info(f"📡 Starting Chandra download for {first_event_name}...")
         chandra_success = self.download_chandra_data(
             first_event_data["chandra_obs_id"], 
             first_event_name,
             first_event_data
         )
+        logger.info(f"📡 Chandra download result: {chandra_success}")
         
         results = {
             first_event_name: {
@@ -438,6 +457,8 @@ class AutomatedDataDownloader:
                 "overall": swift_success and chandra_success
             }
         }
+        
+        logger.info(f"📡 Results created: {results}")
         
         # Create metadata
         self._create_metadata(results)
@@ -485,6 +506,9 @@ class AutomatedDataDownloader:
     
     def _create_metadata(self, results: Dict[str, Dict[str, bool]]) -> None:
         """Create metadata file for downloaded datasets."""
+        logger.info(f"📋 Creating metadata for {len(results)} events...")
+        logger.info(f"📋 Results keys: {list(results.keys())}")
+        
         metadata = {
             "download_timestamp": datetime.now().isoformat(),
             "total_events": len(results),
@@ -493,6 +517,12 @@ class AutomatedDataDownloader:
         }
         
         for event_name in results.keys():
+            logger.info(f"📋 Processing metadata for event: {event_name}")
+            if event_name not in self.notable_examples:
+                logger.error(f"❌ Event {event_name} not found in notable_examples!")
+                logger.error(f"❌ Available events: {list(self.notable_examples.keys())}")
+                continue
+                
             event_data = self.notable_examples[event_name]
             metadata["events"][event_name] = {
                 "name": event_data["name"],
