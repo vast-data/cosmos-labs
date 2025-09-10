@@ -310,22 +310,78 @@ class AutomatedDataDownloader:
                     
                     try:
                         logger.info(f"   📥 Creating download directory: {swift_dir}")
-                        logger.info(f"   📥 Data structure prepared for {obs_id}")
                         
-                        # Create a simple metadata file
-                        metadata_file = swift_dir / f"{obs_id}_metadata.txt"
-                        with open(metadata_file, 'w') as f:
-                            f.write(f"SWIFT Observation ID: {obs_id}\n")
-                            f.write(f"Target: {target_obs.get('TARGET_NAME', 'Unknown')}\n")
-                            f.write(f"Coordinates: RA={event_data['ra']}, Dec={event_data['dec']}\n")
-                            f.write(f"Download Date: {datetime.now().isoformat()}\n")
-                            f.write(f"Manual Download Links:\n")
-                            f.write(f"- UKSSDC: https://www.swift.ac.uk/swift_portal/\n")
-                            f.write(f"- HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl\n")
-                            f.write(f"- Direct Archive: https://heasarc.gsfc.nasa.gov/FTP/swift/data/obs/\n")
-                        
-                        logger.info(f"   ✅ Metadata file created: {metadata_file}")
-                        logger.info(f"   ✅ Data structure prepared for {obs_id}")
+                        # Try to actually download the data using astroquery
+                        try:
+                            logger.info(f"   📥 Attempting to download data products for {obs_id}...")
+                            
+                            # Get data products for this specific observation
+                            products = self.heasarc.get_data_products(obs_id)
+                            
+                            if products and len(products) > 0:
+                                logger.info(f"   📥 Found {len(products)} data products for {obs_id}")
+                                
+                                # Download the products
+                                try:
+                                    logger.info(f"   📥 Downloading {len(products)} data products...")
+                                    manifest = self.heasarc.download_products(products, download_dir=str(swift_dir))
+                                    logger.info(f"   ✅ Successfully downloaded {len(products)} products to {swift_dir}")
+                                    
+                                    # Create metadata file
+                                    metadata_file = swift_dir / f"{obs_id}_metadata.txt"
+                                    with open(metadata_file, 'w') as f:
+                                        f.write(f"SWIFT Observation ID: {obs_id}\n")
+                                        f.write(f"Target: {target_obs.get('TARGET_NAME', 'Unknown')}\n")
+                                        f.write(f"Coordinates: RA={event_data['ra']}, Dec={event_data['dec']}\n")
+                                        f.write(f"Download Date: {datetime.now().isoformat()}\n")
+                                        f.write(f"Products Downloaded: {len(products)}\n")
+                                        f.write(f"Download Directory: {swift_dir}\n")
+                                    
+                                    logger.info(f"   ✅ Metadata file created: {metadata_file}")
+                                    return True
+                                    
+                                except Exception as download_error:
+                                    logger.warning(f"   ⚠️ Download failed: {download_error}")
+                                    logger.info(f"   📝 Creating fallback data structure...")
+                                    
+                                    # Create fallback metadata with manual download instructions
+                                    metadata_file = swift_dir / f"{obs_id}_metadata.txt"
+                                    with open(metadata_file, 'w') as f:
+                                        f.write(f"SWIFT Observation ID: {obs_id}\n")
+                                        f.write(f"Target: {target_obs.get('TARGET_NAME', 'Unknown')}\n")
+                                        f.write(f"Coordinates: RA={event_data['ra']}, Dec={event_data['dec']}\n")
+                                        f.write(f"Download Date: {datetime.now().isoformat()}\n")
+                                        f.write(f"Status: Download failed, manual download required\n")
+                                        f.write(f"Manual Download Links:\n")
+                                        f.write(f"- UKSSDC: https://www.swift.ac.uk/swift_portal/\n")
+                                        f.write(f"- HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl\n")
+                                        f.write(f"- Direct Archive: https://heasarc.gsfc.nasa.gov/FTP/swift/data/obs/\n")
+                                    
+                                    logger.info(f"   ✅ Fallback metadata created: {metadata_file}")
+                                    return False
+                            else:
+                                logger.warning(f"   ⚠️ No data products found for {obs_id}")
+                                return False
+                                
+                        except Exception as api_error:
+                            logger.warning(f"   ⚠️ API download failed: {api_error}")
+                            logger.info(f"   📝 Creating fallback data structure...")
+                            
+                            # Create fallback metadata with manual download instructions
+                            metadata_file = swift_dir / f"{obs_id}_metadata.txt"
+                            with open(metadata_file, 'w') as f:
+                                f.write(f"SWIFT Observation ID: {obs_id}\n")
+                                f.write(f"Target: {target_obs.get('TARGET_NAME', 'Unknown')}\n")
+                                f.write(f"Coordinates: RA={event_data['ra']}, Dec={event_data['dec']}\n")
+                                f.write(f"Download Date: {datetime.now().isoformat()}\n")
+                                f.write(f"Status: API download failed, manual download required\n")
+                                f.write(f"Manual Download Links:\n")
+                                f.write(f"- UKSSDC: https://www.swift.ac.uk/swift_portal/\n")
+                                f.write(f"- HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl\n")
+                                f.write(f"- Direct Archive: https://heasarc.gsfc.nasa.gov/FTP/swift/data/obs/\n")
+                            
+                            logger.info(f"   ✅ Fallback metadata created: {metadata_file}")
+                            return False
                         
                     except Exception as download_error:
                         logger.warning(f"   ⚠️ Could not prepare data structure for {obs_id}: {download_error}")
@@ -386,30 +442,77 @@ class AutomatedDataDownloader:
                             # Download data products
                             manifest = self.mast.download_products(products, download_dir=str(chandra_dir))
                             logger.info(f"✅ Chandra data downloaded via MAST to {chandra_dir}")
+                            
+                            # Create metadata file
+                            metadata_file = chandra_dir / f"{obs_id}_metadata.txt"
+                            with open(metadata_file, 'w') as f:
+                                f.write(f"Chandra Observation ID: {obs_id}\n")
+                                f.write(f"Target: {obs_table[0].get('target_name', 'Unknown')}\n")
+                                f.write(f"Coordinates: RA={event_data['ra']}, Dec={event_data['dec']}\n")
+                                f.write(f"Download Date: {datetime.now().isoformat()}\n")
+                                f.write(f"Products Downloaded: {len(products)}\n")
+                                f.write(f"Download Directory: {chandra_dir}\n")
+                                f.write(f"Source: MAST (Mikulski Archive for Space Telescopes)\n")
+                            
+                            logger.info(f"   ✅ Metadata file created: {metadata_file}")
                             return True
+                            
                         except Exception as download_error:
                             logger.warning(f"   ⚠️ Download failed: {download_error}")
-                            logger.info(f"   💡 To download real Chandra data:")
-                            logger.info(f"      - CDA: https://cda.harvard.edu/ (search for ObsID: {obs_id})")
-                            logger.info(f"      - HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl")
-                            logger.info(f"        Use coordinates: {event_data['ra']}, {event_data['dec']} (select 'Chandra' mission)")
-                            logger.info(f"      - Direct archive: https://heasarc.gsfc.nasa.gov/FTP/chandra/data/")
+                            logger.info(f"   📝 Creating fallback data structure...")
+                            
+                            # Create fallback metadata
+                            metadata_file = chandra_dir / f"{obs_id}_metadata.txt"
+                            with open(metadata_file, 'w') as f:
+                                f.write(f"Chandra Observation ID: {obs_id}\n")
+                                f.write(f"Target: {obs_table[0].get('target_name', 'Unknown')}\n")
+                                f.write(f"Coordinates: RA={event_data['ra']}, Dec={event_data['dec']}\n")
+                                f.write(f"Download Date: {datetime.now().isoformat()}\n")
+                                f.write(f"Status: Download failed, manual download required\n")
+                                f.write(f"Manual Download Links:\n")
+                                f.write(f"- CDA: https://cda.harvard.edu/ (search for ObsID: {obs_id})\n")
+                                f.write(f"- HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl\n")
+                                f.write(f"- Direct Archive: https://heasarc.gsfc.nasa.gov/FTP/chandra/data/\n")
+                            
+                            logger.info(f"   ✅ Fallback metadata created: {metadata_file}")
                             return False
                     else:
                         logger.warning(f"⚠️ No data products found for ObsID {obs_id}")
-                        logger.info(f"   💡 To download real Chandra data:")
-                        logger.info(f"      - CDA: https://cda.harvard.edu/ (search for ObsID: {obs_id})")
-                        logger.info(f"      - HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl")
-                        logger.info(f"        Use coordinates: {event_data['ra']}, {event_data['dec']} (select 'Chandra' mission)")
-                        logger.info(f"      - Direct archive: https://heasarc.gsfc.nasa.gov/FTP/chandra/data/")
+                        logger.info(f"   📝 Creating fallback data structure...")
+                        
+                        # Create fallback metadata
+                        metadata_file = chandra_dir / f"{obs_id}_metadata.txt"
+                        with open(metadata_file, 'w') as f:
+                            f.write(f"Chandra Observation ID: {obs_id}\n")
+                            f.write(f"Target: {obs_table[0].get('target_name', 'Unknown')}\n")
+                            f.write(f"Coordinates: RA={event_data['ra']}, Dec={event_data['dec']}\n")
+                            f.write(f"Download Date: {datetime.now().isoformat()}\n")
+                            f.write(f"Status: No data products found, manual download required\n")
+                            f.write(f"Manual Download Links:\n")
+                            f.write(f"- CDA: https://cda.harvard.edu/ (search for ObsID: {obs_id})\n")
+                            f.write(f"- HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl\n")
+                            f.write(f"- Direct Archive: https://heasarc.gsfc.nasa.gov/FTP/chandra/data/\n")
+                        
+                        logger.info(f"   ✅ Fallback metadata created: {metadata_file}")
                         return False
                 else:
                     logger.warning(f"⚠️ No observations found for ObsID {obs_id}")
-                    logger.info(f"   💡 To download real Chandra data:")
-                    logger.info(f"      - CDA: https://cda.harvard.edu/ (search for ObsID: {obs_id})")
-                    logger.info(f"      - HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl")
-                    logger.info(f"        Use coordinates: {event_data['ra']}, {event_data['dec']} (select 'Chandra' mission)")
-                    logger.info(f"      - Direct archive: https://heasarc.gsfc.nasa.gov/FTP/chandra/data/")
+                    logger.info(f"   📝 Creating fallback data structure...")
+                    
+                    # Create fallback metadata
+                    metadata_file = chandra_dir / f"{obs_id}_metadata.txt"
+                    with open(metadata_file, 'w') as f:
+                        f.write(f"Chandra Observation ID: {obs_id}\n")
+                        f.write(f"Target: Unknown\n")
+                        f.write(f"Coordinates: RA={event_data['ra']}, Dec={event_data['dec']}\n")
+                        f.write(f"Download Date: {datetime.now().isoformat()}\n")
+                        f.write(f"Status: No observations found, manual download required\n")
+                        f.write(f"Manual Download Links:\n")
+                        f.write(f"- CDA: https://cda.harvard.edu/ (search for ObsID: {obs_id})\n")
+                        f.write(f"- HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl\n")
+                        f.write(f"- Direct Archive: https://heasarc.gsfc.nasa.gov/FTP/chandra/data/\n")
+                    
+                    logger.info(f"   ✅ Fallback metadata created: {metadata_file}")
                     return False
                     
             except Exception as mast_error:
