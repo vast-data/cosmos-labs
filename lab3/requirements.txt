@@ -14,7 +14,7 @@ vastdb>=0.1.0
 ibis-framework==9.0.0  # For efficient database filtering (VAST DB SDK compatible)
 
 # Astronomical data access and analysis
-astroquery>=0.4.7  # For accessing SWIFT and Chandra archives
+astroquery==0.4.10  # For accessing SWIFT and Chandra archives (latest stable)
 astropy>=5.0  # For astronomical calculations and coordinates
 
 # Data processing and analysis
