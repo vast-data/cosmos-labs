@@ -26,16 +26,32 @@ from datetime import datetime
 # Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
 
+# Test astroquery modules individually
+ASTROQUERY_HEASARC_AVAILABLE = False
+ASTROQUERY_CDA_AVAILABLE = False
+ASTROQUERY_AVAILABLE = False
+
 try:
     from astroquery.heasarc import Heasarc
+    ASTROQUERY_HEASARC_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ astroquery.heasarc not available: {e}")
+
+try:
     from astroquery.cda import CDA
+    ASTROQUERY_CDA_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ astroquery.cda not available: {e}")
+
+try:
     from astropy.coordinates import SkyCoord
     import astropy.units as u
-    ASTROQUERY_AVAILABLE = True
+    ASTROQUERY_AVAILABLE = ASTROQUERY_HEASARC_AVAILABLE or ASTROQUERY_CDA_AVAILABLE
 except ImportError as e:
-    ASTROQUERY_AVAILABLE = False
-    print(f"⚠️ astroquery not available: {e}")
-    print("Install with: pip install astroquery")
+    print(f"⚠️ astropy not available: {e}")
+
+if not ASTROQUERY_AVAILABLE:
+    print("Install with: pip install astroquery astropy")
 
 from lab3.lab3_config import Lab3ConfigLoader
 
@@ -55,14 +71,20 @@ class AutomatedDataDownloader:
         self.heasarc = None
         self.cda = None
         
-        if ASTROQUERY_AVAILABLE:
+        if ASTROQUERY_HEASARC_AVAILABLE:
             try:
                 self.heasarc = Heasarc()
-                self.cda = CDA()
-                logger.info("✅ Archive interfaces initialized")
+                logger.info("✅ HEASARC interface initialized")
             except Exception as e:
-                logger.warning(f"⚠️ Failed to initialize archive interfaces: {e}")
+                logger.warning(f"⚠️ Failed to initialize HEASARC interface: {e}")
                 self.heasarc = None
+        
+        if ASTROQUERY_CDA_AVAILABLE:
+            try:
+                self.cda = CDA()
+                logger.info("✅ CDA interface initialized")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to initialize CDA interface: {e}")
                 self.cda = None
         
         # Notable SWIFT-Chandra collaboration examples
@@ -111,42 +133,44 @@ class AutomatedDataDownloader:
     
     def check_dependencies(self) -> bool:
         """Check if required dependencies are available."""
-        missing_deps = []
+        available_services = []
         
-        # Test astroquery import
-        try:
-            from astroquery.heasarc import Heasarc
-            from astroquery.cda import CDA
-            logger.info("✅ astroquery available")
-        except ImportError as e:
-            missing_deps.append("astroquery")
-            logger.error(f"❌ astroquery import failed: {e}")
+        # Check astroquery modules
+        if ASTROQUERY_HEASARC_AVAILABLE:
+            available_services.append("SWIFT data download (HEASARC)")
+            logger.info("✅ SWIFT data download available")
+        else:
+            logger.warning("⚠️ SWIFT data download not available")
+        
+        if ASTROQUERY_CDA_AVAILABLE:
+            available_services.append("Chandra data download (CDA)")
+            logger.info("✅ Chandra data download via CDA available")
+        else:
+            logger.warning("⚠️ Chandra data download via CDA not available")
         
         # Check if CIAO is available
+        ciao_available = False
         try:
             result = subprocess.run(['download_chandra_obsid', '--help'], 
                                   capture_output=True, text=True, timeout=10)
             if result.returncode == 0:
-                logger.info("✅ CIAO available")
+                available_services.append("Chandra data download (CIAO)")
+                logger.info("✅ Chandra data download via CIAO available")
+                ciao_available = True
             else:
-                missing_deps.append("CIAO (Chandra Interactive Analysis of Observations)")
                 logger.warning("⚠️ CIAO command found but not working properly")
         except (subprocess.TimeoutExpired, FileNotFoundError):
-            missing_deps.append("CIAO (Chandra Interactive Analysis of Observations)")
             logger.warning("⚠️ CIAO not found")
         
-        if missing_deps:
-            logger.error("❌ Missing dependencies:")
-            for dep in missing_deps:
-                logger.error(f"   - {dep}")
-            logger.error("\nInstall missing dependencies:")
-            if "astroquery" in missing_deps:
-                logger.error("   pip install astroquery")
-            if "CIAO" in str(missing_deps):
-                logger.error("   # Install CIAO from: https://cxc.cfa.harvard.edu/ciao/download/")
+        # Check if we have at least one way to download data
+        if not available_services:
+            logger.error("❌ No data download methods available")
+            logger.error("Install dependencies:")
+            logger.error("   pip install astroquery astropy")
+            logger.error("   # Install CIAO from: https://cxc.cfa.harvard.edu/ciao/download/")
             return False
         
-        logger.info("✅ All dependencies available")
+        logger.info(f"✅ Available services: {', '.join(available_services)}")
         return True
     
     def download_swift_data(self, obs_id: str, event_name: str) -> bool:
