@@ -190,19 +190,15 @@ class AutomatedDataDownloader:
             
             # Query SWIFT data from HEASARC
             try:
-                # Query the SWIFT master catalog
-                result = self.heasarc.query_object(f"swiftmastr", obs_id)
-                
-                if len(result) == 0:
-                    logger.warning(f"⚠️ No SWIFT data found for ObsID {obs_id}")
-                    return False
-                
-                # Get data products
+                # Try to get data products directly by ObsID
+                logger.info(f"   📥 Attempting to get data products for ObsID {obs_id}...")
                 data_products = self.heasarc.get_data_products(obs_id)
                 
                 if len(data_products) == 0:
                     logger.warning(f"⚠️ No data products found for SWIFT ObsID {obs_id}")
-                    return False
+                    # Try alternative approach with coordinates
+                    logger.info("   🔄 Trying coordinate-based search...")
+                    return self._download_swift_by_coordinates(obs_id, event_name, swift_dir, event_data)
                 
                 # Download data products
                 logger.info(f"   📥 Downloading {len(data_products)} data products...")
@@ -233,40 +229,92 @@ class AutomatedDataDownloader:
             chandra_dir = event_dir / "chandra"
             chandra_dir.mkdir(exist_ok=True)
             
-            # Use CIAO download_chandra_obsid tool
+            # Check if CIAO is available first
+            ciao_available = False
             try:
-                # Change to chandra directory
-                original_cwd = os.getcwd()
-                os.chdir(chandra_dir)
-                
-                # Download Chandra data
-                cmd = ['download_chandra_obsid', obs_id]
-                logger.info(f"   📥 Running: {' '.join(cmd)}")
-                
-                result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-                
-                if result.returncode == 0:
-                    logger.info(f"✅ Chandra data downloaded to {chandra_dir}")
-                    return True
-                else:
-                    logger.error(f"❌ CIAO download failed: {result.stderr}")
+                result = subprocess.run(['download_chandra_obsid', '--help'], 
+                                      capture_output=True, text=True, timeout=5)
+                ciao_available = (result.returncode == 0)
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                ciao_available = False
+            
+            if ciao_available:
+                # Use CIAO download_chandra_obsid tool
+                try:
+                    # Change to chandra directory
+                    original_cwd = os.getcwd()
+                    os.chdir(chandra_dir)
                     
-                    # Try astroquery as fallback
-                    if self.cda:
-                        logger.info("   🔄 Trying astroquery fallback...")
-                        return self._download_chandra_astroquery(obs_id, event_name, chandra_dir)
+                    # Download Chandra data
+                    cmd = ['download_chandra_obsid', obs_id]
+                    logger.info(f"   📥 Running: {' '.join(cmd)}")
+                    
+                    result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+                    
+                    if result.returncode == 0:
+                        logger.info(f"✅ Chandra data downloaded to {chandra_dir}")
+                        return True
                     else:
-                        self._create_chandra_placeholder(obs_id, event_name, chandra_dir)
-                        return False
-                
-            finally:
-                os.chdir(original_cwd)
+                        logger.error(f"❌ CIAO download failed: {result.stderr}")
+                        
+                finally:
+                    os.chdir(original_cwd)
+            else:
+                logger.warning("⚠️ CIAO not available, skipping CIAO download")
+            
+            # Try astroquery as fallback
+            if self.cda:
+                logger.info("   🔄 Trying astroquery fallback...")
+                return self._download_chandra_astroquery(obs_id, event_name, chandra_dir)
+            else:
+                logger.warning("⚠️ astroquery CDA not available, creating placeholder")
+                self._create_chandra_placeholder(obs_id, event_name, chandra_dir)
+                return False
                 
         except subprocess.TimeoutExpired:
             logger.error(f"❌ Chandra download timed out for ObsID {obs_id}")
             return False
         except Exception as e:
             logger.error(f"❌ Failed to download Chandra data for {event_name}: {e}")
+            return False
+    
+    def _download_swift_by_coordinates(self, obs_id: str, event_name: str, swift_dir: Path, event_data: Dict) -> bool:
+        """Try to download SWIFT data using coordinate-based search."""
+        try:
+            from astropy.coordinates import SkyCoord
+            import astropy.units as u
+            
+            # Create coordinate object
+            coord = SkyCoord(ra=event_data["ra"]*u.deg, dec=event_data["dec"]*u.deg)
+            
+            # Query by coordinates
+            logger.info(f"   📥 Searching by coordinates: RA={event_data['ra']}°, Dec={event_data['dec']}°")
+            result = self.heasarc.query_region(coord, mission='swiftmastr', radius=0.1*u.deg)
+            
+            if len(result) == 0:
+                logger.warning(f"⚠️ No SWIFT data found near coordinates")
+                self._create_swift_placeholder(obs_id, event_name, swift_dir)
+                return False
+            
+            # Get data products for the first result
+            first_obsid = result[0]['OBSID']
+            data_products = self.heasarc.get_data_products(first_obsid)
+            
+            if len(data_products) == 0:
+                logger.warning(f"⚠️ No data products found for coordinate search")
+                self._create_swift_placeholder(obs_id, event_name, swift_dir)
+                return False
+            
+            # Download data products
+            logger.info(f"   📥 Downloading {len(data_products)} data products...")
+            self.heasarc.download_data(data_products, dir=str(swift_dir))
+            
+            logger.info(f"✅ SWIFT data downloaded via coordinates to {swift_dir}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Coordinate-based SWIFT download failed: {e}")
+            self._create_swift_placeholder(obs_id, event_name, swift_dir)
             return False
     
     def _download_chandra_astroquery(self, obs_id: str, event_name: str, chandra_dir: Path) -> bool:
