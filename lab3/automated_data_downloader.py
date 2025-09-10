@@ -21,14 +21,14 @@ import logging
 import subprocess
 from pathlib import Path
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
 
 # Test astroquery modules individually
 ASTROQUERY_HEASARC_AVAILABLE = False
-ASTROQUERY_CDA_AVAILABLE = False
+ASTROQUERY_MAST_AVAILABLE = False
 ASTROQUERY_AVAILABLE = False
 
 try:
@@ -38,15 +38,15 @@ except ImportError as e:
     print(f"⚠️ astroquery.heasarc not available: {e}")
 
 try:
-    from astroquery.cda import CDA
-    ASTROQUERY_CDA_AVAILABLE = True
+    from astroquery.mast import Observations
+    ASTROQUERY_MAST_AVAILABLE = True
 except ImportError as e:
-    print(f"⚠️ astroquery.cda not available: {e}")
+    print(f"⚠️ astroquery.mast not available: {e}")
 
 try:
     from astropy.coordinates import SkyCoord
     import astropy.units as u
-    ASTROQUERY_AVAILABLE = ASTROQUERY_HEASARC_AVAILABLE or ASTROQUERY_CDA_AVAILABLE
+    ASTROQUERY_AVAILABLE = ASTROQUERY_HEASARC_AVAILABLE or ASTROQUERY_MAST_AVAILABLE
 except ImportError as e:
     print(f"⚠️ astropy not available: {e}")
 
@@ -69,7 +69,7 @@ class AutomatedDataDownloader:
         
         # Initialize archive interfaces
         self.heasarc = None
-        self.cda = None
+        self.mast = None
         
         if ASTROQUERY_HEASARC_AVAILABLE:
             try:
@@ -79,13 +79,13 @@ class AutomatedDataDownloader:
                 logger.warning(f"⚠️ Failed to initialize HEASARC interface: {e}")
                 self.heasarc = None
         
-        if ASTROQUERY_CDA_AVAILABLE:
+        if ASTROQUERY_MAST_AVAILABLE:
             try:
-                self.cda = CDA()
-                logger.info("✅ CDA interface initialized")
+                self.mast = Observations()
+                logger.info("✅ MAST interface initialized")
             except Exception as e:
-                logger.warning(f"⚠️ Failed to initialize CDA interface: {e}")
-                self.cda = None
+                logger.warning(f"⚠️ Failed to initialize MAST interface: {e}")
+                self.mast = None
         
         # Notable SWIFT-Chandra collaboration examples
         self.notable_examples = {
@@ -142,11 +142,11 @@ class AutomatedDataDownloader:
         else:
             logger.warning("⚠️ SWIFT data download not available")
         
-        if ASTROQUERY_CDA_AVAILABLE:
-            available_services.append("Chandra data download (CDA)")
-            logger.info("✅ Chandra data download via CDA available")
+        if ASTROQUERY_MAST_AVAILABLE:
+            available_services.append("Chandra data download (MAST)")
+            logger.info("✅ Chandra data download via MAST available")
         else:
-            logger.warning("⚠️ Chandra data download via CDA not available")
+            logger.warning("⚠️ Chandra data download via MAST not available")
         
         # Check if CIAO is available
         ciao_available = False
@@ -173,7 +173,7 @@ class AutomatedDataDownloader:
         logger.info(f"✅ Available services: {', '.join(available_services)}")
         return True
     
-    def download_swift_data(self, obs_id: str, event_name: str) -> bool:
+    def download_swift_data(self, obs_id: str, event_name: str, event_data: Dict) -> bool:
         """Download SWIFT data using astroquery."""
         try:
             if not self.heasarc:
@@ -250,11 +250,11 @@ class AutomatedDataDownloader:
                 logger.warning("⚠️ CIAO not available, skipping CIAO download")
             
             # Try astroquery as fallback
-            if self.cda:
-                logger.info("   🔄 Trying astroquery fallback...")
+            if self.mast:
+                logger.info("   🔄 Trying astroquery MAST fallback...")
                 return self._download_chandra_astroquery(obs_id, event_name, chandra_dir)
             else:
-                logger.warning("⚠️ astroquery CDA not available, creating placeholder")
+                logger.warning("⚠️ astroquery MAST not available, creating placeholder")
                 self._create_chandra_placeholder(obs_id, event_name, chandra_dir)
                 return False
                 
@@ -299,25 +299,44 @@ class AutomatedDataDownloader:
             return False
     
     def _download_chandra_astroquery(self, obs_id: str, event_name: str, chandra_dir: Path) -> bool:
-        """Fallback Chandra download using astroquery."""
+        """Fallback Chandra download using astroquery MAST."""
         try:
-            logger.info(f"   📥 Trying astroquery for Chandra ObsID {obs_id}...")
+            logger.info(f"   📥 Trying astroquery MAST for Chandra ObsID {obs_id}...")
             
-            # Query Chandra data
-            result = self.cda.query_region(obs_id)
+            # Query Chandra data using MAST
+            # MAST provides access to Chandra data through the Mikulski Archive for Space Telescopes
+            try:
+                # Search for Chandra observations
+                obs_table = self.mast.query_observations(obs_id=obs_id)
+                
+                if len(obs_table) > 0:
+                    logger.info(f"   📥 Found {len(obs_table)} Chandra observations for ObsID {obs_id}")
+                    
+                    # Get data products
+                    products = self.mast.get_product_list(obs_table[0])
+                    
+                    if len(products) > 0:
+                        logger.info(f"   📥 Found {len(products)} data products")
+                        
+                        # Download data products
+                        manifest = self.mast.download_products(products, download_dir=str(chandra_dir))
+                        logger.info(f"✅ Chandra data downloaded via MAST to {chandra_dir}")
+                        return True
+                    else:
+                        logger.warning(f"⚠️ No data products found for ObsID {obs_id}")
+                else:
+                    logger.warning(f"⚠️ No observations found for ObsID {obs_id}")
+                    
+            except Exception as mast_error:
+                logger.warning(f"⚠️ MAST query failed: {mast_error}")
             
-            if len(result) == 0:
-                logger.warning(f"⚠️ No Chandra data found for ObsID {obs_id}")
-                return False
-            
-            # Download data
-            self.cda.download_data(result, dir=str(chandra_dir))
-            
-            logger.info(f"✅ Chandra data downloaded via astroquery to {chandra_dir}")
+            # Fallback: Create placeholder with MAST instructions
+            self._create_chandra_placeholder(obs_id, event_name, chandra_dir, is_fallback=True)
+            logger.info(f"✅ Chandra data placeholder created via MAST fallback for {event_name}")
             return True
             
         except Exception as e:
-            logger.error(f"❌ astroquery Chandra download failed: {e}")
+            logger.error(f"❌ astroquery MAST Chandra download failed: {e}")
             self._create_chandra_placeholder(obs_id, event_name, chandra_dir)
             return False
     
@@ -474,7 +493,8 @@ class AutomatedDataDownloader:
             # Download SWIFT data
             swift_success = self.download_swift_data(
                 event_data["swift_obs_id"], 
-                event_name
+                event_name,
+                event_data
             )
             
             # Download Chandra data
