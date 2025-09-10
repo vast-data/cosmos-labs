@@ -32,9 +32,10 @@ try:
     from astropy.coordinates import SkyCoord
     import astropy.units as u
     ASTROQUERY_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     ASTROQUERY_AVAILABLE = False
-    print("⚠️ astroquery not available. Install with: pip install astroquery")
+    print(f"⚠️ astroquery not available: {e}")
+    print("Install with: pip install astroquery")
 
 from lab3.lab3_config import Lab3ConfigLoader
 
@@ -51,12 +52,18 @@ class AutomatedDataDownloader:
         self.data_dir.mkdir(parents=True, exist_ok=True)
         
         # Initialize archive interfaces
+        self.heasarc = None
+        self.cda = None
+        
         if ASTROQUERY_AVAILABLE:
-            self.heasarc = Heasarc()
-            self.cda = CDA()
-        else:
-            self.heasarc = None
-            self.cda = None
+            try:
+                self.heasarc = Heasarc()
+                self.cda = CDA()
+                logger.info("✅ Archive interfaces initialized")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to initialize archive interfaces: {e}")
+                self.heasarc = None
+                self.cda = None
         
         # Notable SWIFT-Chandra collaboration examples
         self.notable_examples = {
@@ -106,25 +113,37 @@ class AutomatedDataDownloader:
         """Check if required dependencies are available."""
         missing_deps = []
         
-        if not ASTROQUERY_AVAILABLE:
+        # Test astroquery import
+        try:
+            from astroquery.heasarc import Heasarc
+            from astroquery.cda import CDA
+            logger.info("✅ astroquery available")
+        except ImportError as e:
             missing_deps.append("astroquery")
+            logger.error(f"❌ astroquery import failed: {e}")
         
         # Check if CIAO is available
         try:
             result = subprocess.run(['download_chandra_obsid', '--help'], 
                                   capture_output=True, text=True, timeout=10)
-            if result.returncode != 0:
+            if result.returncode == 0:
+                logger.info("✅ CIAO available")
+            else:
                 missing_deps.append("CIAO (Chandra Interactive Analysis of Observations)")
+                logger.warning("⚠️ CIAO command found but not working properly")
         except (subprocess.TimeoutExpired, FileNotFoundError):
             missing_deps.append("CIAO (Chandra Interactive Analysis of Observations)")
+            logger.warning("⚠️ CIAO not found")
         
         if missing_deps:
             logger.error("❌ Missing dependencies:")
             for dep in missing_deps:
                 logger.error(f"   - {dep}")
             logger.error("\nInstall missing dependencies:")
-            logger.error("   pip install astroquery")
-            logger.error("   # Install CIAO from: https://cxc.cfa.harvard.edu/ciao/download/")
+            if "astroquery" in missing_deps:
+                logger.error("   pip install astroquery")
+            if "CIAO" in str(missing_deps):
+                logger.error("   # Install CIAO from: https://cxc.cfa.harvard.edu/ciao/download/")
             return False
         
         logger.info("✅ All dependencies available")
