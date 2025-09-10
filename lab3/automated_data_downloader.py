@@ -205,7 +205,7 @@ class AutomatedDataDownloader:
             logger.error(f"❌ Failed to download SWIFT data for {event_name}: {e}")
             return False
     
-    def download_chandra_data(self, obs_id: str, event_name: str) -> bool:
+    def download_chandra_data(self, obs_id: str, event_name: str, event_data: Dict) -> bool:
         """Download Chandra data using CIAO tools."""
         try:
             logger.info(f"📡 Downloading Chandra data for {event_name} (ObsID: {obs_id})...")
@@ -252,7 +252,7 @@ class AutomatedDataDownloader:
             # Try astroquery as fallback
             if self.mast:
                 logger.info("   🔄 Trying astroquery MAST fallback...")
-                return self._download_chandra_astroquery(obs_id, event_name, chandra_dir)
+                return self._download_chandra_astroquery(obs_id, event_name, chandra_dir, event_data)
             else:
                 logger.warning("⚠️ astroquery MAST not available, creating placeholder")
                 self._create_chandra_placeholder(obs_id, event_name, chandra_dir)
@@ -275,12 +275,16 @@ class AutomatedDataDownloader:
             coord = SkyCoord(ra=event_data["ra"]*u.deg, dec=event_data["dec"]*u.deg)
             
             # Query by coordinates
-            logger.info(f"   📥 Searching by coordinates: RA={event_data['ra']}°, Dec={event_data['dec']}°")
+            logger.info(f"   📥 Searching by coordinates: {event_data['ra']}, {event_data['dec']}")
             result = self.heasarc.query_region(coord, catalog='swiftmastr', radius=0.1*u.deg)
             
             if len(result) == 0:
                 logger.warning(f"⚠️ No SWIFT data found near coordinates")
-                logger.info(f"   💡 To download real SWIFT data: Visit https://www.swift.ac.uk/swift_portal/ and search for ObsID {obs_id}")
+                logger.info(f"   💡 To download real SWIFT data:")
+                logger.info(f"      - UKSSDC: https://www.swift.ac.uk/swift_portal/ (search for ObsID: {obs_id})")
+                logger.info(f"      - HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl")
+                logger.info(f"        Use coordinates: {event_data['ra']}, {event_data['dec']} (select 'SWIFT' mission)")
+                logger.info(f"      - Direct archive: https://heasarc.gsfc.nasa.gov/FTP/swift/data/obs/")
                 return False
             
             # Found observations - attempt to download them
@@ -301,20 +305,32 @@ class AutomatedDataDownloader:
                     except Exception as e:
                         logger.warning(f"   ⚠️ Could not download {obs_id_found}: {e}")
                 
-                logger.info(f"   💡 To download real SWIFT data: Visit https://www.swift.ac.uk/swift_portal/ and search for ObsID {obs_id}")
+                logger.info(f"   💡 To download real SWIFT data:")
+                logger.info(f"      - UKSSDC: https://www.swift.ac.uk/swift_portal/ (search for ObsID: {obs_id})")
+                logger.info(f"      - HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl")
+                logger.info(f"        Use coordinates: {event_data['ra']}, {event_data['dec']} (select 'SWIFT' mission)")
+                logger.info(f"      - Direct archive: https://heasarc.gsfc.nasa.gov/FTP/swift/data/obs/")
                 return False  # Still return False since we can't actually download via API
                 
             except Exception as e:
                 logger.error(f"   ❌ Failed to process observations: {e}")
-                logger.info(f"   💡 To download real SWIFT data: Visit https://www.swift.ac.uk/swift_portal/ and search for ObsID {obs_id}")
+                logger.info(f"   💡 To download real SWIFT data:")
+                logger.info(f"      - UKSSDC: https://www.swift.ac.uk/swift_portal/ (search for ObsID: {obs_id})")
+                logger.info(f"      - HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl")
+                logger.info(f"        Use coordinates: {event_data['ra']}, {event_data['dec']} (select 'SWIFT' mission)")
+                logger.info(f"      - Direct archive: https://heasarc.gsfc.nasa.gov/FTP/swift/data/obs/")
                 return False
             
         except Exception as e:
             logger.error(f"❌ Coordinate-based SWIFT download failed: {e}")
-            logger.info(f"   💡 To download real SWIFT data: Visit https://www.swift.ac.uk/swift_portal/ and search for ObsID {obs_id}")
+            logger.info(f"   💡 To download real SWIFT data:")
+            logger.info(f"      - UKSSDC: https://www.swift.ac.uk/swift_portal/ (search for ObsID: {obs_id})")
+            logger.info(f"      - HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl")
+            logger.info(f"        Use coordinates: {event_data['ra']}, {event_data['dec']} (select 'SWIFT' mission)")
+            logger.info(f"      - Direct archive: https://heasarc.gsfc.nasa.gov/FTP/swift/data/obs/")
             return False
     
-    def _download_chandra_astroquery(self, obs_id: str, event_name: str, chandra_dir: Path) -> bool:
+    def _download_chandra_astroquery(self, obs_id: str, event_name: str, chandra_dir: Path, event_data: Dict) -> bool:
         """Fallback Chandra download using astroquery MAST."""
         try:
             logger.info(f"   📥 Trying astroquery MAST for Chandra ObsID {obs_id}...")
@@ -342,26 +358,46 @@ class AutomatedDataDownloader:
                             return True
                         except Exception as download_error:
                             logger.warning(f"   ⚠️ Download failed: {download_error}")
-                            logger.info(f"   💡 To download real Chandra data: Visit https://cda.harvard.edu/ and search for ObsID {obs_id}")
+                            logger.info(f"   💡 To download real Chandra data:")
+                            logger.info(f"      - CDA: https://cda.harvard.edu/ (search for ObsID: {obs_id})")
+                            logger.info(f"      - HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl")
+                            logger.info(f"        Use coordinates: {event_data['ra']}, {event_data['dec']} (select 'Chandra' mission)")
+                            logger.info(f"      - Direct archive: https://heasarc.gsfc.nasa.gov/FTP/chandra/data/")
                             return False
                     else:
                         logger.warning(f"⚠️ No data products found for ObsID {obs_id}")
-                        logger.info(f"   💡 To download real Chandra data: Visit https://cda.harvard.edu/ and search for ObsID {obs_id}")
+                        logger.info(f"   💡 To download real Chandra data:")
+                        logger.info(f"      - CDA: https://cda.harvard.edu/ (search for ObsID: {obs_id})")
+                        logger.info(f"      - HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl")
+                        logger.info(f"        Use coordinates: {event_data['ra']}, {event_data['dec']} (select 'Chandra' mission)")
+                        logger.info(f"      - Direct archive: https://heasarc.gsfc.nasa.gov/FTP/chandra/data/")
                 else:
                     logger.warning(f"⚠️ No observations found for ObsID {obs_id}")
-                    logger.info(f"   💡 To download real Chandra data: Visit https://cda.harvard.edu/ and search for ObsID {obs_id}")
+                    logger.info(f"   💡 To download real Chandra data:")
+                    logger.info(f"      - CDA: https://cda.harvard.edu/ (search for ObsID: {obs_id})")
+                    logger.info(f"      - HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl")
+                    logger.info(f"        Use coordinates: {event_data['ra']}, {event_data['dec']} (select 'Chandra' mission)")
+                    logger.info(f"      - Direct archive: https://heasarc.gsfc.nasa.gov/FTP/chandra/data/")
                     
             except Exception as mast_error:
                 logger.warning(f"⚠️ MAST query failed: {mast_error}")
             
             # Fallback: Provide error message
             logger.warning(f"⚠️ No Chandra data found for ObsID {obs_id}")
-            logger.info(f"   💡 To download real Chandra data: Visit https://cda.harvard.edu/ and search for ObsID {obs_id}")
+            logger.info(f"   💡 To download real Chandra data:")
+            logger.info(f"      - CDA: https://cda.harvard.edu/ (search for ObsID: {obs_id})")
+            logger.info(f"      - HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl")
+            logger.info(f"        Use coordinates: RA={event_data['ra']}°, Dec={event_data['dec']}° (select 'Chandra' mission)")
+            logger.info(f"      - Direct archive: https://heasarc.gsfc.nasa.gov/FTP/chandra/data/")
             return False
             
         except Exception as e:
             logger.error(f"❌ astroquery MAST Chandra download failed: {e}")
-            logger.info(f"   💡 To download real Chandra data: Visit https://cda.harvard.edu/ and search for ObsID {obs_id}")
+            logger.info(f"   💡 To download real Chandra data:")
+            logger.info(f"      - CDA: https://cda.harvard.edu/ (search for ObsID: {obs_id})")
+            logger.info(f"      - HEASARC: https://heasarc.gsfc.nasa.gov/cgi-bin/W3Browse/w3browse.pl")
+            logger.info(f"        Use coordinates: RA={event_data['ra']}°, Dec={event_data['dec']}° (select 'Chandra' mission)")
+            logger.info(f"      - Direct archive: https://heasarc.gsfc.nasa.gov/FTP/chandra/data/")
             return False
     
     
@@ -389,7 +425,8 @@ class AutomatedDataDownloader:
             # Download Chandra data
             chandra_success = self.download_chandra_data(
                 event_data["chandra_obs_id"], 
-                event_name
+                event_name,
+                event_data
             )
             
             results[event_name] = {
