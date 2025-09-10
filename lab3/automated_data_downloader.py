@@ -280,22 +280,17 @@ class AutomatedDataDownloader:
             
             if len(result) == 0:
                 logger.warning(f"⚠️ No SWIFT data found near coordinates")
-                self._create_swift_placeholder(obs_id, event_name, swift_dir)
+                logger.info(f"   💡 To download real SWIFT data: Visit https://www.swift.ac.uk/swift_portal/ and search for ObsID {obs_id}")
                 return False
             
-            # For now, just create realistic data since the download API is complex
+            # Found observations but can't download directly
             logger.info(f"   📥 Found {len(result)} SWIFT observations near coordinates")
-            logger.info("   📝 Creating realistic synthetic data with real observation metadata...")
-            
-            # Create realistic data based on the search results
-            self._create_realistic_swift_data(obs_id, event_name, swift_dir, event_data, result)
-            
-            logger.info(f"✅ SWIFT data created via coordinates to {swift_dir}")
-            return True
+            logger.info(f"   💡 To download real SWIFT data: Visit https://www.swift.ac.uk/swift_portal/ and search for ObsID {obs_id}")
+            return False
             
         except Exception as e:
             logger.error(f"❌ Coordinate-based SWIFT download failed: {e}")
-            self._create_swift_placeholder(obs_id, event_name, swift_dir)
+            logger.info(f"   💡 To download real SWIFT data: Visit https://www.swift.ac.uk/swift_portal/ and search for ObsID {obs_id}")
             return False
     
     def _download_chandra_astroquery(self, obs_id: str, event_name: str, chandra_dir: Path) -> bool:
@@ -330,154 +325,16 @@ class AutomatedDataDownloader:
             except Exception as mast_error:
                 logger.warning(f"⚠️ MAST query failed: {mast_error}")
             
-            # Fallback: Create placeholder with MAST instructions
-            self._create_chandra_placeholder(obs_id, event_name, chandra_dir, is_fallback=True)
-            logger.info(f"✅ Chandra data placeholder created via MAST fallback for {event_name}")
-            return True
+            # Fallback: Provide error message
+            logger.warning(f"⚠️ No Chandra data found for ObsID {obs_id}")
+            logger.info(f"   💡 To download real Chandra data: Visit https://cda.harvard.edu/ and search for ObsID {obs_id}")
+            return False
             
         except Exception as e:
             logger.error(f"❌ astroquery MAST Chandra download failed: {e}")
-            self._create_chandra_placeholder(obs_id, event_name, chandra_dir)
+            logger.info(f"   💡 To download real Chandra data: Visit https://cda.harvard.edu/ and search for ObsID {obs_id}")
             return False
     
-    def _create_realistic_swift_data(self, obs_id: str, event_name: str, swift_dir: Path, 
-                                   event_data: Dict, search_results) -> None:
-        """Create realistic SWIFT data based on search results."""
-        try:
-            # Create observation data based on search results
-            observations = []
-            base_time = datetime.fromisoformat(event_data["swift_date"])
-            
-            for i, result in enumerate(search_results[:5]):  # Limit to 5 observations
-                obs_time = base_time + timedelta(hours=i*12)
-                obs_data = {
-                    "observation_time": obs_time.isoformat(),
-                    "target_object": event_name.replace("_", " "),
-                    "ra": float(result.get('RA', event_data["ra"] + i*0.1)),
-                    "dec": float(result.get('DEC', event_data["dec"] + i*0.05)),
-                    "xray_flux": 1.0 + (i * 0.2),
-                    "burst_detected": i == 0,
-                    "exposure_time": int(result.get('EXPOSURE', 1000 + i*200)),
-                    "instrument": "XRT",
-                    "data_source": "SWIFT",
-                    "ingestion_timestamp": datetime.now().isoformat(),
-                    "real_obsid": result.get('OBSID', obs_id)
-                }
-                observations.append(obs_data)
-            
-            # Save observation data
-            obs_file = swift_dir / "observations.json"
-            with open(obs_file, 'w') as f:
-                json.dump(observations, f, indent=2)
-            
-            # Create FITS-like files
-            fits_files = [
-                "swift_xrt_data.fits",
-                "swift_bat_data.fits", 
-                "swift_uvot_data.fits"
-            ]
-            
-            for fits_file in fits_files:
-                fits_path = swift_dir / fits_file
-                with open(fits_path, 'w') as f:
-                    f.write(f"# FITS-like data file for {event_name}\n")
-                    f.write(f"# Observation ID: {obs_id}\n")
-                    f.write(f"# Generated: {datetime.now().isoformat()}\n")
-                    f.write(f"# Note: This is synthetic data for Lab 3\n")
-                    f.write(f"# Based on real HEASARC search results\n")
-                    f.write(f"# Real data available at: https://www.swift.ac.uk/swift_portal/\n")
-            
-            # Create download instructions
-            instructions_file = swift_dir / "download_instructions.md"
-            with open(instructions_file, 'w') as f:
-                f.write(f"# SWIFT Data Download for {event_data['name']}\n\n")
-                f.write(f"**Observation ID:** {obs_id}\n")
-                f.write(f"**Date:** {event_data['swift_date']}\n")
-                f.write(f"**Coordinates:** RA={event_data['ra']}°, Dec={event_data['dec']}°\n\n")
-                f.write("## Real Data Download\n\n")
-                f.write("1. Visit: https://www.swift.ac.uk/swift_portal/\n")
-                f.write(f"2. Search for observation ID: {obs_id}\n")
-                f.write("3. Download the data products\n")
-                f.write("4. Replace synthetic files in this directory\n\n")
-                f.write("## Search Results Found\n\n")
-                f.write(f"Found {len(search_results)} observations near coordinates.\n")
-                f.write("This synthetic data is based on real HEASARC search results.\n")
-            
-        except Exception as e:
-            logger.error(f"❌ Failed to create realistic SWIFT data: {e}")
-            self._create_swift_placeholder(obs_id, event_name, swift_dir)
-    
-    def _create_swift_placeholder(self, obs_id: str, event_name: str, swift_dir: Path) -> None:
-        """Create placeholder SWIFT data with download instructions."""
-        placeholder_files = [
-            "swift_xrt_data.fits",
-            "swift_bat_data.fits", 
-            "swift_uvot_data.fits",
-            "observation_log.txt"
-        ]
-        
-        for filename in placeholder_files:
-            placeholder_file = swift_dir / filename
-            with open(placeholder_file, 'w') as f:
-                f.write(f"# Placeholder SWIFT data for {event_name}\n")
-                f.write(f"# Observation ID: {obs_id}\n")
-                f.write(f"# Generated: {datetime.now().isoformat()}\n")
-                f.write(f"# Note: This is synthetic data for Lab 3\n")
-        
-        # Create download instructions
-        instructions_file = swift_dir / "download_instructions.txt"
-        with open(instructions_file, 'w') as f:
-            f.write("SWIFT Data Download Instructions:\n")
-            f.write("================================\n\n")
-            f.write("To download real SWIFT data:\n")
-            f.write("1. Visit: https://www.swift.ac.uk/swift_portal/\n")
-            f.write(f"2. Search for observation ID: {obs_id}\n")
-            f.write("3. Download the data products\n")
-            f.write("4. Replace these placeholder files\n\n")
-            f.write("Or use Python:\n")
-            f.write("```python\n")
-            f.write("from astroquery.heasarc import Heasarc\n")
-            f.write("heasarc = Heasarc()\n")
-            f.write(f"data_products = heasarc.get_data_products('{obs_id}')\n")
-            f.write("heasarc.download_data(data_products)\n")
-            f.write("```\n")
-    
-    def _create_chandra_placeholder(self, obs_id: str, event_name: str, chandra_dir: Path, is_fallback: bool = False) -> None:
-        """Create placeholder Chandra data with download instructions."""
-        placeholder_files = [
-            "chandra_acis_data.fits",
-            "chandra_hrc_data.fits",
-            "chandra_spectrum.fits",
-            "observation_log.txt"
-        ]
-        
-        for filename in placeholder_files:
-            placeholder_file = chandra_dir / filename
-            with open(placeholder_file, 'w') as f:
-                f.write(f"# Placeholder Chandra data for {event_name}\n")
-                f.write(f"# Observation ID: {obs_id}\n")
-                f.write(f"# Generated: {datetime.now().isoformat()}\n")
-                f.write(f"# Note: This is synthetic data for Lab 3\n")
-        
-        # Create download instructions
-        instructions_file = chandra_dir / "download_instructions.txt"
-        with open(instructions_file, 'w') as f:
-            f.write("Chandra Data Download Instructions:\n")
-            f.write("==================================\n\n")
-            f.write("To download real Chandra data:\n")
-            f.write("1. Install CIAO: https://cxc.cfa.harvard.edu/ciao/download/\n")
-            f.write(f"2. Run: download_chandra_obsid {obs_id}\n")
-            f.write("3. Move files to this directory\n\n")
-            f.write("Or use Python with MAST:\n")
-            f.write("```python\n")
-            f.write("from astroquery.mast import Observations\n")
-            f.write("mast = Observations()\n")
-            f.write(f"obs_table = mast.query_criteria(obs_id='{obs_id}')\n")
-            f.write("products = mast.get_product_list(obs_table[0])\n")
-            f.write("manifest = mast.download_products(products)\n")
-            f.write("```\n")
-            if is_fallback:
-                f.write(f"\nNote: MAST query failed for ObsID {obs_id}, this is placeholder data.\n")
     
     def download_all_datasets(self) -> Dict[str, bool]:
         """Download all notable SWIFT-Chandra collaboration datasets."""
