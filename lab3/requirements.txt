@@ -1,0 +1,17 @@
+# Lab 3: Multi-Observatory Data Storage and Analytics
+# Core dependencies for multi-observatory storage and analytics
+
+# VAST Data Platform integration
+vastpy>=0.3.17
+
+# Configuration management
+pyyaml>=6.0
+
+# Analytics and database functionality
+vastdb>=0.1.0
+
+# Query optimization and predicate pushdown
+ibis-framework==9.0.0  # For efficient database filtering (VAST DB SDK compatible)
+
+# Note: Install full dependencies with: pip install -r ../requirements.txt
+# This file contains only the minimal dependencies needed for Lab 3

@@ -98,17 +98,27 @@ lab2:
     port: 5432
     database: "orbital_dynamics_metadata"
 
-# Lab 3: Pipeline Orchestration Settings
+# Lab 3: Multi-Observatory Data Storage and Analytics Settings
 lab3:
-  pipeline:
-    max_concurrent_jobs: 5
-    job_timeout_minutes: 120
-    retry_attempts: 3
-    retry_delay_seconds: 30
+  swift:
+    storage_quota_tb: 100                    # SWIFT storage quota in TB
+    data_path: "/swift/observations"         # SWIFT data storage path
   
-  monitoring:
-    dashboard_refresh_seconds: 60
-    enable_real_time_updates: true
+  chandra:
+    storage_quota_tb: 200                    # Chandra storage quota in TB
+    data_path: "/chandra/observations"       # Chandra data storage path
+  
+  analytics:
+    batch_size: 1000                         # Analytics query batch size
+    query_timeout_seconds: 300               # Query timeout in seconds
+    burst_followup_window_days: 7            # SWIFT burst to Chandra follow-up window in days
+    coordinated_campaign_window_days: 30     # Coordinated observation campaign window in days
+    burst_detection_threshold: 0.9           # Burst detection threshold (0.0-1.0)
+  
+  storage:
+    auto_expansion_threshold: 85             # Auto-expand storage when utilization exceeds this %
+    max_expansion_tb: 50                     # Maximum single expansion in TB
+    monitoring_interval_seconds: 300         # Storage monitoring interval
 
 # Lab 4: Snapshot Strategy Settings
 lab4:
