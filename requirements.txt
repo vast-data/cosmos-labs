@@ -3,6 +3,11 @@ vastpy>=0.3.17
 pyyaml>=6.0
 vastdb>=0.1.0
 
+# VAST DB SDK dependencies (from https://github.com/vast-data/vastdb_sdk)
+ibis-framework==9.0.0
+pyarrow>=10.0.0
+pandas>=1.5.0
+
 # Development and testing dependencies
 pytest>=7.0.0
 pytest-cov>=4.0.0
