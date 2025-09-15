@@ -2,35 +2,97 @@
 """
 Example 7: Orphaned Data Discovery
 
-This script identifies deleted views from event logs and checks if their
-associated directories still exist on the VAST system using the stat_path API.
-
-The script:
-1. Queries VAST event logs for view deletion events
-2. Deduplicates events to get unique view deletions
-3. Checks if views have been recreated (skips if so)
-4. Uses the stat_path API to check if directories still exist
-5. Categorizes results as orphaned (need cleanup) or clean (properly deleted)
-6. Generates a comprehensive report with ownership and metadata
+This script efficiently finds orphaned data by:
+1. Getting all actual directory paths from VAST using vastdb catalog
+2. Getting all current view paths from VAST
+3. Finding directories that exist but have no corresponding views
 """
 
 import sys
-import time
+from collections import defaultdict
 from examples_config import ExamplesConfigLoader
 from vastpy import VASTClient
+import vastdb
+from ibis import _
 
-def main():
-    print("🔍 Example 7: Orphaned Data Discovery")
-    print("=" * 60)
+def get_all_directory_paths():
+    """Get all actual directory paths from VAST using vastdb catalog"""
+    print("🔍 Step 1: Getting all directory paths from VAST catalog...")
     
-    # Load configuration
-    config = ExamplesConfigLoader()
-    vast_config = config.get_vast_config()
-    
-    # Connect to VAST
-    print("📋 Step 1: Connecting to VAST...")
     try:
-        # Clean the address (remove https:// prefix if present)
+        # Load configuration
+        config_loader = ExamplesConfigLoader()
+        
+        # Get S3 configuration for vastdb (same pattern as example 8)
+        s3_config = config_loader.config.get('s3', {})
+        
+        s3_endpoint = s3_config.get('endpoint_url')
+        s3_access_key = config_loader.secrets.get('s3_access_key')
+        s3_secret_key = config_loader.secrets.get('s3_secret_key')
+        
+        if not all([s3_endpoint, s3_access_key, s3_secret_key]):
+            print("❌ Missing S3 credentials for vastdb connection")
+            return set()
+        
+        # Connect to vastdb
+        session = vastdb.connect(
+            endpoint=s3_endpoint,
+            access=s3_access_key,
+            secret=s3_secret_key
+        )
+        
+        all_directories = set()
+        
+        with session.transaction() as tx:
+            # Use the exact pattern from the official VAST DB documentation
+            table = tx.catalog().select(['parent_path', 'name', 'element_type']).read_all()
+            df = table.to_pandas()
+            
+            # Filter for directories only
+            dirs_df = df[df['element_type'] == 'DIR']
+            print(f"      ✅ Found {len(dirs_df)} directories in catalog")
+            
+            # Build full paths with progress indicator
+            total_rows = len(dirs_df)
+            skipped_count = 0
+            
+            for idx, (_, row) in enumerate(dirs_df.iterrows()):
+                if idx % 100000 == 0:  # Show progress every 100k rows
+                    print(f"      ⏳ Processing directories: {idx:,}/{total_rows:,} ({idx/total_rows*100:.1f}%)")
+                
+                parent_path = row['parent_path']
+                name = row['name']
+                
+                # Construct full path
+                full_path = f"{parent_path.rstrip('/')}/{name}"
+                
+                # Skip VAST internal directories
+                if full_path.startswith('/.vast_audit_dir') or full_path.startswith('/.vast_removed_protected_paths'):
+                    skipped_count += 1
+                    continue
+                
+                all_directories.add(full_path)
+            
+            if skipped_count > 0:
+                print(f"      ⏭️  Skipped {skipped_count:,} VAST internal directories")
+        
+        print(f"✅ Retrieved {len(all_directories)} unique directory paths")
+        return all_directories
+        
+    except Exception as e:
+        print(f"❌ Failed to get directory paths: {e}")
+        return set()
+
+def get_current_view_paths():
+    """Get all current view paths from VAST"""
+    print("\n🔍 Step 2: Getting current view paths...")
+    
+    try:
+        # Load configuration
+        config = ExamplesConfigLoader()
+        vast_config = config.get_vast_config()
+        
+        # Connect to VAST
         address = vast_config['address']
         if address.startswith('https://'):
             address = address[8:]
@@ -42,388 +104,176 @@ def main():
             user=vast_config['user'],
             password=vast_config['password']
         )
-        print("✅ Connected to VAST successfully")
+        
+        # Get current views
+        views = client.views.get()
+        print(f"      ✅ Retrieved {len(views)} current views")
+        
+        # Extract view paths
+        current_views = {}
+        
+        for view in views:
+            view_path = view.get('path')  # Required field, no need to check for empty
+            
+            current_views[view_path] = {
+                'view_id': view.get('id', 'Unknown'),
+                'tenant_id': view.get('tenant_id', 'Unknown')
+            }
+        
+        print(f"✅ Found {len(current_views)} current view paths")
+        return current_views
+        
     except Exception as e:
-        print(f"❌ Failed to connect to VAST: {e}")
-        return False
-    
-    # Query events endpoint for view deletions
-    print("\n📋 Step 2: Querying VAST events for view deletions...")
-    return query_events_for_deletions(client, config, vast_config)
+        print(f"❌ Failed to get current view paths: {e}")
+        return {}
 
-def query_events_for_deletions(client, config, vast_config):
-    """Query events endpoint for view deletion events"""
-    print("🔍 Querying events endpoint for view deletions...")
+def find_orphaned_directories(all_directories, current_views):
+    """Find directories that exist but have no corresponding views"""
+    print("\n🔍 Step 3: Finding directories without corresponding views...")
     
-    try:
-        events = client.events.get()
-        print(f"✅ Retrieved {len(events)} event log entries")
+    # Collect all view paths and create a more efficient lookup structure
+    view_paths = set(current_views.keys())
+    print(f"      📊 Total view paths: {len(view_paths)}")
+    
+    # Create a set of all possible parent paths for faster lookup
+    # This avoids the O(n*m) nested loop
+    parent_view_paths = set()
+    for view_path in view_paths:
+        if view_path != '/':
+            # Add the view path itself
+            parent_view_paths.add(view_path)
+            # Add all parent directories of the view path
+            parts = view_path.strip('/').split('/')
+            for i in range(1, len(parts) + 1):
+                parent_path = '/' + '/'.join(parts[:i])
+                parent_view_paths.add(parent_path)
+    
+    print(f"      📊 Total parent view paths (including hierarchy): {len(parent_view_paths)}")
+    
+    # Find directories that exist but have no views
+    orphaned = []
+    covered_directories = set()
+    
+    # Process in batches to show progress
+    total_dirs = len(all_directories)
+    batch_size = 100000  # Process 100k directories at a time
+    processed = 0
+    
+    for i in range(0, total_dirs, batch_size):
+        batch = list(all_directories)[i:i + batch_size]
         
-        # Filter for view deletion events
-        view_deletions = []
-        for event in events:
-            if (event.get('object_type') == 'View' and 
-                event.get('event_type') == 'OBJECT_DELETED'):
-                view_deletions.append(event)
-        
-        print(f"🔍 Found {len(view_deletions)} view deletion events in event logs")
-        
-        if view_deletions:
-            print("\n📊 View deletion summary:")
-            for i, deletion in enumerate(view_deletions[:10], 1):
-                print(f"{i}. Path: {deletion.get('object_name', 'Unknown')}")
-                print(f"   Deleted at: {deletion.get('timestamp', 'Unknown')}")
-                print(f"   Event: {deletion.get('event_message', 'Unknown')}")
-                print()
+        for directory in batch:
+            is_covered = False
             
-            if len(view_deletions) > 10:
-                print(f"... and {len(view_deletions) - 10} more")
+            # Check if directory is directly covered by a view path
+            if directory in view_paths:
+                is_covered = True
             
-            # Check if directories still exist
-            print("\n📋 Step 3: Checking if directories still exist...")
-            return check_directory_existence(client, view_deletions, config, vast_config)
-        
-        return True
-        
-    except Exception as e:
-        print(f"❌ Events endpoint failed: {e}")
-        return False
-
-def check_directory_existence(client, view_deletions, config, vast_config):
-    """Check if directories from deleted views still exist"""
-    print("🔍 Checking directory existence for deleted views...")
-    
-    orphaned_directories = []
-    existing_directories = []
-    recreated_views = []
-    error_views = []
-    no_path_views = 0
-    
-    # Get current views once to avoid repeated API calls
-    print("🔍 Getting current active views for comparison...")
-    try:
-        current_views = client.views.get()
-        current_view_paths = {view.get('path') for view in current_views if view.get('path')}
-        print(f"✅ Found {len(current_view_paths)} active views")
-    except Exception as e:
-        print(f"⚠️  Could not get current views: {e}")
-        current_view_paths = set()
-    
-    # Deduplicate view deletions - keep only the most recent deletion for each path
-    print("🔍 Deduplicating view deletions...")
-    unique_deletions = {}
-    for deletion in view_deletions:
-        view_path = deletion.get('object_name', '')
-        if view_path:  # Only process views with valid paths
-            # Keep the most recent deletion for each path
-            if view_path not in unique_deletions or deletion.get('timestamp', '') > unique_deletions[view_path].get('timestamp', ''):
-                unique_deletions[view_path] = deletion
-    
-    print(f"✅ Deduplicated: {len(view_deletions)} → {len(unique_deletions)} unique view deletions")
-    
-    # Debug: Show some of the unique deletions
-    print(f"🔍 Sample unique deletions:")
-    for i, (path, deletion) in enumerate(list(unique_deletions.items())[:5], 1):
-        print(f"   {i}. {path} (deleted: {deletion.get('timestamp', 'Unknown')})")
-    if len(unique_deletions) > 5:
-        print(f"   ... and {len(unique_deletions) - 5} more")
-    
-    # Process only unique view deletions
-    for i, (view_path, deletion) in enumerate(unique_deletions.items(), 1):
-        print(f"   {i}. Checking: {view_path}")
-        
-        # First, verify the view is actually deleted (not recreated)
-        print(f"      🔍 Verifying view is still deleted...")
-        
-        if view_path in current_view_paths:
-            recreated_views.append({
-                'path': view_path,
-                'deleted_at': deletion.get('timestamp', 'Unknown'),
-                'event': deletion.get('event_message', 'Unknown')
-            })
-            print(f"      ⚠️  View has been recreated - skipping (not orphaned)")
-            continue
-        else:
-            print(f"      ✅ View confirmed deleted - proceeding with directory check")
-        
-        try:
-            # Try to check if the directory/path still exists and get ownership info
-            path_exists = False
-            path_ownership = None
+            # Check if directory is covered by any parent view (much faster lookup)
+            if not is_covered:
+                # Check if any parent path of this directory is in our parent_view_paths
+                parts = directory.strip('/').split('/')
+                for i in range(1, len(parts) + 1):
+                    parent_path = '/' + '/'.join(parts[:i])
+                    if parent_path in parent_view_paths:
+                        is_covered = True
+                        break
             
-            # Method 1: Try stat_path API for detailed information
-            try:
-                import requests
-                import json
-                
-                # Get the base URL and credentials
-                vast_address = vast_config['address']
-                print(f"      Debug - VAST address from config: {vast_address}")
-                
-                if not vast_address:
-                    print(f"      ⚠️  VAST address not properly configured in config.yaml")
-                    print(f"      💡 Please set 'vast.address' in config.yaml")
-                    raise Exception("VAST address not configured")
-                
-                if not vast_address.startswith('http'):
-                    vast_address = f"https://{vast_address}"
-                vast_address = vast_address.rstrip('/')
-                
-                auth = (config.config.get('vast.user', 'admin'), config.get_secret('vast_password', ''))
-                
-                stat_url = f"{vast_address}/api/folders/stat_path/"
-                # Try without tenant_id first - let VAST determine the correct tenant
-                stat_data = {
-                    "path": view_path
-                }
-                print(f"      Debug - Trying without tenant_id first...")
-                
-                response = requests.post(stat_url, auth=auth, json=stat_data, verify=False)
-                
-                if response.status_code == 200:
-                    path_ownership = response.json()
-                    is_directory = path_ownership.get('is_directory', False)
-                    owner = path_ownership.get('owning_user', 'Unknown')
-                    group = path_ownership.get('owning_group', 'Unknown')
-                    
-                    if is_directory:
-                        path_exists = True
-                        print(f"      ❌ Directory exists with ownership: {owner}:{group}")
-                    else:
-                        print(f"      ⚠️  Path exists but is not a directory (file?): {owner}:{group}")
-                elif response.status_code == 404:
-                    print(f"      ✅ Path not found (404)")
-                elif response.status_code == 400:
-                    # 400 "Tenant matching query does not exist" - try with tenant_id from event
-                    print(f"      ⚠️  Request failed without tenant_id (400), trying with tenant from event...")
-                    tenant_id = deletion.get('metadata', {}).get('tenant_id', 1)
-                    stat_data['tenant_id'] = tenant_id
-                    response = requests.post(stat_url, auth=auth, json=stat_data, verify=False)
-                    if response.status_code == 200:
-                        path_ownership = response.json()
-                        is_directory = path_ownership.get('is_directory', False)
-                        owner = path_ownership.get('owning_user', 'Unknown')
-                        group = path_ownership.get('owning_group', 'Unknown')
-                        
-                        if is_directory:
-                            path_exists = True
-                            print(f"      ❌ Directory exists with ownership: {owner}:{group} (using tenant {tenant_id})")
-                        else:
-                            print(f"      ⚠️  Path exists but is not a directory (file?): {owner}:{group} (using tenant {tenant_id})")
-                    elif response.status_code == 404:
-                        print(f"      ✅ Path not found with tenant {tenant_id} (404)")
-                    elif response.status_code == 503:
-                        print(f"      ✅ Path not found with tenant {tenant_id} (503)")
-                    else:
-                        print(f"      ❌ Still failed with tenant {tenant_id}: {response.status_code}")
-                elif response.status_code == 503:
-                    # 503 "Template directory path wasn't found" - path doesn't exist
-                    print(f"      ✅ Path not found (503 - Template directory path wasn't found)")
-                elif response.status_code == 429:
-                    # Rate limiting - wait and retry
-                    print(f"      ⚠️  Rate limited (429), waiting 2 seconds...")
-                    time.sleep(2)
-                    # Retry once
-                    response = requests.post(stat_url, auth=auth, json=stat_data, verify=False)
-                    if response.status_code == 200:
-                        path_ownership = response.json()
-                        is_directory = path_ownership.get('is_directory', False)
-                        owner = path_ownership.get('owning_user', 'Unknown')
-                        group = path_ownership.get('owning_group', 'Unknown')
-                        
-                        if is_directory:
-                            path_exists = True
-                            print(f"      ❌ Directory exists with ownership: {owner}:{group} (after retry)")
-                        else:
-                            print(f"      ⚠️  Path exists but is not a directory (file?): {owner}:{group} (after retry)")
-                    else:
-                        print(f"      ✅ Path not found after retry: {response.status_code}")
-                else:
-                    print(f"      ⚠️  Stat path failed: {response.status_code} - {response.text}")
-                
-                # Small delay to avoid overwhelming the API
-                time.sleep(0.1)
-                    
-            except Exception as stat_error:
-                print(f"      ⚠️  Stat path API failed: {stat_error}")
-                print(f"      ❌ Cannot determine if path exists - API unavailable")
-            
-            if path_exists:
-                # Path still exists - this is ORPHANED DATA (BAD)
-                orphaned_directories.append({
-                    'path': view_path,
-                    'deleted_at': deletion.get('timestamp', 'Unknown'),
-                    'event': deletion.get('event_message', 'Unknown'),
-                    'ownership': path_ownership
-                })
-                print(f"      🚨 ORPHANED: Directory still exists - NEEDS CLEANUP!")
+            if is_covered:
+                covered_directories.add(directory)
             else:
-                # Path doesn't exist - clean deletion (GOOD)
-                existing_directories.append({
-                    'path': view_path,
-                    'deleted_at': deletion.get('timestamp', 'Unknown'),
-                    'event': deletion.get('event_message', 'Unknown')
-                })
-                print(f"      ✅ CLEAN: Directory properly deleted - No action needed")
-                
-        except Exception as e:
-            print(f"      ⚠️  Error checking directory: {e}")
-            error_views.append({
-                'path': view_path,
-                'deleted_at': deletion.get('timestamp', 'Unknown'),
-                'event': deletion.get('event_message', 'Unknown'),
-                'error': f"Directory check failed: {str(e)}"
-            })
-            continue
-    
-    # Report results
-    print(f"\n📊 Directory Existence Report:")
-    print(f"   Total view deletion events: {len(view_deletions)}")
-    print(f"   📝 Views with no path (skipped): {no_path_views}")
-    print(f"   🔄 Views recreated (skipped): {len(recreated_views)}")
-    print(f"   🚨 ORPHANED directories (still exist): {len(orphaned_directories)}")
-    print(f"   ✅ CLEAN deletions (properly removed): {len(existing_directories)}")
-    print(f"   ⚠️  Errors during processing: {len(error_views)}")
-    
-    # Verify math
-    total_processed = len(recreated_views) + len(orphaned_directories) + len(existing_directories) + len(error_views)
-    print(f"   📊 Math check: {total_processed}/{len(unique_deletions)} unique views processed")
-    
-    if orphaned_directories:
-        print(f"\n🚨 ORPHANED Directories (still exist but view deleted - NEEDS CLEANUP):")
-        for i, dir_info in enumerate(orphaned_directories[:10], 1):
-            print(f"   {i}. {dir_info['path']}")
-            print(f"      Deleted at: {dir_info['deleted_at']}")
-            print(f"      Event: {dir_info['event']}")
-            
-            # Show ownership information if available
-            if dir_info.get('ownership'):
-                ownership = dir_info['ownership']
-                owner = ownership.get('owning_user', 'Unknown')
-                group = ownership.get('owning_group', 'Unknown')
-                is_directory = ownership.get('is_directory', False)
-                print(f"      Ownership: {owner}:{group}")
-                print(f"      Type: {'Directory' if is_directory else 'File'}")
-                
-                # Show additional metadata if available
-                if 'permissions' in ownership:
-                    print(f"      Permissions: {ownership['permissions']}")
-                if 'size' in ownership:
-                    print(f"      Size: {ownership['size']}")
-            print()
+                orphaned.append({'directory_path': directory})
         
-        if len(orphaned_directories) > 10:
-            print(f"   ... and {len(orphaned_directories) - 10} more orphaned directories")
+        processed += len(batch)
+        print(f"      ⏳ Processed {processed:,}/{total_dirs:,} directories ({processed/total_dirs*100:.1f}%)")
     
-    if recreated_views:
-        print(f"\n🔄 Views Recreated (skipped - not orphaned):")
-        for i, view_info in enumerate(recreated_views[:5], 1):
-            print(f"   {i}. {view_info['path']}")
-            print(f"      Originally deleted: {view_info['deleted_at']}")
-        
-        if len(recreated_views) > 5:
-            print(f"   ... and {len(recreated_views) - 5} more recreated views")
-    
-    if error_views:
-        print(f"\n⚠️  Processing Errors (could not complete check):")
-        for i, error_info in enumerate(error_views[:5], 1):
-            print(f"   {i}. {error_info['path']}")
-            print(f"      Error: {error_info['error']}")
-        
-        if len(error_views) > 5:
-            print(f"   ... and {len(error_views) - 5} more errors")
-    
-    if existing_directories:
-        print(f"\n✅ CLEAN Deletions (directories properly removed - No action needed):")
-        for i, dir_info in enumerate(existing_directories[:5], 1):
-            print(f"   {i}. {dir_info['path']}")
-        
-        if len(existing_directories) > 5:
-            print(f"   ... and {len(existing_directories) - 5} more clean deletions")
+    print(f"      📊 Directories covered by views: {len(covered_directories)}")
+    print(f"✅ Found {len(orphaned)} directories without corresponding views")
+    return orphaned
 
-    # Generate full report file
-    import datetime
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    report_filename = f"orphaned_data_report_{timestamp}.txt"
+def main():
+    """Main function"""
+    print("🔍 Example 7: Orphaned Data Discovery")
+    print("=" * 60)
     
-    print(f"\n📄 Generating full report: {report_filename}")
+    # Step 1: Get all directory paths
+    all_directories = get_all_directory_paths()
+    if not all_directories:
+        print("❌ No directories found, cannot proceed")
+        return False
     
-    try:
-        with open(report_filename, 'w') as report_file:
-            report_file.write("VAST Orphaned Data Discovery Report\n")
-            report_file.write("=" * 50 + "\n")
-            report_file.write(f"Generated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            report_file.write(f"Total view deletion events: {len(view_deletions)}\n")
-            report_file.write(f"📝 Views with no path (skipped): {no_path_views}\n")
-            report_file.write(f"🔄 Views recreated (skipped): {len(recreated_views)}\n")
-            report_file.write(f"🚨 ORPHANED directories (still exist): {len(orphaned_directories)}\n")
-            report_file.write(f"✅ CLEAN deletions (properly removed): {len(existing_directories)}\n")
-            report_file.write(f"⚠️  Processing errors: {len(error_views)}\n\n")
-            
-            # Math verification
-            total_processed = len(recreated_views) + len(orphaned_directories) + len(existing_directories) + len(error_views)
-            report_file.write(f"Math verification: {total_processed}/{len(unique_deletions)} unique views processed\n\n")
-            
-            if orphaned_directories:
-                report_file.write("🚨 ORPHANED DIRECTORIES (still exist but view deleted - NEEDS CLEANUP):\n")
-                report_file.write("-" * 50 + "\n")
-                for i, dir_info in enumerate(orphaned_directories, 1):
-                    report_file.write(f"{i}. {dir_info['path']}\n")
-                    report_file.write(f"   Deleted at: {dir_info['deleted_at']}\n")
-                    report_file.write(f"   Event: {dir_info['event']}\n")
-                    
-                    # Show ownership information if available
-                    if dir_info.get('ownership'):
-                        ownership = dir_info['ownership']
-                        owner = ownership.get('owning_user', 'Unknown')
-                        group = ownership.get('owning_group', 'Unknown')
-                        is_directory = ownership.get('is_directory', False)
-                        report_file.write(f"   Ownership: {owner}:{group}\n")
-                        report_file.write(f"   Type: {'Directory' if is_directory else 'File'}\n")
-                        
-                        # Show additional metadata if available
-                        if 'permissions' in ownership:
-                            report_file.write(f"   Permissions: {ownership['permissions']}\n")
-                        if 'size' in ownership:
-                            report_file.write(f"   Size: {ownership['size']}\n")
-                    report_file.write("\n")
-            
-            if recreated_views:
-                report_file.write("🔄 VIEWS RECREATED (skipped - not orphaned):\n")
-                report_file.write("-" * 50 + "\n")
-                for i, view_info in enumerate(recreated_views, 1):
-                    report_file.write(f"{i}. {view_info['path']}\n")
-                    report_file.write(f"   Originally deleted: {view_info['deleted_at']}\n")
-                    report_file.write(f"   Event: {view_info['event']}\n\n")
-            
-            if error_views:
-                report_file.write("⚠️  PROCESSING ERRORS (could not complete check):\n")
-                report_file.write("-" * 50 + "\n")
-                for i, error_info in enumerate(error_views, 1):
-                    report_file.write(f"{i}. {error_info['path']}\n")
-                    report_file.write(f"   Deleted at: {error_info['deleted_at']}\n")
-                    report_file.write(f"   Event: {error_info['event']}\n")
-                    report_file.write(f"   Error: {error_info['error']}\n\n")
-            
-            if existing_directories:
-                report_file.write("✅ CLEAN DELETIONS (directories properly removed - No action needed):\n")
-                report_file.write("-" * 50 + "\n")
-                for i, dir_info in enumerate(existing_directories, 1):
-                    report_file.write(f"{i}. {dir_info['path']}\n")
-                    report_file.write(f"   Deleted at: {dir_info['deleted_at']}\n")
-                    report_file.write(f"   Event: {dir_info['event']}\n\n")
+    # Step 2: Get current view paths
+    current_views = get_current_view_paths()
+    if not current_views:
+        print("❌ No current views found, cannot proceed")
+        return False
+    
+    # Step 3: Find orphaned directories
+    orphaned = find_orphaned_directories(all_directories, current_views)
+    
+    # Display results
+    print(f"\n📊 Orphaned Data Analysis Results:")
+    print(f"   Total directories: {len(all_directories)}")
+    print(f"   Current views: {len(current_views)}")
+    print(f"   Orphaned directories: {len(orphaned)}")
+    
+    if orphaned:
+        print(f"\n🚨 ORPHANED DIRECTORIES (exist but have no views):")
+        print("=" * 60)
         
-        print(f"✅ Full report saved to: {report_filename}")
+        # Group orphaned directories by their top-level parent folder
+        folder_groups = defaultdict(list)
         
-    except Exception as e:
-        print(f"⚠️  Warning: Could not save report file: {e}")
-
+        for item in orphaned:
+            directory = item['directory_path']
+            # Get the top-level folder (e.g., /1/CL3_HT1_FRONTEND/Dir1//bucket0 -> /1)
+            parts = directory.strip('/').split('/')
+            top_folder = f"/{parts[0]}" if parts else "/"
+            folder_groups[top_folder].append(item)
+        
+        # Sort folders for consistent output
+        sorted_folders = sorted(folder_groups.keys())
+        
+        print(f"📊 Summary by top-level folders:")
+        for folder in sorted_folders:
+            count = len(folder_groups[folder])
+            print(f"   📁 {folder} - {count:,} orphaned directories")
+        
+        print(f"\n📋 Detailed breakdown by subdirectories:")
+        for folder in sorted_folders:
+            items = folder_groups[folder]
+            print(f"\n📁 {folder}/ - {len(items):,} total orphaned directories")
+            
+            # Group by subdirectories within this folder
+            subdir_groups = defaultdict(list)
+            for item in items:
+                directory = item['directory_path']
+                # Get the path relative to the top folder
+                relative_path = directory[len(folder):].lstrip('/')
+                if relative_path:
+                    subdir = relative_path.split('/')[0]
+                    subdir_groups[subdir].append(item)
+                else:
+                    subdir_groups['root'].append(item)
+            
+            # Show counts for each subdirectory
+            for subdir in sorted(subdir_groups.keys()):
+                subdir_items = subdir_groups[subdir]
+                if subdir == 'root':
+                    print(f"   📂 Root level: {len(subdir_items):,} directories")
+                else:
+                    print(f"   📂 {subdir}/: {len(subdir_items):,} directories")
+        
+        print(f"\n📊 Total: {len(orphaned):,} orphaned directories across {len(sorted_folders)} top-level folders")
+    else:
+        print("\n✅ No orphaned directories found!")
+    
     return True
 
 if __name__ == "__main__":
     success = main()
     if success:
-        print("\n✅ Orphaned data discovery completed successfully")
+        print("\n✅ Orphaned data matching completed successfully")
     else:
-        print("\n❌ Orphaned data discovery failed")
+        print("\n❌ Orphaned data matching failed")
         sys.exit(1)
