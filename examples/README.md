@@ -1,6 +1,6 @@
 # VAST SDK Examples
 
-This folder contains 6 simple examples demonstrating key vastpy concepts, which are then built upon in the labs.
+This folder contains 7 simple examples demonstrating key vastpy concepts, which are then built upon in the labs.
 
 ## 🚀 Quick Start
 
@@ -44,9 +44,9 @@ All examples use the centralized configuration system via `examples_config.py`. 
 ### 4. [Monitor VAST System Health](04_monitor_health.py)
 **Purpose:** Check cluster health, node status, and system performance
 - ✅ Cluster health status and capacity
-- ✅ Individual node status and roles
-- ✅ Performance metrics (IOPS, throughput, latency)
-- ✅ Active alerts and system status
+- ✅ Individual node status and roles (CNodes and DNodes)
+- ✅ Overall system status and connectivity
+- ✅ Clean, focused health monitoring without unnecessary alerts
 
 **Run:** `python 04_monitor_health.py`
 
@@ -69,12 +69,13 @@ All examples use the centralized configuration system via `examples_config.py`. 
 **Run:** `python 06_chargeback_report.py`
 
 ### 7. [Orphaned Data Discovery](07_orphaned_data_discovery.py)
-**Purpose:** Identify deleted views from event logs and check for orphaned directories
-- ✅ Retrieves event logs to find view deletion events
-- ✅ Extracts deleted view paths, users, and timestamps
-- ✅ Compares against current views to identify orphaned directories
-- ✅ Reports on potentially orphaned data that may need cleanup
-- ✅ Provides event log statistics and user activity analysis
+**Purpose:** Efficiently find orphaned data using catalog-based approach
+- ✅ Gets all directory paths from VAST using vastdb catalog
+- ✅ Compares against current view paths to find orphaned directories
+- ✅ Provides complete coverage of all orphaned data (not just from deleted views)
+- ✅ Much more efficient than event-based approaches
+- ✅ Skips VAST internal directories and shows progress indicators
+- ✅ Groups results by top-level folders with detailed breakdown
 
 **Run:** `python 07_orphaned_data_discovery.py`
 
