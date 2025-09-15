@@ -7,16 +7,46 @@ Check cluster health, node status, and system performance
 from examples_config import ExamplesConfigLoader
 from vastpy import VASTClient
 
-def format_size(bytes_size):
-    """Convert bytes to human readable format"""
-    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
-        if bytes_size < 1024.0:
-            return f"{bytes_size:.1f} {unit}"
-        bytes_size /= 1024.0
-    return f"{bytes_size:.1f} PB"
+def check_node_status(nodes, node_type):
+    """Check and display status for CNodes or DNodes"""
+    if not nodes:
+        print(f"   📭 No {node_type} found")
+        return
+    
+    healthy_nodes = 0
+    total_nodes = len(nodes)
+    
+    for node in nodes:
+        hostname = node.get('hostname', 'Unknown')
+        state = node.get('state', 'Unknown')
+        sync = node.get('sync', 'Unknown')
+        enabled = node.get('enabled', False)
+        
+        # Determine health status
+        if state == 'ACTIVE' and sync == 'SYNCED' and enabled:
+            node_state = 'Healthy'
+            node_emoji = "🟢"
+            healthy_nodes += 1
+        elif state == 'ACTIVE' and enabled:
+            node_state = 'Active (Not Synced)'
+            node_emoji = "🟡"
+        else:
+            node_state = f'Not Ready (State: {state})'
+            node_emoji = "🔴"
+        
+        print(f"   {node_emoji} {hostname}: {node_state}")
+    
+    print(f"   📊 Healthy {node_type}: {healthy_nodes}/{total_nodes}")
+    
+    if healthy_nodes == total_nodes:
+        print(f"   ✅ All {node_type} are healthy")
+    elif healthy_nodes > 0:
+        print(f"   ⚠️  Some {node_type} may have issues")
+    else:
+        print(f"   🚨 No healthy {node_type} found")
 
 def main():
-    print("🏥 Example 4: Monitor VAST System Health")
+    print("�� Example 4: Monitor VAST System Health")
     print("=" * 50)
     
     try:
@@ -25,10 +55,8 @@ def main():
         vast_config = config.get_vast_config()
         
         address = vast_config['address']
-        if address.startswith('https://'):
-            address = address[8:]
-        elif address.startswith('http://'):
-            address = address[7:]
+        # Remove protocol prefix if present
+        address = address.replace('https://', '').replace('http://', '')
         
         client = VASTClient(
             user=vast_config['user'],
@@ -38,7 +66,7 @@ def main():
         
         print("🔍 Checking VAST cluster health...")
         
-        # Get cluster information (using correct vastpy endpoint)
+        # Get cluster information
         clusters = client.clusters.get()
         if clusters:
             cluster = clusters[0]  # Get the first cluster
@@ -54,115 +82,33 @@ def main():
         
         print()
         
-        # Get node information
-        print("🖥️  NODE STATUS:")
+        # Get CNodes status
+        print("🖥️  CNODES STATUS:")
         try:
-            # Try different possible node endpoints
-            nodes = None
-            try:
-                nodes = client.nodes.get()
-            except:
-                try:
-                    nodes = client.hosts.get()
-                except:
-                    try:
-                        nodes = client.servers.get()
-                    except:
-                        pass
-            
-            if nodes:
-                healthy_nodes = 0
-                total_nodes = len(nodes)
-                
-                for node in nodes:
-                    # Use the correct field names from vastpy node objects
-                    node_name = node.get('hostname', 'Unknown')
-                    node_type = node.get('node_type', 'Unknown')
-                    
-                    # Determine health status from available fields
-                    install_state = node.get('install_state', '')
-                    upgrade_state = node.get('upgrade_state', '')
-                    
-                    if install_state == 'INSTALLED' and upgrade_state == 'DONE':
-                        node_state = 'Healthy'
-                        node_emoji = "🟢"
-                        healthy_nodes += 1
-                    elif install_state == 'INSTALLED':
-                        node_state = 'Installed'
-                        node_emoji = "🟡"
-                    else:
-                        node_state = 'Not Ready'
-                        node_emoji = "🔴"
-                    
-                    print(f"   {node_emoji} {node_name} ({node_type}): {node_state}")
-                
-                print(f"   📊 Healthy Nodes: {healthy_nodes}/{total_nodes}")
-                
-                if healthy_nodes == total_nodes:
-                    print("   ✅ All nodes are healthy")
-                elif healthy_nodes > 0:
-                    print("   ⚠️  Some nodes may have issues")
-                else:
-                    print("   🚨 No healthy nodes found")
-            else:
-                print("   📭 Node information not available via vastpy")
-                print("   💡 Node details may require different API endpoints")
-                
+            cnodes = client.cnodes.get()
+            check_node_status(cnodes, 'CNodes')
         except Exception as e:
-            print(f"   ⚠️  Node information not available: {e}")
+            print(f"   ⚠️  CNodes information not available: {e}")
         
         print()
         
-        # Get performance metrics
-        print("⚡ PERFORMANCE METRICS:")
+        # Get DNodes status
+        print("💾 DNODES STATUS:")
         try:
-            # Try to get monitoring data (vastpy may have different endpoint names)
-            # For now, show basic connectivity metrics
-            print(f"   🔄 API Response: OK")
-            print(f"   📊 Connection Status: Active")
-            print(f"   ⏱️  Response Time: < 1s")
-            print(f"   💡 Note: Detailed performance metrics require specific vastpy endpoints")
-                
+            dnodes = client.dnodes.get()
+            check_node_status(dnodes, 'DNodes')
         except Exception as e:
-            print(f"   ⚠️  Performance metrics not available: {e}")
+            print(f"   ⚠️  DNodes information not available: {e}")
         
         print()
         
         # Overall system status
-        print("🚨 OVERALL SYSTEM STATUS:")
+        print("�� OVERALL SYSTEM STATUS:")
         print("   ✅ VAST Management System: Online")
         print("   ✅ API Connectivity: Working")
         print("   ✅ Configuration: Valid")
         print("   ✅ Authentication: Successful")
         
-        # Check for any alerts
-        try:
-            # Try different possible alert endpoints
-            alerts = None
-            try:
-                alerts = client.alerts.get()
-            except:
-                try:
-                    alerts = client.events.get()
-                except:
-                    try:
-                        alerts = client.notifications.get()
-                    except:
-                        pass
-            
-            if alerts:
-                active_alerts = [a for a in alerts if a.get('state', '').lower() == 'active']
-                if active_alerts:
-                    print(f"   ⚠️  Active Alerts: {len(active_alerts)}")
-                    for alert in active_alerts[:3]:  # Show first 3 alerts
-                        print(f"      - {alert.get('message', 'Unknown alert')}")
-                else:
-                    print("   ✅ No Active Alerts")
-            else:
-                print("   ✅ No Alerts Found")
-                print("   💡 Alert system may use different API endpoints")
-        except Exception as e:
-            print(f"   ⚠️  Alert information not available: {e}")
         
     except Exception as e:
         print(f"❌ Error: {e}")
