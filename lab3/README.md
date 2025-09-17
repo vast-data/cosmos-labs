@@ -1,164 +1,152 @@
-# Lab 3: Multi-Observatory Data Storage and Analytics
+# Lab 3: Weather Data Pipeline and Analytics
 
 ## 🎯 Overview
 
-This Lab 3 solution provides a complete multi-observatory storage and analytics system that:
+This Lab 3 solution provides a complete weather data pipeline and analytics system that:
 
-1. **Manages storage for both SWIFT and Chandra observatories** - Using `vastpy` for storage orchestration
-2. **Enables cross-observatory analytics** - Using `vastdb` for multi-wavelength data analysis
-3. **Supports fast selective queries** - Finding specific astronomical events across massive datasets
-4. **Provides real-time insights** - Burst detection and follow-up analysis capabilities
+1. **Downloads weather and air quality data** - Using Open-Meteo API for real-time data
+2. **Stores data in VAST Database** - Using `vastdb` for scalable weather data storage
+3. **Enables advanced analytics** - Correlating weather patterns with air quality metrics
+4. **Provides real-time insights** - Weather trends, pollution episodes, and health impacts
 
 ## 🏗️ Architecture
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   SWIFT Data    │    │  Storage         │    │  VAST Storage   │
-│   (Observations)│───▶│  Orchestration   │───▶│  (vastpy)       │
-└─────────────────┘    │  (vastpy)        │    └─────────────────┘
-                       └──────────────────┘              │
-┌─────────────────┐              │                       ▼
-│   Chandra Data  │              │              ┌─────────────────┐
-│   (Observations)│──────────────┘              │  Cross-Observatory│
-└─────────────────┘                             │  Analytics       │
-                                                │  (vastdb)        │
+│   Open-Meteo    │    │  Weather         │    │  VAST Database  │
+│   API           │───▶│  Downloader      │───▶│  (vastdb)       │
+│   (Weather +    │    │  (CSV + DB)      │    └─────────────────┘
+│   Air Quality)  │    └──────────────────┘              │
+└─────────────────┘              │                       ▼
+                                 │              ┌─────────────────┐
+                                 │              │  Weather        │
+                                 └──────────────▶│  Analytics      │
+                                                │  (Correlations) │
                                                 └─────────────────┘
 ```
 
-## 🌌 Real-World Observatory Operations
+## 🌤️ Weather Data Pipeline
 
-### SWIFT and Chandra: A Collaborative Detection System
+### Data Sources
 
-Understanding how SWIFT and Chandra actually work together is crucial for this lab. Here's the real operational flow:
+The system integrates data from multiple sources:
 
-#### **SWIFT: The Primary Burst Detector**
-- **BAT (Burst Alert Telescope)** continuously monitors the entire sky
-- **Detects gamma-ray bursts in real-time** (within seconds)
-- **Automatically reorients** to observe the burst with XRT and UVOT
-- **Alerts ground within ~20 seconds** of detection
+#### **Weather Data (Open-Meteo Archive API)**
+- **Temperature** - 2m above ground
+- **Humidity** - Relative humidity at 2m
+- **Pressure** - Surface pressure
+- **Wind** - Speed and direction at 10m
+- **Precipitation** - Hourly precipitation
 
-#### **Chandra: The Follow-up Observer**
-- **Chandra does NOT detect bursts** - it's not designed for real-time monitoring
-- **Receives alerts from SWIFT** and other observatories
-- **Conducts detailed follow-up observations** based on SWIFT's detection
-- **Provides high-resolution X-ray analysis** of the burst afterglow
+#### **Air Quality Data (Open-Meteo Air Quality API)**
+- **PM2.5** - Fine particulate matter
+- **PM10** - Coarse particulate matter
+- **Nitrogen Dioxide** - NO2 levels
+- **Ozone** - O3 levels
+- **Sulphur Dioxide** - SO2 levels
 
-#### **The Actual Information Flow:**
-```
-1. SWIFT BAT detects gamma-ray burst
-2. SWIFT automatically reorients and observes with XRT/UVOT
-3. SWIFT sends alert to ground (~20 seconds)
-4. Ground systems notify other observatories
-5. Chandra receives Target of Opportunity (ToO) request
-6. Chandra conducts follow-up observation (hours to days later)
-```
-
-#### **Why This Matters for Lab 3:**
-- **SWIFT data** represents real-time burst detection and initial analysis
-- **Chandra data** represents detailed follow-up observations
-- **Cross-observatory analytics** correlate SWIFT's initial detection with Chandra's detailed follow-up
-- **The 7-day window** represents the typical SWIFT detection → Chandra follow-up timeline
-- **Burst follow-up analysis** is the primary use case for cross-observatory correlation
-
-This collaborative approach allows for comprehensive understanding of gamma-ray bursts, combining SWIFT's rapid detection capabilities with Chandra's detailed observational data.
+#### **Geographic Coverage**
+- **Global cities** - Beijing, London, New York, Tokyo, Mumbai, etc.
+- **Historical data** - Up to 6 months of hourly data
+- **Real-time updates** - Current data through 2025-09-15
 
 ## 📁 Files
 
-- **`lab3_solution.py`** - Main solution integrating all components
+- **`weather_downloader.py`** - Downloads weather and air quality data from APIs
+- **`weather_database.py`** - VAST Database operations and data ingestion
+- **`vastdb_manager.py`** - Command-line tool for database management
+- **`weather_analytics_demo.py`** - Advanced analytics and correlation analysis
 - **`lab3_config.py`** - Lab-specific configuration loader
-- **`multi_observatory_storage_manager.py`** - Manages storage for both observatories using `vastpy`
-- **`cross_observatory_analytics.py`** - Handles analytics and queries using `vastdb`
-- **`test_lab3_solution.py`** - Test script to verify everything works
 - **`requirements.txt`** - Python dependencies
 
 ## 🚀 Quick Start
 
-### 1. Test the Solution
+### 1. Set Up Database Infrastructure
 
 ```bash
 cd lab3
-python test_lab3_solution.py
+
+# Show what would be set up
+python vastdb_manager.py --setup --dry-run
+# Run the actual database setup
+python vastdb_manager.py --setup
 ```
 
-This will verify that all components can be imported and initialized correctly.
+This creates the necessary database tables and schema.
 
-### 2. Set Up Multi-Observatory Infrastructure (Dry Run)
+### 2. Download Weather Data
 
 ```bash
-python lab3_solution.py --setup-only
+# Using one or more of the following presets (recommended)
+python weather_downloader.py --preset test --start 2025-01-01 --end 2025-01-31
+python weather_downloader.py --preset extended --start 2025-01-01 --end 2025-01-31
+python weather_downloader.py --preset pollution --start 2025-01-01 --end 2025-01-31
+python weather_downloader.py --preset global --start 2025-01-01 --end 2025-01-31
+
+# Or specify cities manually
+python weather_downloader.py Beijing London New-York --start 2025-01-01 --end 2025-01-31
 ```
 
-This will check what storage infrastructure exists and what would be created.
+This downloads weather and air quality data for the specified cities and date range.
 
-### 3. Set Up Multi-Observatory Infrastructure (Production)
+### Available Presets
+
+- **`test`** - Basic 2-city set (Beijing, London) for quick testing
+- **`extended`** - 6 major global cities with diverse weather patterns
+- **`pollution`** - High-pollution cities for dramatic air quality analysis:
+  - Delhi: Extreme PM2.5 pollution (often 300+ µg/m³)
+  - Lahore: Winter pollution episodes
+  - Mexico City: Ozone issues and altitude effects
+  - Krakow: Coal heating pollution in winter
+  - Ulaanbaatar: Extreme seasonal variation (clean summer, polluted winter)
+  - Los Angeles: Classic smog patterns and ozone action days
+- **`global`** - Comprehensive 10-city global dataset for advanced analytics
+
+### 3. Run Analytics
 
 ```bash
-python lab3_solution.py --setup-only --pushtoprod
+# Recent analysis (last 6 months)
+python weather_analytics_demo.py --all-cities
+
+# Long-term trend analysis (10 years)
+python weather_analytics_demo.py --all-cities --trends
+
+# Analyze specific cities
+python weather_analytics_demo.py --locations Beijing London
 ```
 
-This will actually create the storage views and analytics tables.
+This runs comprehensive analytics on weather data, with options for recent analysis or long-term trends.
 
-### 4. Run Cross-Observatory Analytics (Dry Run)
+### 4. Drop Database Tables
+
+In case you want to clean up the tables for any reason, you can do so easily:
 
 ```bash
-python lab3_solution.py --analytics-only
+# Drop existing tables
+python vastdb_manager.py --drop
 ```
-
-This will demonstrate cross-observatory analytics capabilities.
-
-### 5. Run Cross-Observatory Analytics (Production)
-
-```bash
-python lab3_solution.py --analytics-only --pushtoprod
-```
-
-This will run actual analytics queries on the data.
-
-### 6. Full Solution (Setup + Analytics + Monitoring)
-
-```bash
-python lab3_solution.py --pushtoprod
-```
-
-This will set up the infrastructure, run analytics, and monitor the systems.
 
 ## 🔧 Configuration
 
-### Multi-Observatory Storage Settings
+### Weather Data Settings
 
 The solution uses these configuration keys from your `config.yaml`:
 
 ```yaml
 lab3:
-  swift:
-    storage_quota_tb: 100                    # SWIFT storage quota in TB
-    data_path: "/swift/observations"         # SWIFT data storage path
-    access_pattern: "real_time"              # SWIFT access pattern
-  
-  chandra:
-    storage_quota_tb: 200                    # Chandra storage quota in TB
-    data_path: "/chandra/observations"       # Chandra data storage path
-    access_pattern: "deep_analysis"          # Chandra access pattern
-  
-  analytics:
-    batch_size: 1000                         # Analytics query batch size
-    query_timeout_seconds: 300               # Query timeout
-    correlation_window_hours: 24             # Cross-observatory correlation window
-    burst_detection_threshold: 0.9           # Burst detection threshold
-```
+  weather:
+    bucket: "your-weather-bucket"              # VAST Database bucket name
+    schema: "weather_analytics"                # Schema name for weather data
+    presets:                                   # City presets for easy data download
+      test: ["Beijing", "London"]
+      extended: ["Beijing", "London", "New York", "Tokyo", "Mumbai", "Los Angeles"]
+      pollution: ["Delhi", "Lahore", "Mexico City", "Krakow", "Ulaanbaatar", "Los Angeles"]
+      global: ["Beijing", "London", "New York", "Tokyo", "Mumbai", "Los Angeles", "Delhi", "Mexico City", "Krakow", "Ulaanbaatar"]
 
-### VAST Database Settings
-
-The solution reuses the VAST Database configuration from Lab 2:
-
-```yaml
-lab2:
-  vastdb:
-    bucket: "your-tenant-metadata"           # VAST Database bucket name
-    schema: "satellite_observations"         # Schema name
-    endpoint: "http://localhost:8080"        # VAST Database endpoint
-    ssl_verify: true                         # SSL verification
-    timeout: 30                              # Connection timeout
+vastdb:
+  endpoint: "http://localhost:8080"            # VAST Database endpoint
+  ssl_verify: true                             # SSL verification
+  timeout: 30                                  # Connection timeout
 ```
 
 ### Secrets
@@ -167,175 +155,231 @@ Add these to your `secrets.yaml`:
 
 ```yaml
 secrets:
-  s3_access_key: "your_access_key"           # VAST Database access key
-  s3_secret_key: "your_secret_key"           # VAST Database secret key
+  s3_access_key: "your_access_key"             # VAST Database access key
+  s3_secret_key: "your_secret_key"             # VAST Database secret key
 ```
 
 ## 📊 Analytics Capabilities
 
-### Cross-Observatory Object Identification
+### Weather Pattern Analysis
 
-Find objects observed by both SWIFT and Chandra:
+Analyze daily weather patterns and trends:
 
-```python
-# Find objects observed by both observatories
-cross_objects = analytics_manager.find_cross_observatory_objects()
+```bash
+python weather_analytics_demo.py --locations Beijing London
 ```
 
-### Multi-Wavelength Light Curves
+### Air Quality Correlations
 
-Generate light curves combining data from both observatories:
+Find correlations between weather and air quality:
 
-```python
-# Generate multi-wavelength light curve
-light_curve = analytics_manager.generate_multi_wavelength_light_curves("V404_Cygni")
+- **Temperature vs PM2.5** - How temperature affects pollution
+- **Humidity vs Air Quality** - Moisture's impact on pollutants
+- **Wind Speed vs Pollution** - Wind's effect on air quality
+- **Temperature vs Ozone** - Heat's relationship with ozone levels
+
+### Pollution Episode Detection
+
+Identify high pollution episodes and health impacts:
+
+```bash
+python weather_analytics_demo.py --all-cities --debug
 ```
 
-### Burst Follow-up Analysis
+### Multi-City Analysis
 
-Detect SWIFT bursts with Chandra follow-up observations:
+Compare weather patterns across different cities:
 
-```python
-# Find burst follow-up sequences
-burst_sequences = analytics_manager.detect_burst_followup_sequences()
+```bash
+python weather_analytics_demo.py --all-cities
 ```
 
-### Data Quality Correlation
+### Long-Term Trend Analysis
 
-Analyze data quality across both observatories:
+Analyze 10 years of data to identify historical patterns and dangerous episodes:
 
-```python
-# Analyze data quality correlation
-quality_analysis = analytics_manager.analyze_data_quality_correlation()
+```bash
+python weather_analytics_demo.py --trends --all-cities
 ```
+
+## 🚨 Dangerous Situations Detection
+
+The analytics can identify various dangerous air quality and weather combinations:
+
+### **Health Risk Episodes**
+- **High PM2.5/PM10** - Respiratory and cardiovascular risks
+- **Elevated NO2** - Asthma attacks, especially in children  
+- **High Ozone** - Lung irritation, especially during exercise
+- **SO2 spikes** - Respiratory problems, acid rain formation
+
+### **Weather-Air Quality Combinations**
+- **High Temperature + High Ozone** - "Ozone Action Days" (dangerous for outdoor activities)
+- **Low Wind + High Pollution** - Stagnant air traps pollutants
+- **High Humidity + High PM2.5** - Particles stay trapped near ground
+- **Cold Weather + High SO2** - Heating emissions + poor dispersion
+
+### **Multi-Pollutant Events**
+- **All pollutants high simultaneously** - "Air Quality Emergency"
+- **PM2.5 + NO2 + Ozone all elevated** - Multiple health risks
+
+### **Vulnerable Population Alerts**
+- **Asthma triggers** - High NO2 + Ozone
+- **Elderly/children risks** - High PM2.5 + extreme temperatures
+- **Exercise warnings** - High Ozone + high temperature
+
+### **WHO Guideline Exceedances**
+The system automatically checks against WHO health guidelines:
+- **PM2.5**: 25 µg/m³ (24-hour average)
+- **PM10**: 50 µg/m³ (24-hour average)
+- **NO2**: 25 µg/m³ (24-hour average)
+- **SO2**: 40 µg/m³ (24-hour average)
+- **Ozone**: 100 µg/m³ (8-hour average)
 
 ## 🛡️ Safety Features
 
-### Dry Run Mode (Default)
+### Dry Run Mode
 
-- **No actual changes** to VAST storage or database
+- **No actual changes** to VAST Database
 - **Shows what would happen** without making changes
 - **Safe for testing** and understanding the solution
 
-### Production Mode (`--pushtoprod`)
+### Duplicate Prevention
 
-- **Requires explicit confirmation** ("YES")
-- **Makes actual changes** to VAST storage and database
-- **Safety checks always run** before any operation
+- **Pre-query existing data** before insertion
+- **Skip duplicate records** automatically
+- **Maintain data integrity** across multiple runs
 
-### Storage Safety
+### Error Handling
 
-- **Checks existence** before creating storage views
-- **Quota management** with configurable limits
-- **Access pattern optimization** for different observatory needs
+- **Retry logic** for API rate limits
+- **Transaction error handling** for database operations
+- **Graceful degradation** when services are unavailable
 
 ## 📈 Usage Examples
 
-### Show Storage Status
+### Download Recent Weather Data
 
 ```bash
-python lab3_solution.py --monitor-only
+# Download last 6 months of data using presets
+python weather_downloader.py --preset extended --start 2024-07-01 --end 2025-01-15
+
+# Download specific date range with custom cities
+python weather_downloader.py "New York" "Los Angeles" --start 2025-01-01 --end 2025-01-31
 ```
 
-### Run Continuous Monitoring
+### Run Specific Analytics
 
 ```bash
-python lab3_solution.py --continuous --interval 300
+# Analyze specific cities
+python weather_analytics_demo.py --locations Beijing London
+
+# Analyze all cities with debug info
+python weather_analytics_demo.py --all-cities --debug
+
+# Quick analysis of first 3 cities
+python weather_analytics_demo.py
 ```
 
-### Run Analytics Demonstrations
+### Database Management
 
 ```bash
-python lab3_solution.py --analytics-only
+# Set up database infrastructure
+python vastdb_manager.py --setup
+
+# Drop all weather tables
+python vastdb_manager.py --drop
+
+# Preview setup without changes
+python vastdb_manager.py --setup --dry-run
 ```
 
 ## 🔍 Troubleshooting
 
 ### Common Issues
 
-1. **Import Errors**
+1. **API Rate Limiting**
    ```bash
-   pip install -r requirements.txt
-   pip install -r ../requirements.txt
+   # The downloader automatically handles rate limits with 60s delays
+   # If you see rate limit errors, wait and retry
    ```
 
-2. **VAST Connection Issues**
-   - Check VAST cluster is accessible
-   - Verify credentials in `secrets.yaml`
-   - Ensure network connectivity
-
-3. **VAST Database Connection Issues**
+2. **VAST Database Connection Issues**
    - Check VAST Database is running
-   - Verify host/port in config.yaml
+   - Verify endpoint in config.yaml
    - Check credentials in secrets.yaml
 
-4. **Storage View Creation Failures**
-   - Check VAST cluster permissions
-   - Verify storage paths are accessible
-   - Check quota limits
+3. **Missing Data**
+   ```bash
+   # Some cities may have limited historical data
+   # Check the date range in your download command
+   ```
+
+4. **Transaction Errors**
+   ```bash
+   # Use --debug flag for detailed error information
+   python weather_analytics_demo.py --all-cities --debug
+   ```
 
 ### Debug Mode
 
-Enable debug logging:
+Enable debug logging for detailed troubleshooting:
 
-```python
-import logging
-logging.getLogger().setLevel(logging.DEBUG)
+```bash
+python weather_analytics_demo.py --all-cities --debug
 ```
 
 ## 📚 API Reference
 
-### MultiObservatoryStorageManager
+### WeatherDownloader
 
-- `setup_observatory_storage_views()` - Set up storage views for both observatories
-- `get_observatory_storage_status()` - Get storage status for both observatories
-- `monitor_observatory_storage()` - Monitor storage and alert on issues
-- `show_observatory_storage_summary()` - Display storage summary
+- `geocode_location(name)` - Resolve city name to coordinates
+- `fetch_weather(lat, lon, start, end)` - Download weather data
+- `fetch_air_quality(lat, lon, start, end)` - Download air quality data
+- `save_weather_csvs(dir, label, weather, air)` - Save data to CSV files
 
-### CrossObservatoryAnalytics
+### WeatherVASTDB
 
-- `setup_observatory_tables()` - Set up analytics tables for both observatories
-- `find_cross_observatory_objects()` - Find objects observed by both observatories
-- `generate_multi_wavelength_light_curves(target)` - Generate multi-wavelength light curves
-- `detect_burst_followup_sequences()` - Detect burst follow-up sequences
-- `analyze_data_quality_correlation()` - Analyze data quality correlation
+- `setup_infrastructure(dry_run)` - Set up database tables and schema
+- `drop_tables()` - Drop weather and air quality tables
+- `ingest_location_csvs(dir, location)` - Ingest CSV data to database
+- `_insert_with_duplicate_filtering()` - Insert data with duplicate prevention
 
-### Lab3CompleteSolution
+### WeatherAnalyticsDemo
 
-- `setup_multi_observatory_infrastructure()` - Set up complete infrastructure
-- `run_cross_observatory_analytics()` - Run analytics demonstrations
-- `monitor_observatory_systems()` - Monitor both observatory systems
-- `run_continuous_monitoring(interval)` - Run continuous monitoring
+- `get_data_summary()` - Get overview of available data
+- `analyze_daily_patterns()` - Analyze daily weather patterns
+- `analyze_correlations()` - Find weather-air quality correlations
+- `analyze_pollution_episodes()` - Detect high pollution episodes
 
 ## 🎯 Success Criteria
 
-1. **Unified Storage Platform** - Single system manages both SWIFT and Chandra data efficiently
-2. **Fast Selective Queries** - Sub-second response times for highly selective queries across massive datasets
-3. **Cross-Observatory Analytics** - Enable multi-wavelength analysis and data correlation between SWIFT and Chandra
-4. **Real-time Insights** - Instant burst detection and follow-up analysis capabilities
-5. **Scalable Architecture** - System can handle additional observatory data as it comes online
-6. **Exabyte-Scale Performance** - Maintain fast query performance as data grows to exabyte scale
-7. **Cost Optimization** - Efficient storage and query performance reduces operational overhead
+1. **Complete Data Pipeline** - Download, store, and analyze weather data
+2. **Scalable Storage** - Handle large datasets in VAST Database
+3. **Advanced Analytics** - Correlate weather patterns with air quality
+4. **Real-time Insights** - Identify pollution episodes and health impacts
+5. **Multi-City Analysis** - Compare patterns across different locations
+6. **Robust Error Handling** - Graceful handling of API limits and database issues
+7. **Duplicate Prevention** - Maintain data integrity across multiple runs
 
 ## 🎉 Next Steps
 
 After completing Lab 3:
 
-1. **Verify storage views** are created and accessible
-2. **Test analytics queries** for different scenarios
-3. **Explore cross-observatory data** using the analytics capabilities
-4. **Monitor system performance** and optimize as needed
+1. **Explore different cities** and date ranges
+2. **Run correlation analysis** to find interesting patterns
+3. **Identify pollution episodes** and their weather causes
+4. **Compare cities** to understand regional differences
 5. **Move to Lab 4** for advanced pipeline orchestration
 
 ## 📞 Support
 
 If you encounter issues:
 
-1. **Check the test script** output for specific errors
+1. **Check the debug output** for specific errors
 2. **Verify configuration** in config.yaml and secrets.yaml
-3. **Check dependencies** are properly installed
+3. **Check API connectivity** to Open-Meteo services
 4. **Review logs** for detailed error messages
 
 ---
 
-**🎉 Congratulations!** You now have a complete multi-observatory storage and analytics system that can handle both SWIFT and Chandra data while enabling fast, selective queries and cross-observatory analysis.
+**🎉 Congratulations!** You now have a complete weather data pipeline that can download, store, and analyze weather and air quality data with advanced correlation capabilities.

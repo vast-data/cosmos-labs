@@ -42,14 +42,16 @@ Meet the characters who will guide you through these challenges:
 - Create powerful search interfaces with wildcard and date range support
 - **Focus:** Metadata management and search capabilities
 
-## Upcoming labs
+### [Lab 3: Weather Data Pipeline & Analytics](lab3/README.md)
+**Challenge:** Build a complete weather data pipeline with advanced analytics and health impact assessment
+- Download weather and air quality data from Open-Meteo API for global cities
+- Store and manage large-scale weather datasets in VAST Database using `vastdb`
+- Perform advanced correlation analysis between weather patterns and air quality metrics
+- Detect dangerous pollution episodes and health risk situations using WHO guidelines
+- Analyze long-term trends and seasonal patterns across multiple cities
+- **Focus:** Real-time data ingestion, scalable storage, and advanced analytics
 
-### [Lab 3: The Multi-Mission Data Pipeline](Lab_3_Multi_Mission_Data_Pipeline.md) 
-**Challenge:** Orchestrate processing for three different satellite constellations
-- Combine `vastpy` and `vastdb` for unified pipeline orchestration
-- Build automated job management with failure handling
-- Create real-time monitoring dashboards
-- Support different data formats and processing requirements
+## Upcoming labs
 
 ### [Lab 4: The Snapshot Strategy](Lab_4_Snapshot_Strategy.md)
 **Challenge:** Implement systematic version control for research datasets
@@ -174,6 +176,9 @@ By completing these labs, you will learn to:
 - **Automate Quota Management** - Build intelligent quota expansion with comprehensive safety checks
 - **Build Metadata Catalogs** - Use `vastdb` to create searchable metadata systems for data discovery
 - **Implement Advanced Search** - Create powerful search interfaces with wildcards and date ranges
+- **Build Data Ingestion Pipelines** - Create robust systems for downloading and storing large-scale datasets
+- **Perform Advanced Analytics** - Use `vastdb` for correlation analysis and pattern detection in time-series data
+- **Analyze Long-Term Trends** - Process and analyze multi-year datasets for historical pattern recognition
 - **Orchestrate Data Pipelines** - Combine both SDKs for unified data processing workflows
 - **Implement Version Control** - Use snapshots for systematic data versioning and recovery
 - **Create Real-Time Systems** - Build event detection and alerting systems for time-critical operations

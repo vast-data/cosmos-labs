@@ -98,39 +98,115 @@ lab2:
     port: 5432
     database: "orbital_dynamics_metadata"
 
-# Lab 3: Multi-Observatory Data Storage and Analytics Settings
+# Lab 3: Weather Data Analytics Settings
 lab3:
-  swift:
-    storage_quota_tb: 100                    # SWIFT storage quota in TB
-    data_path: "/swift/observations"         # SWIFT data storage path
-  
-  chandra:
-    storage_quota_tb: 200                    # Chandra storage quota in TB
-    data_path: "/chandra/observations"       # Chandra data storage path
-  
-  analytics:
-    batch_size: 1000                         # Analytics query batch size
-    query_timeout_seconds: 300               # Query timeout in seconds
-    burst_followup_window_days: 7            # SWIFT burst to Chandra follow-up window in days
-    coordinated_campaign_window_days: 30     # Coordinated observation campaign window in days
-    burst_detection_threshold: 0.9           # Burst detection threshold (0.0-1.0)
-  
-  storage:
-    auto_expansion_threshold: 85             # Auto-expand storage when utilization exceeds this %
-    max_expansion_tb: 50                     # Maximum single expansion in TB
-    monitoring_interval_seconds: 300         # Storage monitoring interval
+  weather:
+    bucket: "your-weather-bucket"            # VAST bucket for weather data storage
+    schema: "weather_analytics"              # Database schema for weather tables
+    presets:
+      test: ["Beijing", "London"]            # Basic 2-city set for quick testing
+      extended: ["Beijing", "London", "New York", "Tokyo", "Mumbai", "Los Angeles"]  # 6 major global cities with diverse weather patterns
+      pollution: ["Delhi", "Lahore", "Mexico City", "Krakow", "Ulaanbaatar", "Los Angeles"]  # High-pollution cities for dramatic air quality analysis
+      global: ["Beijing", "London", "New York", "Tokyo", "Mumbai", "Los Angeles", "Delhi", "Mexico City", "Krakow", "Ulaanbaatar"]  # Comprehensive 10-city global dataset
+    preset_descriptions:
+      test: "Basic 2-city set for quick testing"
+      extended: "6 major global cities with diverse weather patterns"
+      pollution: "High-pollution cities for dramatic air quality analysis (Delhi: extreme PM2.5, Lahore: winter pollution, Mexico City: ozone issues, Krakow: coal heating, Ulaanbaatar: extreme seasonal variation, LA: classic smog)"
+      global: "Comprehensive 10-city global dataset for advanced analytics"
 
-# Lab 4: Snapshot Strategy Settings
+# Lab 4: Kubernetes CSI Integration Settings
 lab4:
-  snapshots:
-    retention_days: 365
-    max_snapshots_per_path: 100
-    auto_cleanup: true
-    cleanup_schedule: "0 2 * * 0"  # Weekly at 2 AM Sunday
+  k3s:
+    install_path: "/usr/local/bin/k3s"
+    data_dir: "/var/lib/rancher/k3s"
+    config_file: "/etc/rancher/k3s/k3s.yaml"
+    service_name: "k3s"
+    disable_components: ["traefik", "servicelb"]
   
-  policies:
-    critical_data_retention_days: 1095  # 3 years
-    development_data_retention_days: 90  # 3 months
+  csi:
+    namespace: "kube-system"
+    driver_name: "vast-csi"
+    version: "v2.6"
+    helm_repo: "https://vast-data.github.io/vast-csi"
+    chart_name: "vast-csi"
+    vast_endpoint: ""  # Will be set from secrets
+    vast_username: ""  # Will be set from secrets
+    vast_password: ""  # Will be set from secrets
+    vast_tenant: "default"
+  
+  storage_classes:
+    fast_ssd:
+      name: "vast-fast-ssd"
+      provisioner: "vast-csi"
+      parameters:
+        storageType: "fast-ssd"
+        replication: "1"
+        compression: "lz4"
+        deduplication: "true"
+        snapshotEnabled: "true"
+        cloneEnabled: "true"
+        resizeEnabled: "true"
+    capacity:
+      name: "vast-capacity"
+      provisioner: "vast-csi"
+      parameters:
+        storageType: "capacity"
+        replication: "1"
+        compression: "gzip"
+        deduplication: "true"
+        snapshotEnabled: "true"
+        cloneEnabled: "true"
+        resizeEnabled: "true"
+    archive:
+      name: "vast-archive"
+      provisioner: "vast-csi"
+      parameters:
+        storageType: "archive"
+        replication: "1"
+        compression: "gzip"
+        deduplication: "true"
+        snapshotEnabled: "false"
+        cloneEnabled: "false"
+        resizeEnabled: "false"
+    snapshot:
+      name: "vast-snapshot"
+      provisioner: "vast-csi"
+      parameters:
+        storageType: "fast-ssd"
+        replication: "1"
+        compression: "lz4"
+        deduplication: "true"
+        snapshotEnabled: "true"
+        cloneEnabled: "true"
+        resizeEnabled: "true"
+        snapshotSchedule: "0 2 * * *"
+        snapshotRetention: "7d"
+  
+  applications:
+    postgres:
+      name: "postgres"
+      namespace: "default"
+      storage_class: "vast-fast-ssd"
+      storage_size: "10Gi"
+      image: "postgres:15"
+    jupyter:
+      name: "jupyter"
+      namespace: "default"
+      storage_class: "vast-capacity"
+      storage_size: "50Gi"
+      image: "jupyter/scipy-notebook:latest"
+    spark:
+      name: "spark"
+      namespace: "default"
+      storage_class: "vast-capacity"
+      storage_size: "100Gi"
+      image: "apache/spark:3.4"
+    redis:
+      name: "redis"
+      namespace: "default"
+      storage_class: "vast-fast-ssd"
+      storage_size: "5Gi"
+      image: "redis:7"
 
 # Lab 5: Real-Time Alert System Settings
 lab5:

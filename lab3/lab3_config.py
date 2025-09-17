@@ -1,6 +1,5 @@
 # lab3_config.py
 import sys
-import os
 from pathlib import Path
 
 # Add parent directory to path to import centralized config_loader
@@ -10,7 +9,7 @@ from config_loader import ConfigLoader
 
 # Create a lab-specific config loader that inherits from the centralized one
 class Lab3ConfigLoader(ConfigLoader):
-    """Lab 3 specific configuration loader for multi-observatory storage and analytics"""
+    """Lab 3 specific configuration loader for weather data analytics"""
     
     def __init__(self):
         # Use centralized config files from parent directory
@@ -20,75 +19,34 @@ class Lab3ConfigLoader(ConfigLoader):
             secrets_path=str(project_root / "secrets.yaml")
         )
     
-    def get_swift_config(self):
-        """Get SWIFT observatory specific configuration"""
-        return self.get('lab3.swift', {})
+    def get_weather_config(self):
+        """Get weather data specific configuration"""
+        return self.get('lab3.weather', {})
     
-    def get_chandra_config(self):
-        """Get Chandra observatory specific configuration"""
-        return self.get('lab3.chandra', {})
+    def get_weather_presets(self):
+        """Get weather data city presets"""
+        weather_config = self.get_weather_config()
+        return weather_config.get('presets', {})
     
-    def get_analytics_config(self):
-        """Get cross-observatory analytics configuration"""
-        return self.get('lab3.analytics', {})
+    def get_weather_preset_descriptions(self):
+        """Get weather data preset descriptions"""
+        weather_config = self.get_weather_config()
+        return weather_config.get('preset_descriptions', {})
     
-    def get_storage_config(self):
-        """Get multi-observatory storage configuration"""
-        return self.get('lab3.storage', {})
-    
-    def get_swift_storage_quota(self):
-        """Get SWIFT storage quota in TB"""
-        return self.get('lab3.swift.storage_quota_tb', 100)
-    
-    def get_chandra_storage_quota(self):
-        """Get Chandra storage quota in TB"""
-        return self.get('lab3.chandra.storage_quota_tb', 200)
-    
-    def get_swift_data_path(self):
-        """Get SWIFT data storage path"""
-        return self.get('lab3.swift.data_path', '/swift/observations')
-    
-    def get_chandra_data_path(self):
-        """Get Chandra data storage path"""
-        return self.get('lab3.chandra.data_path', '/chandra/observations')
-    
-    def get_analytics_batch_size(self):
-        """Get batch size for analytics queries"""
-        return self.get('lab3.analytics.batch_size', 1000)
-    
-    def get_query_timeout(self):
-        """Get query timeout in seconds"""
-        return self.get('lab3.analytics.query_timeout_seconds', 300)
-    
-    def get_burst_followup_window_days(self):
-        """Get time window for SWIFT burst to Chandra follow-up in days"""
-        return self.get('lab3.analytics.burst_followup_window_days', 7)
-    
-    def get_coordinated_campaign_window_days(self):
-        """Get time window for coordinated observation campaigns in days"""
-        return self.get('lab3.analytics.coordinated_campaign_window_days', 30)
-    
-    def get_burst_detection_threshold(self):
-        """Get threshold for burst detection queries"""
-        return self.get('lab3.analytics.burst_detection_threshold', 0.9)
-    
+    def get_vastdb_config(self):
+        """Get VAST Database configuration (global or lab3-specific)"""
+        return self.get('vastdb', {}) or self.get('lab3.vastdb', {})
     
     def validate_config(self) -> bool:
         """Validate that required Lab3 configuration is present"""
         errors = []
         
-        # Check required lab3 configuration sections
-        if not self.get('lab3.swift.storage_quota_tb'):
-            errors.append("lab3.swift.storage_quota_tb is required")
-        
-        if not self.get('lab3.chandra.storage_quota_tb'):
-            errors.append("lab3.chandra.storage_quota_tb is required")
-        
-        if not self.get('lab3.swift.data_path'):
-            errors.append("lab3.swift.data_path is required")
-        
-        if not self.get('lab3.chandra.data_path'):
-            errors.append("lab3.chandra.data_path is required")
+        # Check weather configuration
+        weather_config = self.get_weather_config()
+        if not weather_config.get('bucket'):
+            errors.append("lab3.weather.bucket is required")
+        if not weather_config.get('schema'):
+            errors.append("lab3.weather.schema is required")
         
         # Check VAST configuration
         vast_config = self.get_vast_config()
@@ -99,12 +57,10 @@ class Lab3ConfigLoader(ConfigLoader):
         if not vast_config.get('password') and not vast_config.get('token'):
             errors.append("Either vast.password or vast.token is required")
         
-        # Check VAST Database configuration
-        vastdb_config = self.get('lab2.vastdb', {})
-        if not vastdb_config.get('bucket'):
-            errors.append("lab2.vastdb.bucket is required for analytics")
+        # Check VAST Database configuration (global or lab3-specific)
+        vastdb_config = self.get_vastdb_config()
         if not vastdb_config.get('endpoint'):
-            errors.append("lab2.vastdb.endpoint is required for analytics")
+            errors.append("vastdb.endpoint or lab3.vastdb.endpoint is required for weather data storage")
         
         if errors:
             print("❌ Lab3 Configuration Validation FAILED:")
