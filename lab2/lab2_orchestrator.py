@@ -42,19 +42,27 @@ class Lab2Orchestrator:
         logger.info(f"🚀 Running: {' '.join(cmd)}")
         
         try:
-            result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-            logger.info("✅ Command completed successfully")
-            if result.stdout:
-                print(result.stdout)
-            if result.stderr:
-                print(result.stderr)
-            return True
-        except subprocess.CalledProcessError as e:
-            logger.error(f"❌ Command failed with exit code {e.returncode}")
-            if e.stdout:
-                print("STDOUT:", e.stdout)
-            if e.stderr:
-                print("STDERR:", e.stderr)
+            # Run with real-time output streaming
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, 
+                                     text=True, bufsize=1, universal_newlines=True)
+            
+            # Stream output in real-time
+            for line in iter(process.stdout.readline, ''):
+                if line:
+                    print(line.rstrip())
+            
+            # Wait for completion and get return code
+            return_code = process.wait()
+            
+            if return_code == 0:
+                logger.info("✅ Command completed successfully")
+                return True
+            else:
+                logger.error(f"❌ Command failed with exit code {return_code}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ Command failed with exception: {e}")
             return False
     
     def setup_infrastructure(self, dry_run: bool = False) -> bool:
