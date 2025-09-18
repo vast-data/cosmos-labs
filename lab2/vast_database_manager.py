@@ -283,9 +283,17 @@ class VASTDatabaseManager:
                 # Get or create bucket
                 bucket = tx.bucket(self.bucket_name)
                 
-                # Create schema
-                schema = bucket.create_schema(self.schema_name)
-                logger.info(f"✅ Created schema '{self.schema_name}' in bucket '{self.bucket_name}'")
+                # Create schema (handle case where it already exists)
+                try:
+                    schema = bucket.create_schema(self.schema_name)
+                    logger.info(f"✅ Created schema '{self.schema_name}' in bucket '{self.bucket_name}'")
+                except vastdb.errors.SchemaExists:
+                    # Schema already exists, get it
+                    schema = bucket.schema(self.schema_name)
+                    logger.info(f"✅ Schema '{self.schema_name}' already exists in bucket '{self.bucket_name}'")
+                except Exception as e:
+                    logger.error(f"❌ Failed to create/get schema '{self.schema_name}': {e}")
+                    raise
                 
                 # Create table with complete metadata columns
                 import pyarrow as pa
@@ -315,8 +323,17 @@ class VASTDatabaseManager:
                     f"schema={self.schema_name}, table=swift_metadata, columns={len(columns)}"
                 )
                 
-                table = schema.create_table("swift_metadata", columns)
-                logger.info(f"✅ Created table 'swift_metadata' in schema '{self.schema_name}'")
+                # Create table (handle case where it already exists)
+                try:
+                    table = schema.create_table("swift_metadata", columns)
+                    logger.info(f"✅ Created table 'swift_metadata' in schema '{self.schema_name}'")
+                except vastdb.errors.TableExists:
+                    # Table already exists, get it
+                    table = schema.table("swift_metadata")
+                    logger.info(f"✅ Table 'swift_metadata' already exists in schema '{self.schema_name}'")
+                except Exception as e:
+                    logger.error(f"❌ Failed to create/get table 'swift_metadata': {e}")
+                    raise
                 
                 return True
                 
