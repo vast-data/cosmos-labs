@@ -153,7 +153,7 @@ def main():
     parser = argparse.ArgumentParser(description='Lab 2 Complete Solution Orchestrator')
     parser.add_argument('--config', default=None, help='Config file path (default: ../config.yaml)')
     parser.add_argument('--secrets', default=None, help='Secrets file path (default: ../secrets.yaml)')
-    parser.add_argument('--dry-run', action='store_true', help='Dry run mode (no changes)')
+    parser.add_argument('--pushtoprod', action='store_true', help='Push to production (make actual changes)')
     
     # Workflow options
     parser.add_argument('--setup-only', action='store_true', help='Setup infrastructure only')
@@ -178,21 +178,36 @@ def main():
     
     orchestrator = Lab2Orchestrator(args.config, args.secrets)
     
+    # Default to dry-run mode unless --pushtoprod is specified
+    dry_run = not args.pushtoprod
+    
+    if dry_run:
+        print("⚠️  DRY RUN MODE: No actual changes will be made")
+        print("   Use --pushtoprod to make actual changes")
+    else:
+        print("🚨 WARNING: PRODUCTION MODE ENABLED")
+        print("   This will make actual changes to your VAST Database!")
+        confirm = input("   Type 'YES' to confirm: ")
+        if confirm != 'YES':
+            print("❌ Operation cancelled")
+            return
+        print("✅ Production mode confirmed. Proceeding with actual changes...")
+    
     if args.list_datasets:
         success = orchestrator.list_uploaded_datasets()
     elif args.setup_only:
-        success = orchestrator.setup_infrastructure(args.dry_run)
+        success = orchestrator.setup_infrastructure(dry_run)
     elif args.upload_only:
-        success = orchestrator.upload_datasets(args.dry_run)
+        success = orchestrator.upload_datasets(dry_run)
     elif args.process_only:
-        success = orchestrator.process_metadata(args.dry_run, args.dataset)
+        success = orchestrator.process_metadata(dry_run, args.dataset)
     elif args.search_only:
         success = orchestrator.search_metadata(
             args.pattern, args.obs_id, args.file_type, 
             args.recent, args.stats, args.interactive
         )
     elif args.complete or (not any([args.setup_only, args.upload_only, args.process_only, args.search_only, args.list_datasets])):
-        success = orchestrator.run_complete_workflow(args.dry_run)
+        success = orchestrator.run_complete_workflow(dry_run)
     else:
         parser.print_help()
         return
