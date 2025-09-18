@@ -1,6 +1,6 @@
 # VAST SDK Examples
 
-This folder contains 7 simple examples demonstrating key vastpy concepts, which are then built upon in the labs.
+This folder contains 8 simple examples demonstrating key vastpy concepts, which are then built upon in the labs.
 
 ## 🚀 Quick Start
 
@@ -78,6 +78,17 @@ All examples use the centralized configuration system via `examples_config.py`. 
 - ✅ Groups results by top-level folders with detailed breakdown
 
 **Run:** `python 07_orphaned_data_discovery.py`
+
+### 8. [Show User Quotas](08_show_user_quotas.py)
+**Purpose:** Display detailed user quota information with nice formatting
+- ✅ Shows comprehensive quota summary with capacity and inode usage
+- ✅ Displays individual user quotas in a formatted table
+- ✅ Human-readable sizes (KB, MB, GB, TB) and usage percentages
+- ✅ Shows quota status, alarms, and last update information
+- ✅ Clean, professional output perfect for monitoring and reporting
+- ✅ Command-line support for any quota ID
+
+**Run:** `python 08_show_user_quotas.py 114` or `python 08_show_user_quotas.py 114 --json`
 
 ## ⚠️ Safety Notes
 
