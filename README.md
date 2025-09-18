@@ -78,7 +78,7 @@ Meet the characters who will guide you through these challenges:
 
 1. **Clone this repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/vast-data/cosmos-labs
    cd cosmos-labs
    ```
 
