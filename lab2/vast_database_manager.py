@@ -326,15 +326,18 @@ class VASTDatabaseManager:
             return False
     
     def _ensure_bucket_exists(self) -> bool:
-        """Ensure the target bucket exists using vastpy (create if missing)."""
+        """Ensure the underlying view for this 'bucket' exists using vastpy.
+
+        Note: VAST systems expose views, not /api/buckets. We treat the
+        view path '/{bucket_name}' as the backing for VAST DB operations.
+        """
         try:
-            # Use vastpy to create/verify the S3 bucket via VASTClient API
             from vastpy import VASTClient
             
             vms_endpoint = self.config.get('vast.address')
             vms_username = self.config.get('vast.user')
             vms_password = self.config.get_secret('vast_password')
-            tenant_name = self.config.get('vast.tenant', 'default')
+            view_path = f"/{self.bucket_name}"
             
             if not vms_endpoint or not vms_username or not vms_password:
                 logger.error("❌ Missing VMS settings in config.yaml/secrets.yaml (vast.address, vast.user, vast_password)")
@@ -347,31 +350,29 @@ class VASTDatabaseManager:
             elif address.startswith('http://'):
                 address = address[7:]
             
-            client = VASTClient(
-                user=vms_username,
-                password=vms_password,
-                address=address
-            )
+            client = VASTClient(user=vms_username, password=vms_password, address=address)
             
-            # Check if bucket exists
+            # Verify view exists; create if missing using default policy
             try:
-                buckets = client.buckets.get()
-                existing_bucket = next((b for b in buckets if b.get('name') == self.bucket_name), None)
-                if existing_bucket:
-                    logger.info(f"✅ Bucket '{self.bucket_name}' already exists (verified via vastpy)")
+                views = client.views.get()
+                existing = next((v for v in views if v.get('path') == view_path), None)
+                if existing:
+                    logger.info(f"✅ View '{view_path}' exists (backing for bucket '{self.bucket_name}')")
                     return True
-                else:
-                    logger.info(f"🔧 Creating bucket '{self.bucket_name}' via vastpy…")
-                    bucket = client.buckets.post(name=self.bucket_name)
-                    if bucket:
-                        logger.info(f"✅ Created bucket '{self.bucket_name}' successfully (vastpy)")
-                        return True
+                # Try to create view
+                policies = client.viewpolicies.get(name='default')
+                if not policies:
+                    logger.error("❌ Default view policy not found; cannot create view")
+                    return False
+                policy_id = policies[0]['id']
+                client.views.post(path=view_path, policy_id=policy_id, create_dir=True)
+                logger.info(f"✅ Created view '{view_path}' (backing for bucket '{self.bucket_name}')")
+                return True
             except Exception as e:
-                logger.error(f"❌ Failed to create bucket via vastpy: {e}")
+                logger.error(f"❌ Failed ensuring view '{view_path}': {e}")
                 return False
-            
         except Exception as e:
-            logger.error(f"❌ Failed to ensure bucket exists via vastpy: {e}")
+            logger.error(f"❌ Failed to ensure view exists via vastpy: {e}")
             return False
     
     def schema_exists(self) -> bool:
