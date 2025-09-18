@@ -112,8 +112,10 @@ class Lab2CompleteSolution:
                 logger.error(f"❌ Failed to check/create raw data view: {e}")
                 return False
             
-            # Create metadata database view (instead of bucket)
+            # Create metadata database view (enables DATABASE protocol so vastdb can connect)
             metadata_view_path = self.config.get('lab2.metadata_database.view_path', '/lab2-metadata-db')
+            metadata_db_name = self.config.get('lab2.metadata_database.database_name', metadata_view_path.lstrip('/'))
+            bucket_owner = self.config.get('vast.user')
             try:
                 # Check if view exists
                 views = client.views.get()
@@ -122,11 +124,18 @@ class Lab2CompleteSolution:
                     logger.info(f"✅ Metadata database view '{metadata_view_path}' already exists")
                 else:
                     if self.production_mode:
-                        # Get default policy for view creation
+                        # Get default policy for view creation and enable DATABASE protocol
                         policies = client.viewpolicies.get(name='default')
                         if policies:
                             policy_id = policies[0]['id']
-                            view = client.views.post(path=metadata_view_path, policy_id=policy_id, create_dir=True)
+                            view = client.views.post(
+                                path=metadata_view_path,
+                                policy_id=policy_id,
+                                create_dir=True,
+                                protocols=['S3', 'DATABASE'],
+                                bucket=metadata_db_name,
+                                bucket_owner=bucket_owner
+                            )
                             logger.info(f"✅ Created metadata database view '{metadata_view_path}'")
                         else:
                             logger.warning("⚠️ No default policy found, skipping view creation")
@@ -134,6 +143,18 @@ class Lab2CompleteSolution:
                         logger.info(f"🔍 DRY RUN: Would create metadata database view '{metadata_view_path}'")
             except Exception as e:
                 logger.error(f"❌ Failed to check/create metadata database view: {e}")
+                return False
+
+            # Ensure database schema exists via vastpy (per docs) so vastdb can transact
+            try:
+                if self.production_mode:
+                    client.schemas.post(name=self.config.get('lab2.metadata_database.schema', 'satellite_observations'),
+                                        database_name=metadata_db_name)
+                    logger.info(f"✅ Ensured schema '{self.config.get('lab2.metadata_database.schema', 'satellite_observations')}' exists in database '{metadata_db_name}'")
+                else:
+                    logger.info(f"🔍 DRY RUN: Would create schema '{self.config.get('lab2.metadata_database.schema', 'satellite_observations')}' in database '{metadata_db_name}'")
+            except Exception as e:
+                logger.error(f"❌ Failed to ensure database schema via vastpy: {e}")
                 return False
             
             return True
