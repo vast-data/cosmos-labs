@@ -336,7 +336,7 @@ class VASTDatabaseManager:
             vms_endpoint = self.config.get('vast.address')
             vms_username = self.config.get('vast.user')
             vms_password = self.config.get_secret('vast_password')
-            view_path = f"/{self.bucket_name}"
+            view_path = self.config.get('lab2.metadata_database.view_path', f"/{self.bucket_name}")
             
             if not vms_endpoint or not vms_username or not vms_password:
                 logger.error("❌ Missing VMS settings in config.yaml/secrets.yaml (vast.address, vast.user, vast_password)")
