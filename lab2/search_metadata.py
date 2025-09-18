@@ -114,11 +114,15 @@ class MetadataSearcher:
         
         for i, result in enumerate(results[:max_display]):
             print(f"\n{i+1}. File: {result.get('file_name', 'N/A')}")
-            print(f"   Observation ID: {result.get('observation_id', 'N/A')}")
-            print(f"   Date: {result.get('observation_date', 'N/A')}")
-            print(f"   Type: {result.get('file_type', 'N/A')}")
-            print(f"   Size: {result.get('file_size', 'N/A')} bytes")
-            print(f"   S3 Key: {result.get('s3_key', 'N/A')}")
+            print(f"   Mission: {result.get('mission_id', 'N/A')}")
+            print(f"   Satellite: {result.get('satellite_name', 'N/A')}")
+            print(f"   Instrument: {result.get('instrument_type', 'N/A')}")
+            print(f"   Target: {result.get('target_object', 'N/A')}")
+            print(f"   Observation Date: {result.get('observation_timestamp', 'N/A')}")
+            print(f"   File Format: {result.get('file_format', 'N/A')}")
+            print(f"   Size: {result.get('file_size_bytes', 'N/A')} bytes")
+            print(f"   Dataset: {result.get('dataset_name', 'N/A')}")
+            print(f"   Processing Status: {result.get('processing_status', 'N/A')}")
         
         if len(results) > max_display:
             print(f"\n... and {len(results) - max_display} more results")
