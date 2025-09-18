@@ -434,7 +434,8 @@ class Lab2CompleteSolution:
         secret_key = self.config.get_secret('s3_secret_key')
         # Use the raw data view path for uploads (S3 bucket name derived from view path)
         view_path = self.config.get('lab2.raw_data.view_path', '/lab2-raw-data')
-        bucket_name = view_path.lstrip('/')  # Remove leading slash for S3 bucket name
+        # Convert view path to valid S3 bucket name by removing slashes and using last part
+        bucket_name = view_path.lstrip('/').replace('/', '-')
         if not endpoint_url or not access_key or not secret_key:
             logger.error("❌ Missing S3 configuration (endpoint_url/access/secret)")
             return False
