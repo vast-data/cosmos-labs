@@ -47,28 +47,9 @@ class InfrastructureSetup:
             # Set up database schema and tables
             # Note: Views are already created above, so we just need to create schema/table
             logger.info("🔧 Creating database schema and table...")
-            try:
-                if not self.db_manager.connect():
-                    logger.error("❌ Failed to connect to VAST Database")
-                    return False
-                
-                # Create schema first
-                if not self.db_manager.create_schema():
-                    logger.error("❌ Failed to create schema")
-                    return False
-                
-                # Create table
-                if not self.db_manager.create_metadata_table():
-                    logger.error("❌ Failed to create metadata table")
-                    return False
-                    
-                logger.info("✅ Database schema and table created successfully")
-                
-            except Exception as e:
-                logger.error(f"❌ Database setup failed: {e}")
+            if not self.db_manager.create_schema_and_table():
+                logger.error("❌ Failed to create schema and table")
                 return False
-            finally:
-                self.db_manager.close()
             
             logger.info("✅ Database infrastructure setup completed")
             return True
