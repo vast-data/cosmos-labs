@@ -11,7 +11,7 @@ pyyaml>=6.0
 vastdb>=0.1.0
 
 # Query optimization and predicate pushdown
-ibis-framework==9.0.0  # For efficient database filtering (VAST DB SDK compatible)
+# ibis-framework removed - will be added in future lab for query optimization
 
 # Astronomical data processing
 astropy>=5.0.0  # For FITS file handling
