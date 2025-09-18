@@ -116,11 +116,14 @@ class Lab2CompleteSolution:
                             policy_id = policies[0]['id']
                             logger.info(f"🔧 Using policy '{policy_name}' (ID: {policy_id}) for raw data view")
                             # Create view with S3 protocol for raw data uploads
+                            # Derive bucket name from view path for S3
+                            raw_bucket_name = raw_view_path.lstrip('/').replace('/', '-')
                             view = client.views.post(
                                 path=raw_view_path, 
                                 policy_id=policy_id, 
                                 create_dir=True,
                                 protocols=['S3'],
+                                bucket=raw_bucket_name,
                                 bucket_owner=raw_bucket_owner
                             )
                             logger.info(f"✅ Created raw data view '{raw_view_path}' with S3 protocol")
@@ -128,7 +131,8 @@ class Lab2CompleteSolution:
                             logger.error(f"❌ Policy '{policy_name}' not found for raw data view creation")
                             return False
                     else:
-                        logger.info(f"🔍 DRY RUN: Would create raw data view '{raw_view_path}' with S3 protocol (owner: {raw_bucket_owner})")
+                        raw_bucket_name = raw_view_path.lstrip('/').replace('/', '-')
+                        logger.info(f"🔍 DRY RUN: Would create raw data view '{raw_view_path}' with S3 protocol (bucket: {raw_bucket_name}, owner: {raw_bucket_owner})")
             except Exception as e:
                 logger.error(f"❌ Failed to check/create raw data view: {e}")
                 return False
