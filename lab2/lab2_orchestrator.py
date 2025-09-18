@@ -46,6 +46,8 @@ class Lab2Orchestrator:
             logger.info("✅ Command completed successfully")
             if result.stdout:
                 print(result.stdout)
+            if result.stderr:
+                print(result.stderr)
             return True
         except subprocess.CalledProcessError as e:
             logger.error(f"❌ Command failed with exit code {e.returncode}")
