@@ -326,7 +326,9 @@ def main():
             
             if datasets:
                 logger.info("📁 Available datasets:")
-                for dataset_name, file_count in datasets.items():
+                for dataset in datasets:
+                    dataset_name = dataset.get('dataset_name', 'Unknown')
+                    file_count = dataset.get('file_count', 0)
                     logger.info(f"   - {dataset_name}: {file_count} files")
             else:
                 logger.info("ℹ️  No datasets found in S3 (upload datasets first)")
