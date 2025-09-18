@@ -4,8 +4,8 @@
 
 This Lab 2 solution provides a complete metadata infrastructure system that:
 
-1. **Safely sets up VAST Database infrastructure** - Checks if bucket/schema/tables exist before creating anything
-2. **Processes Swift datasets** - Extracts metadata from local Swift data files
+1. **Creates two VAST views using vastpy** - Raw data view and metadata database view
+2. **Uploads Swift datasets to S3** - Uses boto3 to upload files to the raw data view
 3. **Extracts comprehensive metadata** - From Swift data files (FITS, lightcurves, etc.)
 4. **Stores metadata in VAST Database** - With duplicate detection and safe insertion
 5. **Provides search capabilities** - Query metadata across all datasets
@@ -14,15 +14,27 @@ This Lab 2 solution provides a complete metadata infrastructure system that:
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Swift Data    │    │  Metadata        │    │  VAST Database  │
-│   (Local Files) │───▶│  Extractor       │───▶│  (vastdb SDK)   │
+│   Swift Data    │    │  vastpy creates  │    │  Raw Data       │
+│   (Local Files) │───▶│  buckets         │───▶│  Bucket (S3)    │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
-                              │
-                              ▼
-                       ┌──────────────────┐
-                       │  Search & Query  │
-                       │  Interface       │
-                       └──────────────────┘
+                              │                         │
+                              ▼                         ▼
+                       ┌──────────────────┐    ┌─────────────────┐
+                       │  boto3 uploads   │    │  Metadata       │
+                       │  files to S3     │    │  Extractor      │
+                       └──────────────────┘    └─────────────────┘
+                                                         │
+                                                         ▼
+                                                ┌─────────────────┐
+                                                │  VAST Database  │
+                                                │  (vastdb SDK)   │
+                                                └─────────────────┘
+                                                         │
+                                                         ▼
+                                                ┌─────────────────┐
+                                                │  Search & Query │
+                                                │  Interface      │
+                                                └─────────────────┘
 ```
 
 ## 📁 Files
@@ -91,12 +103,17 @@ The solution uses these configuration keys from your `config.yaml`:
 
 ```yaml
 lab2:
-  vastdb:
-    bucket: "your-tenant-metadata"      # VAST Database bucket name
-    schema: "satellite_observations"    # Schema name
-    endpoint: "http://localhost:8080"   # VAST Database endpoint
-    ssl_verify: true                    # SSL verification
-    timeout: 30                         # Connection timeout
+  raw_data:
+    bucket: "lab2-raw-data"  # Bucket for Swift dataset uploads
+    view_path: "/lab2-raw-data"  # View path for raw data access
+    policy_id: 3  # Default policy ID for raw data
+  
+  metadata_database:
+    bucket: "lab2-metadata-db"  # Bucket for VAST Database metadata storage
+    schema: "satellite_observations"  # Schema name for metadata tables
+    endpoint: "http://your-vast-cluster.example.com"  # VAST Management System endpoint
+    ssl_verify: false  # Disable SSL verification for internal networks
+    timeout: 30  # Connection timeout in seconds
 ```
 
 ### Secrets
@@ -104,12 +121,14 @@ lab2:
 Add these to your `secrets.yaml`:
 
 ```yaml
-secrets:
-  s3_access_key: "your_access_key"      # VAST Database access key
-  s3_secret_key: "your_secret_key"      # VAST Database secret key
+vast_password: "your_vast_password"   # VAST Management System password
+s3_access_key: "your_access_key"     # S3 access key for uploads and database
+s3_secret_key: "your_secret_key"     # S3 secret key for uploads and database
 ```
 
-These are the same credentials used for VAST Database access.
+The solution uses two separate buckets:
+- **Raw Data Bucket**: Stores the actual Swift dataset files (uploaded via boto3)
+- **Metadata Database Bucket**: Stores metadata in VAST Database (managed via vastpy)
 
 ## 📊 Metadata Schema
 
