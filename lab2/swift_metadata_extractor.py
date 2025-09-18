@@ -309,6 +309,11 @@ class SwiftMetadataExtractor:
             'processing_status': 'raw'
         }
     
+    def get_current_timestamp(self) -> str:
+        """Get current timestamp in ISO format"""
+        from datetime import datetime
+        return datetime.utcnow().isoformat() + 'Z'
+    
     def _calculate_checksum(self, file_path: Path) -> str:
         """Calculate SHA-256 checksum of file"""
         try:
