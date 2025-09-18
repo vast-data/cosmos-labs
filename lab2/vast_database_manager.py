@@ -7,9 +7,13 @@ Safely manages database creation, schema setup, and metadata storage
 import logging
 import json
 import os
+import warnings
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 from pathlib import Path
+
+# Suppress SSL warnings for internal networks
+warnings.filterwarnings('ignore', message='Unverified HTTPS request')
 
 try:
     import vastdb
