@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-A complete metadata infrastructure system that processes Swift satellite data and provides search capabilities using VAST Database and S3 storage.
+A complete metadata infrastructure system that processes Swift satellite data and provides search capabilities using VAST Database and S3 storage. This solution demonstrates how to use `vastpy` for storage management and `vastdb` for metadata catalog functionality to create a comprehensive metadata system for Orbital Dynamics' satellite data.
 
 **Key Features:**
 - Creates VAST views using `vastpy` for raw data and metadata storage
@@ -38,19 +38,51 @@ A complete metadata infrastructure system that processes Swift satellite data an
                                                 └─────────────────┘
 ```
 
-## 📁 Modular Scripts
+## 📁 Solution Structure
 
-- **`lab2_solution.py`** - Main orchestrator script
-- **`setup_infrastructure.py`** - Creates VAST views and database schema
-- **`upload_datasets.py`** - Handles S3 dataset uploads
-- **`process_metadata.py`** - Processes metadata from S3 to vastdb
-- **`search_metadata.py`** - Provides search and query functionality
-- **`vast_database_manager.py`** - Manages VAST Database operations
-- **`swift_metadata_extractor.py`** - Extracts metadata from Swift files
+All solution files are located in the `lab2/` folder:
+
+```
+lab2/
+├── lab2_solution.py          # Main orchestrator script
+├── setup_infrastructure.py   # Creates VAST views and database schema
+├── upload_datasets.py        # Handles S3 dataset uploads
+├── process_metadata.py       # Processes metadata from S3 to vastdb
+├── search_metadata.py        # Provides search and query functionality
+├── vast_database_manager.py  # Manages VAST Database operations
+├── swift_metadata_extractor.py # Extracts metadata from Swift files
+├── test_solution.py          # Unit tests
+└── requirements.txt          # Python dependencies
+```
+
+**Note:** Configuration files (`config.yaml` and `secrets.yaml`) are now centralized in the root directory for all labs.
 
 ## 🚀 Quick Start
 
-### 1. Setup Infrastructure
+### 1. Navigate to Lab 2 Directory
+```bash
+cd lab2
+```
+
+### 2. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Configure the Solution
+```bash
+# Copy the example configuration files (if you haven't already)
+cp ../config.yaml.example ../config.yaml
+cp ../secrets.yaml.example ../secrets.yaml
+
+# Edit configuration files in the root directory
+# ../config.yaml - Main configuration for all labs
+# ../secrets.yaml - Sensitive data (passwords, API keys)
+```
+
+### 4. Run the Solution
+
+#### Setup Infrastructure
 ```bash
 # Dry run (safe - tests connections)
 python lab2_solution.py --setup-only
@@ -59,7 +91,7 @@ python lab2_solution.py --setup-only
 python lab2_solution.py --setup-only --pushtoprod
 ```
 
-### 2. Upload Datasets
+#### Upload Datasets
 ```bash
 # Dry run
 python lab2_solution.py --upload-only
@@ -68,7 +100,7 @@ python lab2_solution.py --upload-only
 python lab2_solution.py --upload-only --pushtoprod
 ```
 
-### 3. Process Metadata
+#### Process Metadata
 ```bash
 # Dry run
 python lab2_solution.py --process-only
@@ -77,7 +109,7 @@ python lab2_solution.py --process-only
 python lab2_solution.py --process-only --pushtoprod
 ```
 
-### 4. Search Metadata
+#### Search Metadata
 ```bash
 # Show statistics
 python lab2_solution.py --search-only --stats
@@ -92,7 +124,7 @@ python lab2_solution.py --search-only --pattern "*.gz"
 python lab2_solution.py --search-only --obs-id "SWIFT"
 ```
 
-### 5. Complete Workflow
+#### Complete Workflow
 ```bash
 # Run everything in sequence
 python lab2_solution.py --complete --pushtoprod
@@ -100,12 +132,10 @@ python lab2_solution.py --complete --pushtoprod
 
 ## 🔧 Configuration
 
-### Required Files
-- **`config.yaml`** - Non-sensitive configuration
-- **`secrets.yaml`** - Sensitive credentials
+### Main Configuration (`../config.yaml` - copy from `../config.yaml.example`)
 
-### Key Configuration Sections
 ```yaml
+# Lab 2 specific settings
 lab2:
   raw_data:
     view_path: "/lab2-raw-data"
@@ -118,7 +148,52 @@ lab2:
     schema: "satellite_observations"
     policy_name: "s3_default_policy"
     bucket_owner: "your-email@domain.com"
+  
+  catalog:
+    batch_size: 1000
+    max_concurrent_extractions: 10
+    extraction_timeout_seconds: 60
+  
+  search:
+    default_limit: 100
+    max_limit: 1000
+    enable_fuzzy_search: true
 ```
+
+## ✨ Key Features
+
+### ✅ Comprehensive Metadata Schema
+- Mission identification and parameters
+- Observation timestamps and durations
+- Data quality metrics and calibration status
+- File locations and storage paths
+- Processing status and version information
+
+### ✅ Multi-Format Metadata Extraction
+- **FITS files** - Astronomical data format (using astropy)
+- **HDF5 files** - Processed data format (using h5py)
+- **JSON files** - Metadata and configuration
+- **CSV files** - Tabular data
+- **Text files** - Logs and documentation
+
+### ✅ Advanced Search Capabilities
+- Time-based queries (date ranges, observation periods)
+- Mission-specific filtering (satellite, instrument, target)
+- Quality-based filtering (signal-to-noise ratios, calibration status)
+- Status-based queries (processed, raw, archived)
+- Multi-criteria advanced search
+
+### ✅ VAST Database Integration
+- Uses `vastdb` for metadata catalog storage and querying
+- Creates structured metadata schema for satellite observations
+- Leverages VAST's database capabilities for fast searches
+- Integrates with existing VAST management workflows
+
+### ✅ Real-time Query Performance
+- Sub-5-second query response times
+- Indexed fields for fast searches
+- Batch processing for large datasets
+- Caching for frequently accessed data
 
 ## 🔍 Search Capabilities
 
@@ -161,6 +236,22 @@ The system extracts and stores:
 - **Observation Data**: Timestamp, target object, processing status
 - **System Data**: Dataset name, ingestion timestamp, metadata version
 
+## 🧪 Testing
+
+Run the comprehensive test suite to verify all functionality:
+
+```bash
+python test_solution.py
+```
+
+## 🎯 Success Criteria
+
+- **Comprehensive Coverage** - All satellite data files properly cataloged with metadata
+- **Fast Search Performance** - Sub-5-second response times for complex queries
+- **Automated Management** - Metadata extraction and catalog updates happen automatically
+- **Scalable Architecture** - System can handle current and future data volumes
+- **Integration Success** - Seamless integration with existing VAST infrastructure
+
 ## 🚨 Troubleshooting
 
 ### Common Issues
@@ -186,3 +277,11 @@ python process_metadata.py --dry-run
 - **Batch Processing**: Processes metadata in configurable batches
 - **Memory Management**: Streams large datasets without loading everything into memory
 - **Connection Pooling**: Reuses database connections efficiently
+
+## 🔮 Next Steps
+
+1. **Advanced Analytics** - Add data quality analysis and trend reporting
+2. **API Development** - Create REST API for external system integration
+3. **Machine Learning** - Implement automated data classification and anomaly detection
+4. **Web Interface** - Build web-based search and visualization interface
+5. **Real-time Processing** - Add streaming metadata extraction for live data feeds
