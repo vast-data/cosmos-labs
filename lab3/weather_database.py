@@ -308,40 +308,55 @@ class WeatherVASTDB:
     def _vastpy_bootstrap_bucket(self) -> bool:
         """Bootstrap bucket using vastpy (VMS API)"""
         try:
-            import vastpy
+            from vastpy import VASTClient
+            
             # Get VMS connection details
-            vms_endpoint = self.config.get('vast.vms_endpoint', 'http://localhost:8080')
-            vms_username = self.config.get_secret('vms_username')
-            vms_password = self.config.get_secret('vms_password')
+            vms_endpoint = self.config.get('vast.address', 'http://localhost:8080')
+            vms_username = self.config.get('vast.user')
+            vms_password = self.config.get_secret('vast_password')
             
             if not vms_username or not vms_password:
                 logger.warning("⚠️ VMS credentials not found, skipping bucket bootstrap")
                 return True  # Not critical for lab
             
-            # Connect to VMS
-            vms = vastpy.VMS(vms_endpoint, vms_username, vms_password)
+            # Strip protocol from address (vastpy expects just hostname:port)
+            address = vms_endpoint
+            if address.startswith('https://'):
+                address = address[8:]
+            elif address.startswith('http://'):
+                address = address[7:]
             
-            # Get or create bucket
-            try:
-                bucket = vms.get_bucket(self.bucket)
-                logger.info(f"ℹ️ Using existing bucket '{self.bucket}'")
-            except Exception:
-                # Create bucket if it doesn't exist
-                tenant = self.config.get('vast.tenant', 'default')
-                bucket = vms.create_bucket(self.bucket, tenant=tenant)
-                logger.info(f"✅ Created bucket '{self.bucket}'")
+            # Connect to VMS using VASTClient
+            client = VASTClient(address=address, user=vms_username, password=vms_password)
             
-            # Get or create view
+            # Get or create view (VAST uses views, not buckets directly)
             view_path = self.config.get('lab3.weather.view_path', f"/{self.bucket}")
             policy_id = self.config.get('lab3.weather.policy_id', 3)
             
             try:
-                view = vms.get_view(view_path)
-                logger.info(f"ℹ️ Using existing view '{view_path}'")
-            except Exception:
-                # Create view if it doesn't exist
-                view = vms.create_view(view_path, bucket_id=bucket.id, policy_id=policy_id)
-                logger.info(f"✅ Created view '{view_path}'")
+                # Check if view exists
+                views = client.views.get()
+                existing_view = None
+                for view in views:
+                    if view.get('path') == view_path:
+                        existing_view = view
+                        break
+                
+                if existing_view:
+                    logger.info(f"ℹ️ Using existing view '{view_path}'")
+                else:
+                    # Create view if it doesn't exist
+                    view_data = {
+                        'path': view_path,
+                        'policy_id': policy_id,
+                        'protocols': ['S3', 'DATABASE']
+                    }
+                    client.views.post(view_data)
+                    logger.info(f"✅ Created view '{view_path}'")
+                
+            except Exception as e:
+                logger.warning(f"⚠️ Could not verify/create view '{view_path}': {e}")
+                # Not critical for lab, continue
             
             return True
             
