@@ -212,10 +212,20 @@ class MetadataSearcher:
         print("\n📊 Metadata Statistics:")
         print("-" * 40)
         print(f"Total files: {stats.get('total_files', 'N/A')}")
-        print(f"Total size: {stats.get('total_size_gb', 'N/A')} GB")
-        print(f"File types: {stats.get('file_types', 'N/A')}")
-        print(f"Date range: {stats.get('date_range', 'N/A')}")
-        print(f"Datasets: {stats.get('datasets', 'N/A')}")
+        
+        # Show mission breakdown
+        mission_counts = stats.get('mission_counts', {})
+        if mission_counts:
+            print(f"Missions: {len(mission_counts)}")
+            for mission, count in mission_counts.items():
+                print(f"  - {mission}: {count} files")
+        
+        # Show dataset breakdown
+        dataset_counts = stats.get('dataset_counts', {})
+        if dataset_counts:
+            print(f"Datasets: {len(dataset_counts)}")
+            for dataset, count in dataset_counts.items():
+                print(f"  - {dataset}: {count} files")
 
 def main():
     """Main entry point for metadata search"""
