@@ -201,12 +201,73 @@ def main():
     
     args = parser.parse_args()
     
+    setup = InfrastructureSetup(args.config, args.secrets)
+    
     if args.dry_run:
         logger.info("⚠️  DRY RUN MODE: No actual changes will be made")
-        logger.info("💡 Infrastructure setup would be performed")
-        return
-    
-    setup = InfrastructureSetup(args.config, args.secrets)
+        logger.info("🔍 Testing connections and checking existing infrastructure...")
+        
+        # Test VAST connection
+        try:
+            from vastpy import VASTClient
+            vms_address = setup.config.get('vast.address')
+            vms_username = setup.config.get('vast.user')
+            vms_password = setup.config.get_secret('vast_password')
+            
+            # Strip protocol if present and clean up address
+            if vms_address.startswith(('http://', 'https://')):
+                vms_address = vms_address.split('://', 1)[1]
+            # Remove trailing slash
+            vms_address = vms_address.rstrip('/')
+            
+            logger.info(f"🔧 Testing VAST connection to {vms_address}...")
+            client = VASTClient(address=vms_address, user=vms_username, password=vms_password)
+            users = client.users.get()
+            logger.info(f"✅ VAST connection successful, found {len(users)} users")
+            
+        except Exception as e:
+            logger.error(f"❌ VAST connection failed: {e}")
+            return False
+        
+        # Test database connection
+        try:
+            logger.info("🔧 Testing VAST Database connection...")
+            if setup.db_manager.connect():
+                logger.info("✅ VAST Database connection successful")
+                setup.db_manager.close()
+            else:
+                logger.error("❌ VAST Database connection failed")
+                return False
+        except Exception as e:
+            logger.error(f"❌ VAST Database connection failed: {e}")
+            return False
+        
+        # Check existing views
+        try:
+            raw_view_path = setup.config.get('lab2.raw_data.view_path')
+            metadata_view_path = setup.config.get('lab2.metadata_database.view_path')
+            
+            logger.info(f"🔍 Checking raw data view '{raw_view_path}'...")
+            try:
+                raw_view = client.views.get(path=raw_view_path)
+                logger.info(f"✅ Raw data view '{raw_view_path}' exists")
+            except Exception:
+                logger.info(f"ℹ️  Raw data view '{raw_view_path}' does not exist (would be created)")
+            
+            logger.info(f"🔍 Checking metadata database view '{metadata_view_path}'...")
+            try:
+                metadata_view = client.views.get(path=metadata_view_path)
+                logger.info(f"✅ Metadata database view '{metadata_view_path}' exists")
+            except Exception:
+                logger.info(f"ℹ️  Metadata database view '{metadata_view_path}' does not exist (would be created)")
+            
+        except Exception as e:
+            logger.error(f"❌ Error checking views: {e}")
+            return False
+        
+        logger.info("✅ Dry-run validation completed successfully")
+        logger.info("💡 All connections working, infrastructure setup would succeed")
+        return True
     
     if setup.setup_all_infrastructure():
         logger.info("✅ Infrastructure setup completed successfully")
