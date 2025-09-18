@@ -163,9 +163,16 @@ class Lab2CompleteSolution:
             # Ensure database schema exists via vastpy (per docs) so vastdb can transact
             try:
                 if self.production_mode:
-                    client.schemas.post(name=self.config.get('lab2.metadata_database.schema', 'satellite_observations'),
-                                        database_name=metadata_db_name)
-                    logger.info(f"✅ Ensured schema '{self.config.get('lab2.metadata_database.schema', 'satellite_observations')}' exists in database '{metadata_db_name}'")
+                    try:
+                        client.schemas.post(name=self.config.get('lab2.metadata_database.schema', 'satellite_observations'),
+                                            database_name=metadata_db_name)
+                        logger.info(f"✅ Created schema '{self.config.get('lab2.metadata_database.schema', 'satellite_observations')}' in database '{metadata_db_name}'")
+                    except Exception as schema_error:
+                        error_msg = str(schema_error)
+                        if "already exist" in error_msg or "already exists" in error_msg:
+                            logger.info(f"✅ Schema '{self.config.get('lab2.metadata_database.schema', 'satellite_observations')}' already exists in database '{metadata_db_name}'")
+                        else:
+                            raise schema_error
                 else:
                     logger.info(f"🔍 DRY RUN: Would create schema '{self.config.get('lab2.metadata_database.schema', 'satellite_observations')}' in database '{metadata_db_name}'")
             except Exception as e:
