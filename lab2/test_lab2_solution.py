@@ -33,7 +33,7 @@ def test_imports():
         logger.info("✅ SwiftMetadataExtractor imported successfully")
         
         # Test complete solution
-        from lab2_complete_solution import Lab2CompleteSolution
+        from lab2_solution import Lab2CompleteSolution
         logger.info("✅ Lab2CompleteSolution imported successfully")
         
         return True

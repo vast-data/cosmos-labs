@@ -60,17 +60,104 @@ class Lab2CompleteSolution:
         mode_text = "PRODUCTION" if production_mode else "DRY RUN"
         logger.info(f"Lab 2 Complete Solution initialized in {mode_text} mode")
     
+    def create_lab2_buckets(self) -> bool:
+        """Create both raw data and metadata database buckets using vastpy"""
+        try:
+            from vastpy import VASTClient
+            
+            vms_endpoint = self.config.get('vast.address')
+            vms_username = self.config.get('vast.user')
+            vms_password = self.config.get_secret('vast_password')
+            tenant_name = self.config.get('vast.tenant', 'default')
+            
+            if not vms_endpoint or not vms_username or not vms_password:
+                logger.error("❌ Missing VMS settings in config.yaml/secrets.yaml (vast.address, vast.user, vast_password)")
+                return False
+            
+            # Strip protocol from address (vastpy expects just hostname:port)
+            address = vms_endpoint
+            if address.startswith('https://'):
+                address = address[8:]
+            elif address.startswith('http://'):
+                address = address[7:]
+            
+            # Create VASTClient (correct API)
+            client = VASTClient(
+                user=vms_username,
+                password=vms_password,
+                address=address
+            )
+            
+            # Create raw data view (instead of bucket)
+            raw_view_path = self.config.get('lab2.raw_data.view_path', '/lab2-raw-data')
+            try:
+                # Check if view exists
+                views = client.views.get()
+                existing_view = next((v for v in views if v.get('path') == raw_view_path), None)
+                if existing_view:
+                    logger.info(f"✅ Raw data view '{raw_view_path}' already exists")
+                else:
+                    if self.production_mode:
+                        # Get default policy for view creation
+                        policies = client.viewpolicies.get(name='default')
+                        if policies:
+                            policy_id = policies[0]['id']
+                            view = client.views.post(path=raw_view_path, policy_id=policy_id, create_dir=True)
+                            logger.info(f"✅ Created raw data view '{raw_view_path}'")
+                        else:
+                            logger.warning("⚠️ No default policy found, skipping view creation")
+                    else:
+                        logger.info(f"🔍 DRY RUN: Would create raw data view '{raw_view_path}'")
+            except Exception as e:
+                logger.error(f"❌ Failed to check/create raw data view: {e}")
+                return False
+            
+            # Create metadata database view (instead of bucket)
+            metadata_view_path = self.config.get('lab2.metadata_database.view_path', '/lab2-metadata-db')
+            try:
+                # Check if view exists
+                views = client.views.get()
+                existing_view = next((v for v in views if v.get('path') == metadata_view_path), None)
+                if existing_view:
+                    logger.info(f"✅ Metadata database view '{metadata_view_path}' already exists")
+                else:
+                    if self.production_mode:
+                        # Get default policy for view creation
+                        policies = client.viewpolicies.get(name='default')
+                        if policies:
+                            policy_id = policies[0]['id']
+                            view = client.views.post(path=metadata_view_path, policy_id=policy_id, create_dir=True)
+                            logger.info(f"✅ Created metadata database view '{metadata_view_path}'")
+                        else:
+                            logger.warning("⚠️ No default policy found, skipping view creation")
+                    else:
+                        logger.info(f"🔍 DRY RUN: Would create metadata database view '{metadata_view_path}'")
+            except Exception as e:
+                logger.error(f"❌ Failed to check/create metadata database view: {e}")
+                return False
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to create Lab 2 buckets: {e}")
+            return False
+
     def setup_database_infrastructure(self) -> bool:
         """Safely set up the database infrastructure"""
         try:
             logger.info("🔧 Setting up VAST Database infrastructure...")
             
-            # Step 1: Connect to database server
+            # Step 1: Create both buckets using vastpy
+            if not self.create_lab2_buckets():
+                logger.error("❌ Failed to create Lab 2 buckets")
+                return False
+            
+            # Step 2: Connect to database server
             if not self.db_manager.connect():
                 logger.error("❌ Failed to connect to VAST Database server")
                 return False
             
-            # Step 2: Check if bucket exists, create schema and table if needed
+            # Step 3: Check if bucket exists, create schema and table if needed
             if not self.db_manager.database_exists():
                 if self.production_mode:
                     if not self.db_manager.create_schema_and_table():
@@ -278,6 +365,63 @@ class Lab2CompleteSolution:
             'files_processed': total_processed,
             'metadata_inserted': total_inserted
         }
+
+    def upload_all_datasets_to_s3(self) -> bool:
+        """Upload all datasets under swift_datasets to S3 using boto (config-driven)."""
+        try:
+            import boto3
+        except Exception as e:
+            logger.error(f"❌ boto3 not available: {e}")
+            return False
+        # Resolve S3 configuration from centralized config
+        endpoint_url = self.config.get('s3.endpoint_url')
+        region_name = self.config.get('s3.region', 'us-east-1')
+        path_style = self.config.get('s3.compatibility.path_style_addressing', True)
+        ssl_verify = self.config.get('verify_ssl', True)
+        access_key = self.config.get_secret('s3_access_key')
+        secret_key = self.config.get_secret('s3_secret_key')
+        # Use the raw data view path for uploads (S3 bucket name derived from view path)
+        view_path = self.config.get('lab2.raw_data.view_path', '/lab2-raw-data')
+        bucket_name = view_path.lstrip('/')  # Remove leading slash for S3 bucket name
+        if not endpoint_url or not access_key or not secret_key:
+            logger.error("❌ Missing S3 configuration (endpoint_url/access/secret)")
+            return False
+        s3_client = boto3.client(
+            's3',
+            endpoint_url=endpoint_url,
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            region_name=region_name,
+            verify=ssl_verify,
+            config=boto3.session.Config(
+                signature_version='s3v4',
+                s3={'addressing_style': 'path' if path_style else 'virtual'}
+            )
+        )
+        if not self.swift_datasets_dir.exists():
+            logger.warning(f"⚠️  Swift datasets directory not found: {self.swift_datasets_dir}")
+            return False
+        logger.info(f"📤 Uploading datasets from {self.swift_datasets_dir} to s3://{bucket_name}")
+        uploaded = 0
+        failed = 0
+        for dataset_dir in self.swift_datasets_dir.iterdir():
+            if not dataset_dir.is_dir():
+                continue
+            dataset_prefix = dataset_dir.name
+            for file_path in dataset_dir.rglob('*'):
+                if not file_path.is_file():
+                    continue
+                key = f"{dataset_prefix}/{file_path.name}"
+                try:
+                    s3_client.upload_file(str(file_path), bucket_name, key)
+                    uploaded += 1
+                    if uploaded % 100 == 0:
+                        logger.info(f"📤 Uploaded {uploaded} files so far…")
+                except Exception as e:
+                    failed += 1
+                    logger.error(f"❌ Failed to upload {file_path} -> s3://{bucket_name}/{key}: {e}")
+        logger.info(f"✅ Upload complete. Uploaded={uploaded}, Failed={failed}")
+        return failed == 0
     
     def show_database_stats(self) -> bool:
         """Display current database statistics"""
@@ -593,10 +737,15 @@ def main():
                 print(f"⚠️  Metadata processing completed with {result['failed']} failures")
                 
         else:
-            # Full solution: setup + process
+            # Full solution: setup + upload + process
             print("🔧 Setting up database infrastructure...")
             if not solution.setup_database_infrastructure():
                 print("❌ Database infrastructure setup failed")
+                return 1
+            
+            print("📤 Uploading datasets to S3...")
+            if not solution.upload_all_datasets_to_s3():
+                print("❌ Dataset upload failed")
                 return 1
             
             print("📊 Processing metadata...")

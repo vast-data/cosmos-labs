@@ -51,17 +51,18 @@ class VASTDatabaseManager:
         """Initialize the database manager"""
         self.config = config
         self.show_api_calls = show_api_calls
-        # Lab 2 database bucket – use only lab2.vastdb.bucket (not the general datastore/S3 bucket)
-        self.bucket_name = config.get('lab2.vastdb.bucket', 'your-tenant-metadata')
-        self.schema_name = config.get('lab2.vastdb.schema', 'satellite_observations')
+        # Lab 2 metadata database view – use lab2.metadata_database.view_path
+        view_path = config.get('lab2.metadata_database.view_path', '/lab2-metadata-db')
+        self.bucket_name = view_path.lstrip('/')  # Remove leading slash for S3 bucket name
+        self.schema_name = config.get('lab2.metadata_database.schema', 'satellite_observations')
         
         # Database connection parameters for vastdb (using S3 credentials)
         self.db_config = {
             'access': config.get_secret('s3_access_key'),
             'secret': config.get_secret('s3_secret_key'),
-            'endpoint': config.get('lab2.vastdb.endpoint', 'http://localhost:8080'),
-            'ssl_verify': config.get('lab2.vastdb.ssl_verify', True),
-            'timeout': config.get('lab2.vastdb.timeout', 30)
+            'endpoint': config.get('lab2.metadata_database.endpoint', 'http://localhost:8080'),
+            'ssl_verify': config.get('lab2.metadata_database.ssl_verify', True),
+            'timeout': config.get('lab2.metadata_database.timeout', 30)
         }
         
         # Debug: log what we're trying to connect with
@@ -325,39 +326,52 @@ class VASTDatabaseManager:
             return False
     
     def _ensure_bucket_exists(self) -> bool:
-        """Ensure the target bucket exists, create it if needed"""
+        """Ensure the target bucket exists using vastpy (create if missing)."""
         try:
-            # Import boto3 for S3 operations
-            import boto3
+            # Use vastpy to create/verify the S3 bucket via VASTClient API
+            from vastpy import VASTClient
             
-            # Create S3 client using the same credentials
-            s3_client = boto3.client(
-                's3',
-                endpoint_url=self.db_config['endpoint'],
-                aws_access_key_id=self.db_config['access'],
-                aws_secret_access_key=self.db_config['secret'],
-                region_name='us-east-1',
-                use_ssl=False,
-                config=boto3.session.Config(
-                    signature_version='s3v4',
-                    s3={'addressing_style': 'path'}
-                )
+            vms_endpoint = self.config.get('vast.address')
+            vms_username = self.config.get('vast.user')
+            vms_password = self.config.get_secret('vast_password')
+            tenant_name = self.config.get('vast.tenant', 'default')
+            
+            if not vms_endpoint or not vms_username or not vms_password:
+                logger.error("❌ Missing VMS settings in config.yaml/secrets.yaml (vast.address, vast.user, vast_password)")
+                return False
+            
+            # Strip protocol from address (vastpy expects just hostname:port)
+            address = vms_endpoint
+            if address.startswith('https://'):
+                address = address[8:]
+            elif address.startswith('http://'):
+                address = address[7:]
+            
+            client = VASTClient(
+                user=vms_username,
+                password=vms_password,
+                address=address
             )
             
             # Check if bucket exists
             try:
-                s3_client.head_bucket(Bucket=self.bucket_name)
-                logger.info(f"✅ Bucket '{self.bucket_name}' already exists")
-                return True
-            except Exception:
-                # Bucket doesn't exist, create it
-                logger.info(f"🔧 Creating bucket '{self.bucket_name}'...")
-                s3_client.create_bucket(Bucket=self.bucket_name)
-                logger.info(f"✅ Created bucket '{self.bucket_name}' successfully")
-                return True
-                
+                buckets = client.buckets.get()
+                existing_bucket = next((b for b in buckets if b.get('name') == self.bucket_name), None)
+                if existing_bucket:
+                    logger.info(f"✅ Bucket '{self.bucket_name}' already exists (verified via vastpy)")
+                    return True
+                else:
+                    logger.info(f"🔧 Creating bucket '{self.bucket_name}' via vastpy…")
+                    bucket = client.buckets.post(name=self.bucket_name)
+                    if bucket:
+                        logger.info(f"✅ Created bucket '{self.bucket_name}' successfully (vastpy)")
+                        return True
+            except Exception as e:
+                logger.error(f"❌ Failed to create bucket via vastpy: {e}")
+                return False
+            
         except Exception as e:
-            logger.error(f"❌ Failed to ensure bucket exists: {e}")
+            logger.error(f"❌ Failed to ensure bucket exists via vastpy: {e}")
             return False
     
     def schema_exists(self) -> bool:
