@@ -98,7 +98,7 @@ class Lab2Orchestrator:
         return self.run_command("process_metadata.py", args)
     
     def search_metadata(self, pattern: str = None, obs_id: str = None, file_type: str = None, 
-                       recent: int = None, stats: bool = False, interactive: bool = False) -> bool:
+                       recent: int = None, stats: bool = False) -> bool:
         """Search metadata in VAST Database"""
         logger.info("🔍 Searching metadata...")
         
@@ -114,8 +114,6 @@ class Lab2Orchestrator:
             args.extend(["--recent", str(recent)])
         if stats:
             args.append("--stats")
-        if interactive:
-            args.append("--interactive")
         
         return self.run_command("search_metadata.py", args)
     
@@ -168,7 +166,6 @@ def main():
     parser.add_argument('--file-type', help='Search by file type')
     parser.add_argument('--recent', type=int, help='Show recent N files')
     parser.add_argument('--stats', action='store_true', help='Show statistics')
-    parser.add_argument('--interactive', action='store_true', help='Interactive search')
     
     # Dataset options
     parser.add_argument('--dataset', help='Process specific dataset')
@@ -204,7 +201,7 @@ def main():
     elif args.search_only:
         success = orchestrator.search_metadata(
             args.pattern, args.obs_id, args.file_type, 
-            args.recent, args.stats, args.interactive
+            args.recent, args.stats
         )
     elif args.complete or (not any([args.setup_only, args.upload_only, args.process_only, args.search_only, args.list_datasets])):
         success = orchestrator.run_complete_workflow(dry_run)

@@ -103,86 +103,6 @@ class MetadataSearcher:
         finally:
             self.db_manager.close()
     
-    def interactive_search(self):
-        """Interactive search interface"""
-        print("\n🔍 Interactive Metadata Search")
-        print("=" * 50)
-        
-        while True:
-            print("\nSearch Options:")
-            print("1. Search by file pattern")
-            print("2. Search by observation ID")
-            print("3. Search by date range")
-            print("4. Search by file type")
-            print("5. Show recent files")
-            print("6. Show statistics")
-            print("7. Exit")
-            
-            choice = input("\nEnter your choice (1-7): ").strip()
-            
-            if choice == '1':
-                pattern = input("Enter file pattern (e.g., *swbj*): ").strip()
-                if pattern:
-                    criteria = {
-                        'file_name': {'type': 'wildcard', 'pattern': pattern}
-                    }
-                    results = self.search_metadata(criteria)
-                    self.display_results(results)
-            
-            elif choice == '2':
-                obs_id = input("Enter observation ID: ").strip()
-                if obs_id:
-                    criteria = {
-                        'observation_id': {'type': 'exact', 'value': obs_id}
-                    }
-                    results = self.search_metadata(criteria)
-                    self.display_results(results)
-            
-            elif choice == '3':
-                start_date = input("Enter start date (YYYY-MM-DD): ").strip()
-                end_date = input("Enter end date (YYYY-MM-DD): ").strip()
-                if start_date and end_date:
-                    criteria = {
-                        'observation_date': {
-                            'type': 'comparison',
-                            'operator': '>=',
-                            'value': start_date
-                        }
-                    }
-                    results = self.search_metadata(criteria)
-                    # Filter by end date
-                    filtered_results = [
-                        r for r in results 
-                        if r.get('observation_date', '') <= end_date
-                    ]
-                    self.display_results(filtered_results)
-            
-            elif choice == '4':
-                file_type = input("Enter file type (e.g., lc, evt): ").strip()
-                if file_type:
-                    criteria = {
-                        'file_type': {'type': 'exact', 'value': file_type}
-                    }
-                    results = self.search_metadata(criteria)
-                    self.display_results(results)
-            
-            elif choice == '5':
-                limit = input("Enter number of recent files (default 10): ").strip()
-                limit = int(limit) if limit.isdigit() else 10
-                results = self.get_recent_metadata(limit)
-                self.display_results(results)
-            
-            elif choice == '6':
-                stats = self.get_metadata_stats()
-                self.display_stats(stats)
-            
-            elif choice == '7':
-                print("👋 Goodbye!")
-                break
-            
-            else:
-                print("❌ Invalid choice. Please try again.")
-    
     def display_results(self, results: List[Dict[str, Any]], max_display: int = 10):
         """Display search results in a formatted way"""
         if not results:
@@ -239,16 +159,12 @@ def main():
     parser.add_argument('--file-type', help='Search by file type')
     parser.add_argument('--recent', type=int, help='Show recent N files')
     parser.add_argument('--stats', action='store_true', help='Show statistics')
-    parser.add_argument('--interactive', action='store_true', help='Interactive search mode')
     parser.add_argument('--json', action='store_true', help='Output results as JSON')
     
     args = parser.parse_args()
     
     searcher = MetadataSearcher(args.config, args.secrets)
     
-    if args.interactive:
-        searcher.interactive_search()
-        return
     
     if args.stats:
         stats = searcher.get_metadata_stats()

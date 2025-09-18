@@ -916,25 +916,38 @@ class VASTDatabaseManager:
                     schema = bucket.schema(self.schema_name)
                     table = schema.table("swift_metadata")
                     
-                    # Get all records and sort by observation_timestamp
-                    reader = table.select()
-                    all_records = []
+                    # Use QueryConfig to limit results efficiently
+                    from vastdb.config import QueryConfig
                     
-                    for batch in reader:
-                        for i in range(len(batch)):
+                    config = QueryConfig(
+                        num_splits=1,                    # Use 1 split
+                        num_sub_splits=1,                # 1 subsplit per split
+                        limit_rows_per_sub_split=count,  # Limit to requested count
+                    )
+                    
+                    # Get records with limit applied
+                    reader = table.select(config=config)
+                    records = []
+                    
+                    # Process the first batch (which should contain up to 'count' records)
+                    try:
+                        first_batch = next(reader)
+                        for i in range(len(first_batch)):
                             record = {}
                             # Convert PyArrow record to Python dict
-                            for col_name in batch.column_names:
-                                value = batch[col_name][i]
+                            for col_name in first_batch.column_names:
+                                value = first_batch[col_name][i]
                                 if value is not None:
                                     record[col_name] = value.as_py()
                                 else:
                                     record[col_name] = None
                             
-                            all_records.append(record)
+                            records.append(record)
+                    except StopIteration:
+                        # No data available
+                        pass
                     
                     # Sort by observation_timestamp (descending - latest first)
-                    # Handle both datetime objects and string timestamps
                     def get_timestamp(record):
                         obs_time = record.get('observation_timestamp')
                         if obs_time is None:
@@ -946,10 +959,10 @@ class VASTDatabaseManager:
                                 return datetime.min
                         return obs_time
                     
-                    all_records.sort(key=get_timestamp, reverse=True)
+                    records.sort(key=get_timestamp, reverse=True)
                     
                     # Return the requested number of latest files
-                    latest_files = all_records[:count]
+                    latest_files = records[:count]
                     
                     logger.info(f"🕒 Retrieved {len(latest_files)} latest files")
                     return latest_files
