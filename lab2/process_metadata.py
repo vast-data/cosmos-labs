@@ -269,8 +269,11 @@ class MetadataProcessor:
     def extract_file_metadata(self, file_path: str, s3_key: str) -> Dict[str, Any]:
         """Extract metadata from a file and prepare for database insertion"""
         try:
+            # Extract dataset name from S3 key (first part before first slash)
+            dataset_name = s3_key.split('/')[0] if '/' in s3_key else 'unknown'
+            
             # Extract metadata using the Swift metadata extractor
-            metadata = self.extractor.extract_metadata(file_path)
+            metadata = self.extractor.extract_metadata_from_file(file_path, dataset_name)
             
             if not metadata:
                 return None
