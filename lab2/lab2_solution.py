@@ -99,6 +99,8 @@ class Lab2CompleteSolution:
             
             # Create raw data view (instead of bucket)
             raw_view_path = self.config.get('lab2.raw_data.view_path', '/lab2-raw-data')
+            raw_bucket_owner = self.config.get('lab2.raw_data.bucket_owner', vms_username)
+            logger.info(f"🔧 Using bucket owner '{raw_bucket_owner}' for raw data view")
             try:
                 # Check if view exists
                 views = client.views.get()
@@ -107,16 +109,26 @@ class Lab2CompleteSolution:
                     logger.info(f"✅ Raw data view '{raw_view_path}' already exists")
                 else:
                     if self.production_mode:
-                        # Get default policy for view creation
-                        policies = client.viewpolicies.get(name='default')
+                        # Get S3 policy for raw data view creation
+                        policy_name = self.config.get('lab2.raw_data.policy_name', 's3_default_policy')
+                        policies = client.viewpolicies.get(name=policy_name)
                         if policies:
                             policy_id = policies[0]['id']
-                            view = client.views.post(path=raw_view_path, policy_id=policy_id, create_dir=True)
-                            logger.info(f"✅ Created raw data view '{raw_view_path}'")
+                            logger.info(f"🔧 Using policy '{policy_name}' (ID: {policy_id}) for raw data view")
+                            # Create view with S3 protocol for raw data uploads
+                            view = client.views.post(
+                                path=raw_view_path, 
+                                policy_id=policy_id, 
+                                create_dir=True,
+                                protocols=['S3'],
+                                bucket_owner=raw_bucket_owner
+                            )
+                            logger.info(f"✅ Created raw data view '{raw_view_path}' with S3 protocol")
                         else:
-                            logger.warning("⚠️ No default policy found, skipping view creation")
+                            logger.error(f"❌ Policy '{policy_name}' not found for raw data view creation")
+                            return False
                     else:
-                        logger.info(f"🔍 DRY RUN: Would create raw data view '{raw_view_path}'")
+                        logger.info(f"🔍 DRY RUN: Would create raw data view '{raw_view_path}' with S3 protocol (owner: {raw_bucket_owner})")
             except Exception as e:
                 logger.error(f"❌ Failed to check/create raw data view: {e}")
                 return False
