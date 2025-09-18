@@ -82,12 +82,20 @@ class Lab2CompleteSolution:
                 address = address[7:]
             
             # Create VASTClient (correct API)
+            logger.info(f"🔧 Connecting to VAST with user='{vms_username}', address='{address}'")
             client = VASTClient(
                 user=vms_username,
                 password=vms_password,
-                address=address,
-                tenant=tenant_name
+                address=address
             )
+            
+            # Test the connection by trying to get users
+            try:
+                users = client.users.get()
+                logger.info(f"✅ Successfully connected to VAST, found {len(users)} users")
+            except Exception as e:
+                logger.error(f"❌ Failed to connect to VAST: {e}")
+                return False
             
             # Create raw data view (instead of bucket)
             raw_view_path = self.config.get('lab2.raw_data.view_path', '/lab2-raw-data')
