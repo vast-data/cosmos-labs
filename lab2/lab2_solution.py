@@ -224,6 +224,32 @@ class Lab2CompleteSolution:
             logger.error(f"❌ Database infrastructure setup failed: {e}")
             return False
     
+    def drop_database(self) -> bool:
+        """Drop the database schema and tables (DESTRUCTIVE)"""
+        try:
+            logger.info("🗑️  Dropping database schema and tables...")
+            
+            # Connect to database server
+            if not self.db_manager.connect():
+                logger.error("❌ Failed to connect to VAST Database server")
+                return False
+            
+            # Drop the schema and all tables
+            if not self.db_manager.delete_vast_schema():
+                logger.error("❌ Failed to drop database schema and tables")
+                return False
+            
+            logger.info("✅ Database schema and tables dropped successfully")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Database drop failed: {e}")
+            return False
+        finally:
+            # Always close the connection
+            if hasattr(self.db_manager, 'close'):
+                self.db_manager.close()
+    
     def get_available_datasets(self) -> List[Dict[str, Any]]:
         """Get list of available Swift datasets"""
         if not self.swift_datasets_dir.exists():
@@ -542,6 +568,7 @@ def main():
     parser.add_argument('--latest', type=int, help='Get the N latest files (e.g., --latest 10)')
     parser.add_argument('--demo-extraction', type=str, help='Demo metadata extraction from a file (e.g., --demo-extraction /path/to/file.fits)')
     parser.add_argument('--delete-schema', action='store_true', help='Delete VAST schema and recreate with new structure (DESTRUCTIVE)')
+    parser.add_argument('--drop', action='store_true', help='Drop database schema and tables (DESTRUCTIVE)')
     parser.add_argument('--showapicalls', action='store_true', help='Show API calls being made (credentials obfuscated)')
     
     args = parser.parse_args()
@@ -761,6 +788,19 @@ def main():
                     return 1
             else:
                 print("❌ VAST schema deletion failed")
+                return 1
+                
+        elif args.drop:
+            # Drop database schema and tables
+            if not args.pushtoprod:
+                print("❌ ERROR: --drop requires --pushtoprod flag for safety")
+                return 1
+            
+            print("🗑️  Dropping database schema and tables...")
+            if solution.drop_database():
+                print("✅ Database schema and tables dropped successfully")
+            else:
+                print("❌ Database drop failed")
                 return 1
                 
         elif args.setup_only:
