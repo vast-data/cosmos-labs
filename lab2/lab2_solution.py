@@ -124,21 +124,32 @@ class Lab2CompleteSolution:
                     logger.info(f"✅ Metadata database view '{metadata_view_path}' already exists")
                 else:
                     if self.production_mode:
-                        # Get default policy for view creation and enable DATABASE protocol
-                        policies = client.viewpolicies.get(name='default')
-                        if policies:
-                            policy_id = policies[0]['id']
-                            view = client.views.post(
-                                path=metadata_view_path,
-                                policy_id=policy_id,
-                                create_dir=True,
-                                protocols=['S3', 'DATABASE'],
-                                bucket=metadata_db_name,
-                                bucket_owner=bucket_owner
-                            )
-                            logger.info(f"✅ Created metadata database view '{metadata_view_path}'")
+                        # For DATABASE protocol, we need S3 native security flavor policy
+                        # Try to find S3 native policy first, fallback to default
+                        s3_native_policies = client.viewpolicies.get(security_flavor='S3_NATIVE')
+                        if s3_native_policies:
+                            policy_id = s3_native_policies[0]['id']
+                            logger.info(f"🔧 Using S3 native policy for DATABASE protocol view")
                         else:
-                            logger.warning("⚠️ No default policy found, skipping view creation")
+                            # Fallback to default policy
+                            policies = client.viewpolicies.get(name='default')
+                            if policies:
+                                policy_id = policies[0]['id']
+                                logger.info(f"🔧 Using default policy for view creation")
+                            else:
+                                logger.error("❌ No suitable policy found for view creation")
+                                return False
+                        
+                        # Create view with S3 and DATABASE protocols
+                        view = client.views.post(
+                            path=metadata_view_path,
+                            policy_id=policy_id,
+                            create_dir=True,
+                            protocols=['S3', 'DATABASE'],
+                            bucket=metadata_db_name,
+                            bucket_owner=bucket_owner
+                        )
+                        logger.info(f"✅ Created metadata database view '{metadata_view_path}'")
                     else:
                         logger.info(f"🔍 DRY RUN: Would create metadata database view '{metadata_view_path}'")
             except Exception as e:
