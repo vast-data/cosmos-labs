@@ -124,19 +124,8 @@ class Lab2CompleteSolution:
             # Create metadata database view (enables DATABASE protocol so vastdb can connect)
             metadata_view_path = self.config.get('lab2.metadata_database.view_path', '/lab2-metadata-db')
             metadata_db_name = self.config.get('lab2.metadata_database.database_name', 'lab2-metadata-db')
-            
-            # Get the actual user ID for bucket_owner (following VAST documentation pattern)
-            try:
-                users = client.users.get(name=vms_username)
-                if users:
-                    bucket_owner = users[0]['name']  # Use the actual user name from the system
-                    logger.info(f"🔧 Using user '{bucket_owner}' as bucket owner")
-                else:
-                    bucket_owner = vms_username  # Fallback to config username
-                    logger.warning(f"⚠️ User '{vms_username}' not found, using as-is for bucket owner")
-            except Exception as e:
-                bucket_owner = vms_username  # Fallback to config username
-                logger.warning(f"⚠️ Could not lookup user, using '{vms_username}' as bucket owner: {e}")
+            bucket_owner = self.config.get('lab2.metadata_database.bucket_owner', vms_username)
+            logger.info(f"🔧 Using bucket owner '{bucket_owner}' from config")
             try:
                 # Check if view exists
                 views = client.views.get()
