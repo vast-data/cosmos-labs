@@ -869,21 +869,35 @@ class VASTDatabaseManager:
                     schema = bucket.schema(self.schema_name)
                     table = schema.table("swift_metadata")
                     
-                    # Get limited number of records
-                    reader = table.select().limit(limit)
+                    # Use QueryConfig to limit results efficiently
+                    from vastdb.config import QueryConfig
+                    
+                    config = QueryConfig(
+                        num_splits=1,                    # Use 1 split
+                        num_sub_splits=1,                # 1 subsplit per split
+                        limit_rows_per_sub_split=limit,  # Limit to requested count
+                    )
+                    
+                    # Get records with limit applied
+                    reader = table.select(config=config)
                     results = []
                     
-                    for batch in reader:
-                        for i in range(len(batch)):
+                    # Process the first batch (which should contain up to 'limit' records)
+                    try:
+                        first_batch = next(reader)
+                        for i in range(len(first_batch)):
                             record = {}
                             # Convert PyArrow record to Python dict
-                            for col_name in batch.column_names:
-                                col_data = batch.column(col_name)
-                                if hasattr(col_data, 'to_pylist'):
-                                    record[col_name] = col_data.to_pylist()[i]
+                            for col_name in first_batch.column_names:
+                                value = first_batch[col_name][i]
+                                if value is not None:
+                                    record[col_name] = value.as_py()
                                 else:
-                                    record[col_name] = col_data[i]
+                                    record[col_name] = None
                             results.append(record)
+                    except StopIteration:
+                        # No data available
+                        pass
                     
                     logger.info(f"📊 Retrieved {len(results)} recent metadata records (limit: {limit})")
                     return results
