@@ -114,7 +114,7 @@ class Lab2CompleteSolution:
             
             # Create metadata database view (enables DATABASE protocol so vastdb can connect)
             metadata_view_path = self.config.get('lab2.metadata_database.view_path', '/lab2-metadata-db')
-            metadata_db_name = self.config.get('lab2.metadata_database.database_name', metadata_view_path.lstrip('/'))
+            metadata_db_name = self.config.get('lab2.metadata_database.database_name', 'lab2-metadata-db')
             bucket_owner = self.config.get('vast.user')
             try:
                 # Check if view exists

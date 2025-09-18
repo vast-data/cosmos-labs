@@ -51,9 +51,8 @@ class VASTDatabaseManager:
         """Initialize the database manager"""
         self.config = config
         self.show_api_calls = show_api_calls
-        # Lab 2 metadata database view – use lab2.metadata_database.view_path
-        view_path = config.get('lab2.metadata_database.view_path', '/lab2-metadata-db')
-        self.bucket_name = view_path.lstrip('/')  # Remove leading slash for S3 bucket name
+        # Lab 2 metadata database – use configured database name
+        self.bucket_name = config.get('lab2.metadata_database.database_name', 'lab2-metadata-db')
         self.schema_name = config.get('lab2.metadata_database.schema', 'satellite_observations')
         
         # Database connection parameters for vastdb (using S3 credentials)
