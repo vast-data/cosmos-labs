@@ -36,7 +36,7 @@ class MetadataProcessor:
             secrets_path = str(Path(__file__).parent.parent / "secrets.yaml")
         self.config = ConfigLoader(config_path, secrets_path)
         self.db_manager = VASTDatabaseManager(self.config)
-        self.extractor = SwiftMetadataExtractor()
+        self.extractor = SwiftMetadataExtractor(self.config)
     
     def process_all_datasets(self) -> Dict[str, Any]:
         """Process metadata for all available datasets from S3"""
@@ -303,8 +303,41 @@ def main():
     
     if args.dry_run:
         logger.info("⚠️  DRY RUN MODE: No actual changes will be made")
-        logger.info("💡 Metadata processing would be performed")
-        return
+        logger.info("🔍 Testing connections and checking available datasets...")
+        
+        # Test database connection
+        try:
+            logger.info("🔧 Testing VAST Database connection...")
+            if processor.db_manager.connect():
+                logger.info("✅ VAST Database connection successful")
+                processor.db_manager.close()
+            else:
+                logger.error("❌ VAST Database connection failed")
+                return False
+        except Exception as e:
+            logger.error(f"❌ VAST Database connection failed: {e}")
+            return False
+        
+        # Test S3 connection and list available datasets
+        try:
+            logger.info("🔧 Testing S3 connection and scanning for datasets...")
+            datasets = processor.get_available_datasets_from_s3()
+            logger.info(f"✅ Found {len(datasets)} datasets in S3")
+            
+            if datasets:
+                logger.info("📁 Available datasets:")
+                for dataset_name, file_count in datasets.items():
+                    logger.info(f"   - {dataset_name}: {file_count} files")
+            else:
+                logger.info("ℹ️  No datasets found in S3 (upload datasets first)")
+            
+        except Exception as e:
+            logger.error(f"❌ S3 connection or dataset scanning failed: {e}")
+            return False
+        
+        logger.info("✅ Dry-run validation completed successfully")
+        logger.info("💡 All connections working, metadata processing would succeed")
+        return True
     
     if args.dataset:
         # Process specific dataset
