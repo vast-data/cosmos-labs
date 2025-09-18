@@ -124,21 +124,15 @@ class Lab2CompleteSolution:
                     logger.info(f"✅ Metadata database view '{metadata_view_path}' already exists")
                 else:
                     if self.production_mode:
-                        # For DATABASE protocol, we need S3 native security flavor policy
-                        # Try to find S3 native policy first, fallback to default
-                        s3_native_policies = client.viewpolicies.get(security_flavor='S3_NATIVE')
-                        if s3_native_policies:
-                            policy_id = s3_native_policies[0]['id']
-                            logger.info(f"🔧 Using S3 native policy for DATABASE protocol view")
+                        # Get policy name from config for DATABASE protocol view
+                        policy_name = self.config.get('lab2.metadata_database.policy_name', 's3_default_policy')
+                        policies = client.viewpolicies.get(name=policy_name)
+                        if policies:
+                            policy_id = policies[0]['id']
+                            logger.info(f"🔧 Using policy '{policy_name}' (ID: {policy_id}) for DATABASE protocol view")
                         else:
-                            # Fallback to default policy
-                            policies = client.viewpolicies.get(name='default')
-                            if policies:
-                                policy_id = policies[0]['id']
-                                logger.info(f"🔧 Using default policy for view creation")
-                            else:
-                                logger.error("❌ No suitable policy found for view creation")
-                                return False
+                            logger.error(f"❌ Policy '{policy_name}' not found for view creation")
+                            return False
                         
                         # Create view with S3 and DATABASE protocols
                         view = client.views.post(
