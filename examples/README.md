@@ -87,8 +87,12 @@ All examples use the centralized configuration system via `examples_config.py`. 
 - ✅ Shows quota status, alarms, and last update information
 - ✅ Clean, professional output perfect for monitoring and reporting
 - ✅ Command-line support for any quota ID
+- ✅ --all option to show summary list of all quotas with color-coded status
 
-**Run:** `python 08_show_user_quotas.py 114` or `python 08_show_user_quotas.py 114 --json`
+**Run:** 
+- `python 08_show_user_quotas.py --all` (show all quotas summary)
+- `python 08_show_user_quotas.py 114` (show specific quota details)
+- `python 08_show_user_quotas.py 114 --json` (raw JSON output)
 
 ## ⚠️ Safety Notes
 

@@ -95,6 +95,64 @@ def display_quota_table(quotas: list, title: str, entity_type: str):
     print()
 
 
+def display_all_quotas_summary(client: VASTClient):
+    """Display a summary list of all quotas"""
+    try:
+        print("🔍 Fetching all quotas...")
+        all_quotas = client.quotas.get()
+        
+        if not all_quotas:
+            print("📭 No quotas found")
+            return True
+        
+        print(f"📊 Found {len(all_quotas)} quota configurations:")
+        print()
+        
+        # Create a summary table
+        print(f"{'ID':<6} {'Name':<20} {'Path':<25} {'Used':<15} {'Hard Limit':<15} {'Usage':<10} {'Status':<10}")
+        print("-" * 95)
+        
+        for quota in all_quotas:
+            quota_id = quota.get('id', 'N/A')
+            name = quota.get('name', 'Unknown')[:19]  # Truncate long names
+            path = quota.get('path', 'N/A')[:24]      # Truncate long paths
+            used = quota.get('used_capacity', 0)
+            hard_limit = quota.get('hard_limit')
+            state = quota.get('pretty_state', 'Unknown')
+            
+            # Calculate usage percentage
+            if hard_limit and hard_limit > 0:
+                usage_pct = format_percentage(used, hard_limit)
+            else:
+                usage_pct = "N/A"
+            
+            # Status emoji based on usage
+            if hard_limit and hard_limit > 0:
+                usage_float = (used / hard_limit) * 100
+                if usage_float > 90:
+                    status_emoji = "🔴"
+                elif usage_float > 70:
+                    status_emoji = "🟡"
+                else:
+                    status_emoji = "🟢"
+            else:
+                status_emoji = "⚪"
+            
+            print(f"{quota_id:<6} {name:<20} {path:<25} {format_bytes(used):<15} {format_bytes(hard_limit):<15} {usage_pct:<10} {status_emoji} {state:<10}")
+        
+        print("-" * 95)
+        print()
+        print("💡 To see detailed information for a specific quota, run:")
+        print("   python 08_show_user_quotas.py <quota_id>")
+        print()
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error fetching quotas: {e}")
+        return False
+
+
 def display_quota_summary(quota_data: Dict):
     """Display a nice summary of the quota information"""
     print("=" * HEADER_WIDTH)
@@ -168,14 +226,17 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description='Display detailed user quota information')
-    parser.add_argument('quota_id', type=int, help='Quota ID to display (e.g., 114)')
+    parser.add_argument('quota_id', type=int, nargs='?', help='Quota ID to display (e.g., 114)')
+    parser.add_argument('--all', action='store_true', help='Show summary of all quotas')
     parser.add_argument('--json', action='store_true', help='Output raw JSON instead of formatted display')
     args = parser.parse_args()
     
+    # Validate arguments
+    if not args.all and args.quota_id is None:
+        parser.error("Either provide a quota_id or use --all to show all quotas")
+    
     print("🚀 Example 8: Show User Quotas")
     print("=" * 50)
-    
-    quota_id = args.quota_id
     
     try:
         # Load configuration using examples config loader
@@ -191,7 +252,6 @@ def main():
         
         print(f"📡 Connecting to: {address}")
         print(f"👤 User: {vast_config['user']}")
-        print(f"🔍 Fetching quota information for ID: {quota_id}")
         print()
         
         # Create VAST client
@@ -201,21 +261,29 @@ def main():
             address=address
         )
         
-        # Get quota information
-        quota_data = get_quota_info(client, quota_id)
-        
-        if quota_data is None:
-            print(f"❌ Failed to retrieve quota information for ID {quota_id}")
-            print("💡 Try using a different quota ID. You can list available quotas with: python 03_check_quotas.py")
-            return False
-        
-        if args.json:
-            # Output raw JSON
-            print(json.dumps(quota_data, indent=2))
+        if args.all:
+            # Show all quotas summary
+            return display_all_quotas_summary(client)
         else:
-            # Display formatted output
-            display_quota_summary(quota_data)
-        return True
+            # Show specific quota details
+            quota_id = args.quota_id
+            print(f"🔍 Fetching quota information for ID: {quota_id}")
+            print()
+            
+            quota_data = get_quota_info(client, quota_id)
+            
+            if quota_data is None:
+                print(f"❌ Failed to retrieve quota information for ID {quota_id}")
+                print("💡 Try using a different quota ID or use --all to see available quotas")
+                return False
+            
+            if args.json:
+                # Output raw JSON
+                print(json.dumps(quota_data, indent=2))
+            else:
+                # Display formatted output
+                display_quota_summary(quota_data)
+            return True
             
     except FileNotFoundError as e:
         print(f"❌ Configuration file not found: {e}")
