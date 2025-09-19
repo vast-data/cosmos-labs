@@ -73,15 +73,6 @@ def main():
     if not check_pip():
         return False
     
-    print("\n🔧 Installation Options:")
-    print("1. Full development environment (recommended)")
-    print("2. Lab 1 only (Storage Infrastructure)")
-    print("3. Lab 2 only (Metadata Infrastructure)")
-    print("4. Lab 6 only (Pipeline Storage Integration)")
-    print("5. Examples only (Directory Explorer, Orphaned Data Discovery)")
-    
-    print("\n💡 Recommendation: Start with option 1 for full functionality")
-    
     # Install root requirements (full environment)
     print("\n" + "="*40)
     print("🏗️  INSTALLING FULL DEVELOPMENT ENVIRONMENT")
