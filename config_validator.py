@@ -27,7 +27,7 @@ class ConfigValidator:
         # Validate each section
         self._validate_vast_section(config.get('vast', {}))
         self._validate_catalog_section(config.get('catalog', {}))
-        self._validate_data_section(config.get('data', {}))
+        self._validate_lab1_data_directories(config.get('lab1', {}))
         self._validate_metadata_section(config.get('metadata', {}))
         self._validate_views_section(config.get('views', {}))
         self._validate_monitoring_section(config.get('monitoring', {}))
@@ -70,20 +70,20 @@ class ConfigValidator:
         if 'max_retries' in catalog_config and not isinstance(catalog_config['max_retries'], int):
             self.errors.append("catalog.max_retries must be an integer")
     
-    def _validate_data_section(self, data_config: Dict[str, Any]):
-        """Validate data directories configuration"""
-        if 'directories' not in data_config:
-            self.errors.append("data.directories is required")
-        elif not isinstance(data_config['directories'], list):
-            self.errors.append("data.directories must be a list")
-        elif len(data_config['directories']) == 0:
-            self.errors.append("data.directories cannot be empty")
+    def _validate_lab1_data_directories(self, lab1_config: Dict[str, Any]):
+        """Validate lab1 data directories configuration"""
+        if 'data_directories' not in lab1_config:
+            self.errors.append("lab1.data_directories is required")
+        elif not isinstance(lab1_config['data_directories'], list):
+            self.errors.append("lab1.data_directories must be a list")
+        elif len(lab1_config['data_directories']) == 0:
+            self.errors.append("lab1.data_directories cannot be empty")
         else:
-            for i, directory in enumerate(data_config['directories']):
+            for i, directory in enumerate(lab1_config['data_directories']):
                 if not isinstance(directory, str):
-                    self.errors.append(f"data.directories[{i}] must be a string")
+                    self.errors.append(f"lab1.data_directories[{i}] must be a string")
                 elif not directory.startswith('/'):
-                    self.warnings.append(f"data.directories[{i}] should be an absolute path: {directory}")
+                    self.warnings.append(f"lab1.data_directories[{i}] should be an absolute path: {directory}")
     
     def _validate_metadata_section(self, metadata_config: Dict[str, Any]):
         """Validate metadata configuration"""

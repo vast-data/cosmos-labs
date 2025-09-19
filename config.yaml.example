@@ -13,12 +13,6 @@ vastdb:
   ssl_verify: true
   timeout: 30
 
-# Data Directories
-data:
-  directories:
-    - "/your-tenant/raw"
-    - "/your-tenant/processed"
-
 # Monitoring Settings
 monitoring:
   refresh_interval_seconds: 30
@@ -42,6 +36,11 @@ lab1:
   monitoring:
     alert_threshold: 80  # Percentage at which to alert
     critical_threshold: 90  # Percentage at which to take immediate action
+  
+  # Data directories for storage monitoring
+  data_directories:
+    - "/your-tenant/raw"      # Raw data storage path
+    - "/your-tenant/processed" # Processed data storage path
 
 # Lab 2: Metadata Infrastructure Settings
 lab2:

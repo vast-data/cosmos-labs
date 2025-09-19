@@ -74,12 +74,12 @@ class OrbitalDynamicsStorageManager:
         self.config = config
         
         # Storage configuration - ALL VALUES MUST BE EXPLICITLY CONFIGURED
-        data_dirs = config.get('data.directories', [])
+        data_dirs = config.get('lab1.data_directories', [])
         if len(data_dirs) < 2:
-            raise ValueError("data.directories must contain at least 2 directories")
+            raise ValueError("lab1.data_directories must contain at least 2 directories")
         
-        self.raw_data_path = data_dirs[0]  # First directory from data.directories
-        self.processed_data_path = data_dirs[1]  # Second directory from data.directories
+        self.raw_data_path = data_dirs[0]  # First directory from lab1.data_directories
+        self.processed_data_path = data_dirs[1]  # Second directory from lab1.data_directories
         self.temp_data_path = data_dirs[2] if len(data_dirs) > 2 else None
         
         # Quota thresholds - ALL VALUES MUST BE EXPLICITLY CONFIGURED
