@@ -41,6 +41,7 @@ lab1:
   views:
     raw_data:
       path: "/your-name/lab1-raw"
+      bucket_name: "your-name-lab1-raw"
       quota_gb: 10240  # 10TB
       policy_name: "s3_default_policy"
       bucket_owner: "your-email@example.com"
@@ -48,6 +49,7 @@ lab1:
     
     processed_data:
       path: "/your-name/lab1-processed" 
+      bucket_name: "your-name-lab1-processed"
       quota_gb: 20480  # 20TB
       policy_name: "s3_default_policy"
       bucket_owner: "your-email@example.com"

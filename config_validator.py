@@ -89,7 +89,7 @@ class ConfigValidator:
                         self.errors.append(f"lab1.views.{view_name} must be a dictionary")
                     else:
                         # Check required fields for each view
-                        required_fields = ['path', 'quota_gb', 'policy_name', 'bucket_owner']
+                        required_fields = ['path', 'bucket_name', 'quota_gb', 'policy_name', 'bucket_owner']
                         for field in required_fields:
                             if field not in view_config:
                                 self.errors.append(f"lab1.views.{view_name}.{field} is required")

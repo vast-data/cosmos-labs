@@ -446,6 +446,7 @@ class OrbitalDynamicsStorageManager:
         
         for view_name, view_config in views_config.items():
             view_path = view_config.get('path')
+            bucket_name = view_config.get('bucket_name')
             quota_gb = view_config.get('quota_gb', 10240)
             policy_name = view_config.get('policy_name', 's3_default_policy')
             bucket_owner = view_config.get('bucket_owner')
@@ -456,7 +457,13 @@ class OrbitalDynamicsStorageManager:
                 success = False
                 continue
             
+            if not bucket_name:
+                logger.error(f"❌ No bucket_name specified for view {view_name}")
+                success = False
+                continue
+            
             logger.info(f"📁 Creating view: {view_path}")
+            logger.info(f"   Bucket: {bucket_name}")
             logger.info(f"   Quota: {quota_gb} GB")
             logger.info(f"   Policy: {policy_name}")
             logger.info(f"   Protocols: {', '.join(protocols)}")
@@ -482,6 +489,7 @@ class OrbitalDynamicsStorageManager:
                     # Create view (following Lab 2 pattern)
                     view_kwargs = {
                         'path': view_path,
+                        'bucket': bucket_name,
                         'policy_id': policy_id,
                         'protocols': protocols,
                         'create_dir': True
