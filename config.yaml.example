@@ -37,10 +37,21 @@ lab1:
     alert_threshold: 80  # Percentage at which to alert
     critical_threshold: 90  # Percentage at which to take immediate action
   
-  # Data directories for storage monitoring
-  data_directories:
-    - "/your-name/lab1-raw"      # Raw data storage path
-    - "/your-name/lab1-processed" # Processed data storage path
+  # View settings
+  views:
+    raw_data:
+      path: "/your-name/lab1-raw"
+      quota_gb: 10240  # 10TB
+      policy_name: "s3_default_policy"
+      bucket_owner: "your-email@example.com"
+      protocols: ["S3", "NFS"]
+    
+    processed_data:
+      path: "/your-name/lab1-processed" 
+      quota_gb: 20480  # 20TB
+      policy_name: "s3_default_policy"
+      bucket_owner: "your-email@example.com"
+      protocols: ["S3", "NFS"]
 
 # Lab 2: Metadata Infrastructure Settings
 lab2:

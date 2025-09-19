@@ -27,7 +27,7 @@ class ConfigValidator:
         # Validate each section
         self._validate_vast_section(config.get('vast', {}))
         self._validate_catalog_section(config.get('catalog', {}))
-        self._validate_lab1_data_directories(config.get('lab1', {}))
+        self._validate_lab1_views(config.get('lab1', {}))
         self._validate_metadata_section(config.get('metadata', {}))
         self._validate_views_section(config.get('views', {}))
         self._validate_monitoring_section(config.get('monitoring', {}))
@@ -70,20 +70,35 @@ class ConfigValidator:
         if 'max_retries' in catalog_config and not isinstance(catalog_config['max_retries'], int):
             self.errors.append("catalog.max_retries must be an integer")
     
-    def _validate_lab1_data_directories(self, lab1_config: Dict[str, Any]):
-        """Validate lab1 data directories configuration"""
-        if 'data_directories' not in lab1_config:
-            self.errors.append("lab1.data_directories is required")
-        elif not isinstance(lab1_config['data_directories'], list):
-            self.errors.append("lab1.data_directories must be a list")
-        elif len(lab1_config['data_directories']) == 0:
-            self.errors.append("lab1.data_directories cannot be empty")
+    def _validate_lab1_views(self, lab1_config: Dict[str, Any]):
+        """Validate lab1 views configuration"""
+        if 'views' not in lab1_config:
+            self.errors.append("lab1.views is required")
+        elif not isinstance(lab1_config['views'], dict):
+            self.errors.append("lab1.views must be a dictionary")
         else:
-            for i, directory in enumerate(lab1_config['data_directories']):
-                if not isinstance(directory, str):
-                    self.errors.append(f"lab1.data_directories[{i}] must be a string")
-                elif not directory.startswith('/'):
-                    self.warnings.append(f"lab1.data_directories[{i}] should be an absolute path: {directory}")
+            views_config = lab1_config['views']
+            required_views = ['raw_data', 'processed_data']
+            
+            for view_name in required_views:
+                if view_name not in views_config:
+                    self.errors.append(f"lab1.views.{view_name} is required")
+                else:
+                    view_config = views_config[view_name]
+                    if not isinstance(view_config, dict):
+                        self.errors.append(f"lab1.views.{view_name} must be a dictionary")
+                    else:
+                        # Check required fields for each view
+                        required_fields = ['path', 'quota_gb', 'policy_name', 'bucket_owner']
+                        for field in required_fields:
+                            if field not in view_config:
+                                self.errors.append(f"lab1.views.{view_name}.{field} is required")
+                            elif field == 'quota_gb' and not isinstance(view_config[field], (int, float)):
+                                self.errors.append(f"lab1.views.{view_name}.quota_gb must be a number")
+                            elif field == 'path' and not isinstance(view_config[field], str):
+                                self.errors.append(f"lab1.views.{view_name}.path must be a string")
+                            elif field == 'path' and not view_config[field].startswith('/'):
+                                self.warnings.append(f"lab1.views.{view_name}.path should be an absolute path: {view_config[field]}")
     
     def _validate_metadata_section(self, metadata_config: Dict[str, Any]):
         """Validate metadata configuration"""
