@@ -17,21 +17,15 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class OrbitalDynamicsStorageManager:
-    def __init__(self, config: Lab1ConfigLoader, production_mode: bool = False, show_api_calls: bool = False):
+    def __init__(self, config: Lab1ConfigLoader, production_mode: bool = False):
         """
         Initialize the storage manager for Orbital Dynamics
         
         Args:
             config: Lab1ConfigLoader instance with loaded configuration
             production_mode: If True, allows actual changes. If False, dry-run only.
-            show_api_calls: If True, show API calls being made (credentials obfuscated).
         """
         self.production_mode = production_mode
-        self.show_api_calls = show_api_calls
-        
-        # Debug: Show if API calls are enabled
-        if show_api_calls:
-            logger.info("🔌 API call logging ENABLED")
         # Load VAST configuration
         vast_config = config.get_vast_config()
         
@@ -114,23 +108,6 @@ class OrbitalDynamicsStorageManager:
         else:
             logger.warning("🚨 PRODUCTION MODE: Actual changes will be made to your VAST system")
     
-    def _log_api_call(self, operation: str, details: str = ""):
-        """Log API calls if show_api_calls is enabled"""
-        if self.show_api_calls:
-            # Obfuscate credentials in the details
-            obfuscated_details = details
-            vast_config = self.config.get_vast_config()
-            if vast_config.get('user') and vast_config['user'] in obfuscated_details:
-                obfuscated_details = obfuscated_details.replace(vast_config['user'], '***')
-            if vast_config.get('password') and vast_config['password'] in obfuscated_details:
-                obfuscated_details = obfuscated_details.replace(vast_config['password'], '***')
-            if vast_config.get('token') and vast_config['token'] in obfuscated_details:
-                obfuscated_details = obfuscated_details.replace(vast_config['token'], '***')
-            
-            logger.info(f"🔌 API CALL: {operation}")
-            if details:
-                logger.info(f"   Details: {obfuscated_details}")
-    
     def show_current_view_status(self):
         """Display current status of all target views"""
         logger.info("\n" + "="*60)
@@ -200,11 +177,6 @@ class OrbitalDynamicsStorageManager:
         """Check if the required storage views exist (monitoring only)"""
         try:
             # Get default policy for views
-            # Log API call
-            self._log_api_call(
-                "client.viewpolicies.get()",
-                "name=default"
-            )
             
             policies = self.client.viewpolicies.get(name='default')
             if not policies:
@@ -323,11 +295,6 @@ class OrbitalDynamicsStorageManager:
                 # Actually perform the expansion
                 logger.info("🚨 PRODUCTION MODE: Expanding quota...")
                 
-                # Log API call
-                self._log_api_call(
-                    "client.quotas[].patch()",
-                    f"quota_id={quota_info['id']}, hard_limit={new_hard_limit}"
-                )
                 
                 # Update the quota with new hard limit
                 quota_id = quota_info['id']
@@ -486,11 +453,6 @@ class OrbitalDynamicsStorageManager:
                         continue
                     
                     # Get policy ID from policy name
-                    # Log API call
-                    self._log_api_call(
-                        "client.viewpolicies.get()",
-                        f"name={policy_name}"
-                    )
                     
                     policies = self.client.viewpolicies.get(name=policy_name)
                     if not policies:
@@ -514,11 +476,6 @@ class OrbitalDynamicsStorageManager:
                         view_kwargs['bucket_owner'] = bucket_owner
                         logger.info(f"🔧 Setting bucket owner to '{bucket_owner}'")
                     
-                    # Log API call
-                    self._log_api_call(
-                        "client.views.post()",
-                        f"path={view_path}, bucket={bucket_name}, policy_id={policy_id}, protocols={protocols}"
-                    )
                     
                     self.client.views.post(**view_kwargs)
                     logger.info(f"✅ Created view '{view_path}'")
@@ -537,11 +494,6 @@ class OrbitalDynamicsStorageManager:
                     if created_views:
                         view_id = created_views[0]['id']
                         
-                        # Log API call
-                        self._log_api_call(
-                            "client.quotas.post()",
-                            f"name={quota_data['name']}, path={view_path}, hard_limit={quota_bytes}, soft_limit={int(quota_bytes * 0.8)}"
-                        )
                         
                         self.client.quotas.post(**quota_data)
                         logger.info(f"✅ Set quota for '{view_path}': {quota_gb} GB")
@@ -600,11 +552,6 @@ class OrbitalDynamicsStorageManager:
                     try:
                         quotas = self.client.quotas.get(path=view_path)
                         for quota in quotas:
-                            # Log API call
-                            self._log_api_call(
-                                "client.quotas[].delete()",
-                                f"quota_id={quota['id']}, path={view_path}"
-                            )
                             
                             self.client.quotas[quota['id']].delete()
                             logger.info(f"✅ Removed quota for '{view_path}'")
@@ -612,11 +559,6 @@ class OrbitalDynamicsStorageManager:
                         logger.warning(f"⚠️  Could not remove quotas for '{view_path}': {e}")
                     
                     # Remove view
-                    # Log API call
-                    self._log_api_call(
-                        "client.views[].delete()",
-                        f"view_id={view_id}, path={view_path}"
-                    )
                     
                     self.client.views[view_id].delete()
                     logger.info(f"✅ Removed view '{view_path}'")
@@ -642,8 +584,6 @@ def main():
                        help='Only create views and check setup, then exit')
     parser.add_argument('--monitor-only', action='store_true',
                        help='Only run monitoring, skip setup')
-    parser.add_argument('--showapicalls', action='store_true',
-                       help='Show API calls being made (credentials obfuscated)')
     
     args = parser.parse_args()
     
@@ -673,7 +613,7 @@ def main():
             return
         
         # Initialize storage manager with production mode
-        storage_manager = OrbitalDynamicsStorageManager(config, production_mode=production_mode, show_api_calls=args.showapicalls)
+        storage_manager = OrbitalDynamicsStorageManager(config, production_mode=production_mode)
         
         # Handle different operation modes
         if args.remove:
