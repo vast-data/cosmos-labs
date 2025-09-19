@@ -111,9 +111,8 @@ def main():
     print("\n📚 Next Steps:")
     print("1. Configure your config.yaml and secrets.yaml")
     print("2. Set up VAST Data Platform access")
-    print("3. Run: python3 lab1/test_basic_imports.py")
-    print("4. Start with Lab 1: cd lab1 && python3 lab1_solution.py --help")
-    print("5. Try examples: cd examples && python3 08_directory_catalog_explorer.py")
+    print("3. Start with Lab 1: cd lab1 && python3 lab1_solution.py --help")
+    print("4. Try examples: cd examples && python3 08_directory_catalog_explorer.py")
     print("\n💡 For help: Check the README.md files in each lab directory")
     
     return True
