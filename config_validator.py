@@ -30,7 +30,6 @@ class ConfigValidator:
         self._validate_lab1_views(config.get('lab1', {}))
         self._validate_metadata_section(config.get('metadata', {}))
         self._validate_views_section(config.get('views', {}))
-        self._validate_monitoring_section(config.get('monitoring', {}))
         
         # Validate lab-specific sections
         self._validate_lab_sections(config)
@@ -128,25 +127,6 @@ class ConfigValidator:
         if 'create_directories' in views_config and not isinstance(views_config['create_directories'], bool):
             self.errors.append("views.create_directories must be a boolean")
     
-    def _validate_monitoring_section(self, monitoring_config: Dict[str, Any]):
-        """Validate monitoring configuration"""
-        if 'enabled' not in monitoring_config:
-            self.errors.append("monitoring.enabled is required")
-        elif not isinstance(monitoring_config['enabled'], bool):
-            self.errors.append("monitoring.enabled must be a boolean")
-        
-        if 'interval_seconds' not in monitoring_config:
-            self.errors.append("monitoring.interval_seconds is required")
-        elif not isinstance(monitoring_config['interval_seconds'], int):
-            self.errors.append("monitoring.interval_seconds must be an integer")
-        elif monitoring_config['interval_seconds'] < 1:
-            self.errors.append("monitoring.interval_seconds must be at least 1 second")
-        
-        if 'metrics' not in monitoring_config:
-            self.errors.append("monitoring.metrics is required")
-        elif not isinstance(monitoring_config['metrics'], list):
-            self.errors.append("monitoring.metrics must be a list")
-    
     def _validate_lab_sections(self, config: Dict[str, Any]):
         """Validate lab-specific configuration sections"""
         lab_sections = ['lab1', 'lab2', 'lab3', 'lab4', 'lab5']
@@ -188,10 +168,21 @@ class ConfigValidator:
             self.errors.append("lab1.monitoring is required")
         else:
             monitoring_config = lab_config['monitoring']
-            required_monitoring_fields = ['alert_threshold', 'critical_threshold']
+            required_monitoring_fields = ['alert_threshold', 'critical_threshold', 'refresh_interval_seconds', 'interval_seconds']
             for field in required_monitoring_fields:
                 if field not in monitoring_config:
                     self.errors.append(f"lab1.monitoring.{field} is required")
+            
+            # Validate interval values
+            if 'interval_seconds' in monitoring_config:
+                interval = monitoring_config['interval_seconds']
+                if not isinstance(interval, int) or interval < 1:
+                    self.errors.append("lab1.monitoring.interval_seconds must be an integer >= 1")
+            
+            if 'refresh_interval_seconds' in monitoring_config:
+                refresh_interval = monitoring_config['refresh_interval_seconds']
+                if not isinstance(refresh_interval, int) or refresh_interval < 1:
+                    self.errors.append("lab1.monitoring.refresh_interval_seconds must be an integer >= 1")
     
     def _validate_lab2_config(self, lab_config: Dict[str, Any]):
         """Validate Lab 2 specific configuration"""

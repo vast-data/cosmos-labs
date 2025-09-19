@@ -95,7 +95,7 @@ class OrbitalDynamicsStorageManager:
         self.max_expansion_gb = config.get('lab1.storage.max_expansion_gb')
         
         # Monitoring settings - ALL VALUES MUST BE EXPLICITLY CONFIGURED
-        self.monitoring_interval = config.get('monitoring.interval_seconds')
+        self.monitoring_interval = config.get('lab1.monitoring.interval_seconds')
         
         # Initialize safety checker
         self.safety_checker = SafetyChecker(config, self.client)

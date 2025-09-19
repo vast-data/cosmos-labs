@@ -13,10 +13,6 @@ vastdb:
   ssl_verify: true
   timeout: 30
 
-# Monitoring Settings
-monitoring:
-  refresh_interval_seconds: 30
-  interval_seconds: 300  # 5 minutes between monitoring cycles
 
 # S3 Configuration for VAST Data Platform
 s3:
@@ -36,6 +32,8 @@ lab1:
   monitoring:
     alert_threshold: 80  # Percentage at which to alert
     critical_threshold: 90  # Percentage at which to take immediate action
+    refresh_interval_seconds: 30  # Dashboard refresh interval
+    interval_seconds: 300  # 5 minutes between monitoring cycles
   
   # View settings
   views:
