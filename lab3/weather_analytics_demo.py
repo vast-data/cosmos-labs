@@ -91,7 +91,7 @@ def get_weather_connection():
     config = Lab3ConfigLoader()
     
     # Get connection details
-    endpoint = config.get('vastdb.endpoint', 'http://localhost:8080')
+    endpoint = config.get('vastdb.endpoint', 'https://your-vms-hostname')
     ssl_verify = config.get('vastdb.ssl_verify', True)
     timeout = config.get('vastdb.timeout', 30)
     
@@ -124,8 +124,8 @@ def get_data_summary(conn, config, trends=False):
     
     try:
         # Get bucket and schema names from config
-        bucket_name = config.get('lab3.weather.bucket', 'your-weather-bucket')
-        schema_name = config.get('lab3.weather.schema', 'weather_analytics')
+        bucket_name = config.get('lab3.database.name', 'weather_analytics')
+        schema_name = config.get('lab3.database.schema', 'weather_analytics')
         
         # Use transaction to access tables with retry logic
         max_retries = 3
@@ -189,8 +189,8 @@ def analyze_daily_patterns(conn, config, locations, debug=False, trends=False):
     
     try:
         # Get bucket and schema names from config
-        bucket_name = config.get('lab3.weather.bucket', 'your-weather-bucket')
-        schema_name = config.get('lab3.weather.schema', 'weather_analytics')
+        bucket_name = config.get('lab3.database.name', 'weather_analytics')
+        schema_name = config.get('lab3.database.schema', 'weather_analytics')
         
         # Use transaction to access tables
         with conn.transaction() as tx:
@@ -342,8 +342,8 @@ def analyze_correlations(conn, config, locations, debug=False, trends=False):
     
     try:
         # Get bucket and schema names from config
-        bucket_name = config.get('lab3.weather.bucket', 'your-weather-bucket')
-        schema_name = config.get('lab3.weather.schema', 'weather_analytics')
+        bucket_name = config.get('lab3.database.name', 'weather_analytics')
+        schema_name = config.get('lab3.database.schema', 'weather_analytics')
         
         # Use transaction to access tables with timeout handling
         try:
@@ -522,8 +522,8 @@ def analyze_pollution_episodes(conn, config, locations, debug=False, trends=Fals
     
     try:
         # Get bucket and schema names from config
-        bucket_name = config.get('lab3.weather.bucket', 'your-weather-bucket')
-        schema_name = config.get('lab3.weather.schema', 'weather_analytics')
+        bucket_name = config.get('lab3.database.name', 'weather_analytics')
+        schema_name = config.get('lab3.database.schema', 'weather_analytics')
         
         # Use transaction to access tables with error handling
         try:

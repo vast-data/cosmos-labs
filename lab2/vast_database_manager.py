@@ -35,16 +35,16 @@ class VASTDatabaseManager:
         self.config = config
         self.show_api_calls = show_api_calls
         # Lab 2 metadata database – use configured database name
-        self.bucket_name = config.get('lab2.metadata_database.database_name', 'lab2-metadata-db')
-        self.schema_name = config.get('lab2.metadata_database.schema', 'satellite_observations')
+        self.bucket_name = config.get('lab2.database.name', 'lab2-metadata-db')
+        self.schema_name = config.get('lab2.database.schema', 'satellite_observations')
         
         # Database connection parameters for vastdb (using S3 credentials)
         self.db_config = {
             'access': config.get_secret('s3_access_key'),
             'secret': config.get_secret('s3_secret_key'),
-            'endpoint': config.get('lab2.metadata_database.endpoint', 'http://localhost:8080'),
-            'ssl_verify': config.get('lab2.metadata_database.ssl_verify', True),
-            'timeout': config.get('lab2.metadata_database.timeout', 30)
+            'endpoint': config.get('vastdb.endpoint', 'https://your-vms-hostname'),
+            'ssl_verify': config.get('vastdb.ssl_verify', True),
+            'timeout': config.get('vastdb.timeout', 30)
         }
         
         # Debug: log what we're trying to connect with
@@ -207,7 +207,7 @@ class VASTDatabaseManager:
             vms_endpoint = self.config.get('vast.address')
             vms_username = self.config.get('vast.user')
             vms_password = self.config.get_secret('vast_password')
-            view_path = self.config.get('lab2.metadata_database.view_path', f"/{self.bucket_name}")
+            view_path = self.config.get('lab2.database.view_path', f"/{self.bucket_name}")
             
             if not vms_endpoint or not vms_username or not vms_password:
                 logger.error("❌ Missing VMS settings in config.yaml/secrets.yaml (vast.address, vast.user, vast_password)")

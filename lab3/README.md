@@ -144,7 +144,7 @@ lab3:
       global: ["Beijing", "London", "New York", "Tokyo", "Mumbai", "Los Angeles", "Delhi", "Mexico City", "Krakow", "Ulaanbaatar"]
 
 vastdb:
-  endpoint: "http://localhost:8080"            # VAST Database endpoint
+  endpoint: "https://your-vms-hostname"        # VAST Database endpoint
   ssl_verify: true                             # SSL verification
   timeout: 30                                  # Connection timeout
 ```
