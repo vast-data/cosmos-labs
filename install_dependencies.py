@@ -79,8 +79,8 @@ def main():
     print("="*40)
     
     if install_requirements("requirements.txt", "full development environment"):
-        print("\n✅ Full environment installed successfully!")
-        print("   You can now run any lab with full functionality")
+        # Success message already printed by install_requirements function
+        pass
     else:
         print("\n⚠️  Full environment installation had issues")
         print("   Trying individual lab installations...")
