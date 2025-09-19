@@ -479,18 +479,19 @@ class OrbitalDynamicsStorageManager:
                     policy_id = policies[0]['id']
                     logger.info(f"🔧 Using policy '{policy_name}' (ID: {policy_id})")
                     
-                    # Create view
-                    view_data = {
+                    # Create view (following Lab 2 pattern)
+                    view_kwargs = {
                         'path': view_path,
                         'policy_id': policy_id,
-                        'protocols': protocols
+                        'protocols': protocols,
+                        'create_dir': True
                     }
                     
                     if bucket_owner:
-                        view_data['bucket_owner'] = bucket_owner
+                        view_kwargs['bucket_owner'] = bucket_owner
                         logger.info(f"🔧 Setting bucket owner to '{bucket_owner}'")
                     
-                    self.client.views.post(data=view_data)
+                    self.client.views.post(**view_kwargs)
                     logger.info(f"✅ Created view '{view_path}'")
                     
                     # Set quota
@@ -504,7 +505,7 @@ class OrbitalDynamicsStorageManager:
                     created_views = self.client.views.get(path=view_path)
                     if created_views:
                         view_id = created_views[0]['id']
-                        self.client.quotas.post(data=quota_data, path=view_path)
+                        self.client.quotas.post(path=view_path, **quota_data)
                         logger.info(f"✅ Set quota for '{view_path}': {quota_gb} GB")
                     
                 except Exception as e:
