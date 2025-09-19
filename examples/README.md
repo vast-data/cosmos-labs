@@ -94,6 +94,15 @@ All examples use the centralized configuration system via `examples_config.py`. 
 - `python 08_show_user_quotas.py 114` (show specific quota details)
 - `python 08_show_user_quotas.py 114 --json` (raw JSON output)
 
+### 9. [List Available VAST Views](09_list_available_buckets.py)
+**Purpose:** List all available VAST views and test database connectivity
+- ✅ Shows all VAST views via native VAST Management API
+- ✅ Displays view metadata including paths, protocols, and bucket names
+- ✅ Tests VAST Database connectivity and lists available databases
+- ✅ Uses native VAST tools (vastpy, vastdb) instead of generic S3 client
+
+**Run:** `python 09_list_available_buckets.py`
+
 ## ⚠️ Safety Notes
 
 - **All examples are safe by default** - No destructive operations
