@@ -490,7 +490,7 @@ class OrbitalDynamicsStorageManager:
                         view_data['bucket_owner'] = bucket_owner
                         logger.info(f"🔧 Setting bucket owner to '{bucket_owner}'")
                     
-                    self.client.views.post(view_data)
+                    self.client.views.post(data=view_data)
                     logger.info(f"✅ Created view '{view_path}'")
                     
                     # Set quota
@@ -504,7 +504,7 @@ class OrbitalDynamicsStorageManager:
                     created_views = self.client.views.get(path=view_path)
                     if created_views:
                         view_id = created_views[0]['id']
-                        self.client.quotas.post(view_id, quota_data)
+                        self.client.quotas.post(data=quota_data, path=view_path)
                         logger.info(f"✅ Set quota for '{view_path}': {quota_gb} GB")
                     
                 except Exception as e:
