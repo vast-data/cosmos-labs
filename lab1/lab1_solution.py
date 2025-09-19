@@ -28,6 +28,10 @@ class OrbitalDynamicsStorageManager:
         """
         self.production_mode = production_mode
         self.show_api_calls = show_api_calls
+        
+        # Debug: Show if API calls are enabled
+        if show_api_calls:
+            logger.info("🔌 API call logging ENABLED")
         # Load VAST configuration
         vast_config = config.get_vast_config()
         
@@ -123,10 +127,9 @@ class OrbitalDynamicsStorageManager:
             if vast_config.get('token') and vast_config['token'] in obfuscated_details:
                 obfuscated_details = obfuscated_details.replace(vast_config['token'], '***')
             
-            print(f"🔌 API CALL: {operation}")
+            logger.info(f"🔌 API CALL: {operation}")
             if details:
-                print(f"   Details: {obfuscated_details}")
-            print()
+                logger.info(f"   Details: {obfuscated_details}")
     
     def show_current_view_status(self):
         """Display current status of all target views"""
