@@ -48,6 +48,12 @@ class Lab3ConfigLoader(ConfigLoader):
             errors.append("lab3.database.name is required")
         if not database_config.get('schema'):
             errors.append("lab3.database.schema is required")
+        if not database_config.get('view_path'):
+            errors.append("lab3.database.view_path is required")
+        if not database_config.get('policy_name'):
+            errors.append("lab3.database.policy_name is required")
+        if not database_config.get('bucket_owner'):
+            errors.append("lab3.database.bucket_owner is required")
         
         # Check VAST configuration
         vast_config = self.get_vast_config()

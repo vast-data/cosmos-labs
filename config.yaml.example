@@ -39,14 +39,14 @@ lab1:
   
   # Data directories for storage monitoring
   data_directories:
-    - "/your-tenant/raw"      # Raw data storage path
-    - "/your-tenant/processed" # Processed data storage path
+    - "/your-name/lab1-raw"      # Raw data storage path
+    - "/your-name/lab1-processed" # Processed data storage path
 
 # Lab 2: Metadata Infrastructure Settings
 lab2:
   # Raw data view for Swift dataset uploads
   raw_data:
-    view_path: "/lab2-raw-data"
+    view_path: "/your-name/lab2-raw"
     policy_name: "s3_default_policy"
     bucket_owner: "your-email@example.com"
   
@@ -54,7 +54,7 @@ lab2:
   database:
     name: "lab2-metadata-db"  # Database name within VAST Database
     schema: "satellite_observations"  # Schema within that database
-    view_path: "/lab2-metadata-db"  # View path for this database
+    view_path: "/your-name/lab2-metadata-db"  # View path for this database
     policy_name: "s3_default_policy"
     bucket_owner: "your-email@example.com"
 
@@ -64,8 +64,9 @@ lab3:
   database:
     name: "weather_analytics"  # Database name within VAST Database
     schema: "weather_analytics"  # Schema within that database
-    view_path: "/your-weather-bucket"  # View path for this database
-    policy_id: 3
+    view_path: "/your-name/lab3-weather-db"  # View path for this database
+    policy_name: "s3_default_policy"
+    bucket_owner: "your-email@example.com"
   
   # Weather data presets
   weather:

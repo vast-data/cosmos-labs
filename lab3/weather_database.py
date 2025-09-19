@@ -331,7 +331,8 @@ class WeatherVASTDB:
             
             # Get or create view (VAST uses views, not buckets directly)
             view_path = self.config.get('lab3.database.view_path', f"/{self.bucket}")
-            policy_id = self.config.get('lab3.database.policy_id', 3)
+            policy_name = self.config.get('lab3.database.policy_name', 's3_default_policy')
+            bucket_owner = self.config.get('lab3.database.bucket_owner')
             
             try:
                 # Check if view exists
@@ -345,12 +346,27 @@ class WeatherVASTDB:
                 if existing_view:
                     logger.info(f"ℹ️ Using existing view '{view_path}'")
                 else:
+                    # Get policy ID from policy name
+                    policies = client.viewpolicies.get(name=policy_name)
+                    if not policies:
+                        logger.error(f"❌ Policy '{policy_name}' not found")
+                        return False
+                    
+                    policy_id = policies[0]['id']
+                    logger.info(f"🔧 Using policy '{policy_name}' (ID: {policy_id})")
+                    
                     # Create view if it doesn't exist
                     view_data = {
                         'path': view_path,
                         'policy_id': policy_id,
                         'protocols': ['S3', 'DATABASE']
                     }
+                    
+                    # Add bucket_owner if provided
+                    if bucket_owner:
+                        view_data['bucket_owner'] = bucket_owner
+                        logger.info(f"🔧 Setting bucket owner to '{bucket_owner}'")
+                    
                     client.views.post(view_data)
                     logger.info(f"✅ Created view '{view_path}'")
                 
