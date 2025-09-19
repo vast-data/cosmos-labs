@@ -197,6 +197,12 @@ class OrbitalDynamicsStorageManager:
         """Check if the required storage views exist (monitoring only)"""
         try:
             # Get default policy for views
+            # Log API call
+            self._log_api_call(
+                "client.viewpolicies.get()",
+                "name=default"
+            )
+            
             policies = self.client.viewpolicies.get(name='default')
             if not policies:
                 logger.error("No default view policy found - please create one in VAST")
@@ -477,6 +483,12 @@ class OrbitalDynamicsStorageManager:
                         continue
                     
                     # Get policy ID from policy name
+                    # Log API call
+                    self._log_api_call(
+                        "client.viewpolicies.get()",
+                        f"name={policy_name}"
+                    )
+                    
                     policies = self.client.viewpolicies.get(name=policy_name)
                     if not policies:
                         logger.error(f"❌ Policy '{policy_name}' not found")
@@ -499,6 +511,12 @@ class OrbitalDynamicsStorageManager:
                         view_kwargs['bucket_owner'] = bucket_owner
                         logger.info(f"🔧 Setting bucket owner to '{bucket_owner}'")
                     
+                    # Log API call
+                    self._log_api_call(
+                        "client.views.post()",
+                        f"path={view_path}, bucket={bucket_name}, policy_id={policy_id}, protocols={protocols}"
+                    )
+                    
                     self.client.views.post(**view_kwargs)
                     logger.info(f"✅ Created view '{view_path}'")
                     
@@ -515,6 +533,13 @@ class OrbitalDynamicsStorageManager:
                     created_views = self.client.views.get(path=view_path)
                     if created_views:
                         view_id = created_views[0]['id']
+                        
+                        # Log API call
+                        self._log_api_call(
+                            "client.quotas.post()",
+                            f"name={quota_data['name']}, path={view_path}, hard_limit={quota_bytes}, soft_limit={int(quota_bytes * 0.8)}"
+                        )
+                        
                         self.client.quotas.post(**quota_data)
                         logger.info(f"✅ Set quota for '{view_path}': {quota_gb} GB")
                     
@@ -572,12 +597,24 @@ class OrbitalDynamicsStorageManager:
                     try:
                         quotas = self.client.quotas.get(path=view_path)
                         for quota in quotas:
+                            # Log API call
+                            self._log_api_call(
+                                "client.quotas[].delete()",
+                                f"quota_id={quota['id']}, path={view_path}"
+                            )
+                            
                             self.client.quotas[quota['id']].delete()
                             logger.info(f"✅ Removed quota for '{view_path}'")
                     except Exception as e:
                         logger.warning(f"⚠️  Could not remove quotas for '{view_path}': {e}")
                     
                     # Remove view
+                    # Log API call
+                    self._log_api_call(
+                        "client.views[].delete()",
+                        f"view_id={view_id}, path={view_path}"
+                    )
+                    
                     self.client.views[view_id].delete()
                     logger.info(f"✅ Removed view '{view_path}'")
                     
