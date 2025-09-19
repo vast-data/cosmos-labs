@@ -90,12 +90,17 @@ def main():
                     ssl_verify=s3_verify_ssl
                 )
                 
-                # List databases
-                databases = db_client.list_databases()
+                # Test VAST Database connection by creating a transaction
                 print(f"   ✅ Connected to VAST Database at {db_endpoint}")
-                print(f"   📊 Available databases: {len(databases)}")
-                for db in databases:
-                    print(f"      • {db}")
+                print("   🔍 Testing database functionality...")
+                
+                # Test transaction capability (this is how VAST DB works)
+                with db_client.transaction() as tx:
+                    print("   ✅ Transaction capability confirmed")
+                    print("   💡 VAST Database uses transaction-based operations")
+                    print("   💡 To work with data, you need to specify bucket and schema names")
+                    print("   💡 Example: bucket = tx.bucket('your_bucket_name')")
+                    print("   💡 Example: schema = bucket.schema('your_schema_name')")
                     
             except Exception as e:
                 error_msg = str(e)
