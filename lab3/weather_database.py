@@ -355,19 +355,20 @@ class WeatherVASTDB:
                     policy_id = policies[0]['id']
                     logger.info(f"🔧 Using policy '{policy_name}' (ID: {policy_id})")
                     
-                    # Create view if it doesn't exist
-                    view_data = {
+                    # Create view if it doesn't exist (following Lab 2 pattern)
+                    view_kwargs = {
                         'path': view_path,
                         'policy_id': policy_id,
-                        'protocols': ['S3', 'DATABASE']
+                        'protocols': ['S3', 'DATABASE'],
+                        'create_dir': True
                     }
                     
                     # Add bucket_owner if provided
                     if bucket_owner:
-                        view_data['bucket_owner'] = bucket_owner
+                        view_kwargs['bucket_owner'] = bucket_owner
                         logger.info(f"🔧 Setting bucket owner to '{bucket_owner}'")
                     
-                    client.views.post(view_data)
+                    client.views.post(**view_kwargs)
                     logger.info(f"✅ Created view '{view_path}'")
                 
             except Exception as e:
