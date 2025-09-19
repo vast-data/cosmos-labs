@@ -505,6 +505,8 @@ class OrbitalDynamicsStorageManager:
                     # Set quota
                     quota_bytes = quota_gb * 1024 * 1024 * 1024
                     quota_data = {
+                        'name': f"{view_name}-quota",
+                        'path': view_path,
                         'hard_limit': quota_bytes,
                         'soft_limit': int(quota_bytes * 0.8)  # 80% soft limit
                     }
@@ -513,7 +515,7 @@ class OrbitalDynamicsStorageManager:
                     created_views = self.client.views.get(path=view_path)
                     if created_views:
                         view_id = created_views[0]['id']
-                        self.client.quotas.post(path=view_path, **quota_data)
+                        self.client.quotas.post(**quota_data)
                         logger.info(f"✅ Set quota for '{view_path}': {quota_gb} GB")
                     
                 except Exception as e:
