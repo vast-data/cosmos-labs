@@ -76,13 +76,32 @@ Meet the characters who will guide you through these challenges:
 
 ## Installation
 
+### **Installation Steps**
+
 1. **Clone this repository**
    ```bash
    git clone https://github.com/vast-data/cosmos-labs
    cd cosmos-labs
    ```
 
-2. **Install Python dependencies**
+2. **Create and activate a virtual environment (Recommended)**
+   ```bash
+   # Create virtual environment inside project directory
+   python3 -m venv venv
+   
+   # Activate the virtual environment
+   # On Linux/macOS:
+   source venv/bin/activate
+   # On Windows:
+   # venv\Scripts\activate
+   
+   # Verify you're in the virtual environment
+   which python  # Should show path to your virtual environment
+   ```
+   
+   **Note:** The `venv/` directory is automatically ignored by git (see `.gitignore`), so it won't be committed to version control.
+
+3. **Install Python dependencies**
    ```bash
    # Install all dependencies (recommended)
    pip install -r requirements.txt
@@ -91,12 +110,14 @@ Meet the characters who will guide you through these challenges:
    python3 install_dependencies.py
    ```
 
-3. **Verify installation**
+4. **Deactivate virtual environment when done**
    ```bash
-   # Test basic imports
-   python3 lab1/test_basic_imports.py
-   
-   # Or test individually
+   deactivate
+   ```
+
+5. **Verify installation**
+   ```bash
+   # Test individual package imports
    python -c "import yaml; print('pyyaml installed successfully')"
    python -c "import vastpy; print('vastpy installed successfully')"
    python -c "import vastdb; print('vastdb installed successfully')"
