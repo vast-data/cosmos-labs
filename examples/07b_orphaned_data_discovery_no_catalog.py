@@ -29,9 +29,11 @@ def _normalize_base_url(vast_address: str) -> str:
         return vast_address[:-1]
     return vast_address
 
-def _call_list_dir(base_url: str, path: str, user: str, password: str, verify_ssl: bool, timeout: int = 30):
+def _call_list_dir(base_url: str, path: str, user: str, password: str, verify_ssl: bool, timeout: int = 30, tenant_id: str = None):
     url = f"{base_url}/api/latest/capacity/list_dir"
     params = {"path": path}
+    if tenant_id:
+        params["tenant_id"] = tenant_id
     response = requests.get(
         url,
         params=params,
@@ -50,6 +52,7 @@ def get_all_directory_paths_via_capacity(
     root_path: str = "/",
     max_depth: int = 0,
     timeout: int = 30,
+    tenant_id: str = None,
 ) -> Set[str]:
     """Enumerate directories using capacity/list_dir with BFS traversal.
 
@@ -84,7 +87,7 @@ def get_all_directory_paths_via_capacity(
             visited.add(current_path)
 
             try:
-                entries = _call_list_dir(base_url, current_path, user, password, verify_ssl, timeout)
+                entries = _call_list_dir(base_url, current_path, user, password, verify_ssl, timeout, tenant_id=tenant_id)
             except requests.HTTPError as http_err:
                 print(f"   ⚠️  HTTP error for {current_path}: {http_err}")
                 continue
@@ -118,7 +121,7 @@ def get_all_directory_paths_via_capacity(
         print(f"❌ Failed to get directory paths via capacity endpoint: {e}")
         return set()
 
-def get_current_view_paths() -> Dict[str, Dict[str, str]]:
+def get_current_view_paths(tenant_id: str = None) -> Dict[str, Dict[str, str]]:
     """Get current view paths from VAST."""
     print("\n🔍 Step 2: Getting current view paths...")
 
@@ -140,19 +143,29 @@ def get_current_view_paths() -> Dict[str, Dict[str, str]]:
             password=vast_config['password']
         )
 
-        # Get current views
+        # Get current views (optionally filter by tenant_id)
         views = client.views.get()
-        print(f"      ✅ Retrieved {len(views)} current views")
+        total_views = len(views)
+        if tenant_id:
+            views = [v for v in views if str(v.get('tenant_id')) == str(tenant_id)]
+            print(f"      ✅ Retrieved {total_views} current views, filtered to {len(views)} by tenant_id={tenant_id}")
+        else:
+            print(f"      ✅ Retrieved {total_views} current views")
 
         current_views: Dict[str, Dict[str, str]] = {}
+        root_view_present = False
         for view in views:
             view_path = view.get('path')
+            if view_path == '/':
+                root_view_present = True
             current_views[view_path] = {
                 'view_id': view.get('id', 'Unknown'),
                 'tenant_id': view.get('tenant_id', 'Unknown')
             }
 
         print(f"✅ Found {len(current_views)} unique view paths")
+        if root_view_present:
+            print("   ℹ️ Note: A view exists at '/' for this scope. This script does not treat '/' as covering all subpaths; only exact matches or descendants of non-root views are considered covered.")
         return current_views
 
     except Exception as e:
@@ -221,6 +234,7 @@ def main():
     parser.add_argument("--max-depth", type=int, default=0, help="Traversal depth (0=list only root contents)")
     parser.add_argument("--timeout", type=int, default=30, help="HTTP timeout seconds (default: 30)")
     parser.add_argument("--cover-ancestors", action="store_true", default=True, help="Treat parent folders of views as covered (default: on)")
+    parser.add_argument("--tenant-id", dest="tenant_id", help="Tenant ID to scope directory listing")
     args = parser.parse_args()
 
     if args.max_depth > 0:
@@ -231,13 +245,14 @@ def main():
         root_path=args.path,
         max_depth=args.max_depth,
         timeout=args.timeout,
+        tenant_id=args.tenant_id,
     )
     if not all_directories:
         print("❌ No directories found, cannot proceed")
         return False
 
     # Step 2: Get current view paths
-    current_views = get_current_view_paths()
+    current_views = get_current_view_paths(tenant_id=args.tenant_id)
     if not current_views:
         print("❌ No current views found, cannot proceed")
         return False
