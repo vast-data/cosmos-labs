@@ -4,107 +4,88 @@
 # VAST Connection Settings (non-sensitive)
 vast:
   user: admin
-  address: "localhost"
+  address: "https://your-vms-hostname"
   # Note: password, token, and tenant_name are stored in secrets.yaml
 
-# VAST Catalog Settings
-catalog:
-  name: "orbital_dynamics_metadata"
-  port: 8080
-  batch_size: 1000
-  timeout_seconds: 30
-  max_retries: 3
+# VAST Database Settings (one connection, multiple databases)
+# Uses S3 credentials from s3 section above
+# NOTE: This should be the VAST Database VIP pool endpoint, NOT the VMS endpoint
+vastdb:
+  endpoint: "https://your-vastdb-vip-hostname"  # VAST Database VIP pool endpoint
+  ssl_verify: true
+  timeout: 30
 
-# Data Directories
-data:
-  directories:
-    - "/cosmos7/raw"
-    - "/cosmos7/processed"
-    - "/mars_rover/data"
-    - "/asteroid_tracker/data"
-
-# Metadata Extraction Settings
-metadata:
-  supported_formats:
-    - ".fits"
-    - ".hdf5"
-    - ".json"
-    - ".csv"
-    - ".xml"
-    - ".txt"
-  quality_threshold: 0.7
-
-# VAST View Management (for storage organization)
-views:
-  default_policy: "default"
-  create_directories: true
-  protocols: ["NFS", "SMB"]  # Supported protocols for views
 
 # S3 Configuration for VAST Data Platform
+# NOTE: This uses the VMS endpoint for S3 operations
 s3:
-  # S3 endpoint configuration
-  endpoint_url: "http://YOUR.END.POINT.HERE"  # VAST S3 API endpoint
-  bucket: "your-bucket"               # Default bucket for raw data
-  prefix: "swift"                        # Default prefix for Swift datasets
-  
-  # Compatibility settings for VAST S3
+  endpoint_url: "https://your-vms-hostname"
+  region: "us-east-1"
+  verify_ssl: false
   compatibility:
-    disable_advanced_features: true      # Disable unsupported S3 features
-    minimal_headers: true                # Use minimal S3 headers
-    path_style_addressing: true          # Use path-style addressing
-
-  # Connection settings
-  verify_ssl: false                      # Disable SSL verification for internal endpoints
-  connect_timeout: 10                    # Connection timeout in seconds
-  read_timeout: 30                       # Read timeout in seconds
-  
-  # Retry configuration
-  max_attempts: 3                        # Maximum retry attempts
-  retry_delay: 1                         # Delay between retries in seconds
-  
-  # Upload settings
-  multipart_threshold_mb: 100            # Use multipart upload for files larger than this
-  max_concurrent_uploads: 5              # Maximum concurrent upload operations
-
-# Monitoring and Metrics
-monitoring:
-  enabled: true
-  interval_seconds: 300  # 5 minutes between monitoring cycles
-  metrics:
-    - "ProtoMetrics,proto_name=ProtoCommon,iops"
-    - "ProtoMetrics,proto_name=ProtoCommon,bw"
-    - "ProtoMetrics,proto_name=NFS,iops"
-    - "ProtoMetrics,proto_name=SMB,bw"
+    path_style_addressing: true
 
 # Lab 1: Storage Automation Settings
 lab1:
   storage:
-    max_expansion_gb: 10240  # Maximum expansion in GB (10TB default)
+    auto_provision_threshold: 75  # Percentage at which to auto-provision
+    expansion_factor: 1.5  # How much to expand by
+    max_expansion_gb: 10000  # Maximum expansion in GB
   
   monitoring:
-    critical_threshold: 85  # Percentage at which to expand storage
+    alert_threshold: 80  # Percentage at which to alert
+    critical_threshold: 90  # Percentage at which to take immediate action
+    refresh_interval_seconds: 30  # Dashboard refresh interval
+    interval_seconds: 300  # 5 minutes between monitoring cycles
+  
+  # View settings
+  views:
+    raw_data:
+      path: "/your-name/lab1-raw"
+      bucket_name: "your-name-lab1-raw"
+      quota_gb: 10240  # 10TB
+      policy_name: "s3_default_policy"
+      bucket_owner: "your-email@example.com"
+      protocols: ["S3", "NFS"]
+    
+    processed_data:
+      path: "/your-name/lab1-processed" 
+      bucket_name: "your-name-lab1-processed"
+      quota_gb: 20480  # 20TB
+      policy_name: "s3_default_policy"
+      bucket_owner: "your-email@example.com"
+      protocols: ["S3", "NFS"]
 
 # Lab 2: Metadata Infrastructure Settings
 lab2:
-  catalog:
-    batch_size: 1000
+  # Raw data view for Swift dataset uploads
+  raw_data:
+    view_path: "/your-name/lab2-raw"
+    policy_name: "s3_default_policy"
+    bucket_owner: "your-email@example.com"
   
-  safety:
-    max_files_per_batch: 10000
-    max_storage_impact_gb: 100
-  
-  vastdb:
-    host: "localhost"
-    port: 5432
-    database: "orbital_dynamics_metadata"
+  # Database configuration within VAST Database
+  database:
+    name: "lab2-metadata-db"  # Database name within VAST Database
+    schema: "satellite_observations"  # Schema within that database
+    view_path: "/your-name/lab2-metadata-db"  # View path for this database
+    policy_name: "s3_default_policy"
+    bucket_owner: "your-email@example.com"
 
 # Lab 3: Weather Data Analytics Settings
 lab3:
+  # Database configuration within VAST Database
+  database:
+    name: "weather_analytics"  # Database name within VAST Database
+    schema: "weather_analytics"  # Schema within that database
+    view_path: "/your-name/lab3-weather-db"  # View path for this database
+    policy_name: "s3_default_policy"
+    bucket_owner: "your-email@example.com"
+  
+  # Weather data presets
   weather:
-    bucket: "your-weather-bucket"            # VAST bucket for weather data storage
-    schema: "weather_analytics"              # Database schema for weather tables
     presets:
-      test: ["Beijing", "London"]            # Basic 2-city set for quick testing
+      test: ["Beijing", "London"]  # Basic 2-city set for quick testing
       extended: ["Beijing", "London", "New York", "Tokyo", "Mumbai", "Los Angeles"]  # 6 major global cities with diverse weather patterns
       pollution: ["Delhi", "Lahore", "Mexico City", "Krakow", "Ulaanbaatar", "Los Angeles"]  # High-pollution cities for dramatic air quality analysis
       global: ["Beijing", "London", "New York", "Tokyo", "Mumbai", "Los Angeles", "Delhi", "Mexico City", "Krakow", "Ulaanbaatar"]  # Comprehensive 10-city global dataset
@@ -112,131 +93,4 @@ lab3:
       test: "Basic 2-city set for quick testing"
       extended: "6 major global cities with diverse weather patterns"
       pollution: "High-pollution cities for dramatic air quality analysis (Delhi: extreme PM2.5, Lahore: winter pollution, Mexico City: ozone issues, Krakow: coal heating, Ulaanbaatar: extreme seasonal variation, LA: classic smog)"
-      global: "Comprehensive 10-city global dataset for advanced analytics"
-
-# Lab 4: Kubernetes CSI Integration Settings
-lab4:
-  k3s:
-    install_path: "/usr/local/bin/k3s"
-    data_dir: "/var/lib/rancher/k3s"
-    config_file: "/etc/rancher/k3s/k3s.yaml"
-    service_name: "k3s"
-    disable_components: ["traefik", "servicelb"]
-  
-  csi:
-    namespace: "kube-system"
-    driver_name: "vast-csi"
-    version: "v2.6"
-    helm_repo: "https://vast-data.github.io/vast-csi"
-    chart_name: "vast-csi"
-    vast_endpoint: ""  # Will be set from secrets
-    vast_username: ""  # Will be set from secrets
-    vast_password: ""  # Will be set from secrets
-    vast_tenant: "default"
-  
-  storage_classes:
-    fast_ssd:
-      name: "vast-fast-ssd"
-      provisioner: "vast-csi"
-      parameters:
-        storageType: "fast-ssd"
-        replication: "1"
-        compression: "lz4"
-        deduplication: "true"
-        snapshotEnabled: "true"
-        cloneEnabled: "true"
-        resizeEnabled: "true"
-    capacity:
-      name: "vast-capacity"
-      provisioner: "vast-csi"
-      parameters:
-        storageType: "capacity"
-        replication: "1"
-        compression: "gzip"
-        deduplication: "true"
-        snapshotEnabled: "true"
-        cloneEnabled: "true"
-        resizeEnabled: "true"
-    archive:
-      name: "vast-archive"
-      provisioner: "vast-csi"
-      parameters:
-        storageType: "archive"
-        replication: "1"
-        compression: "gzip"
-        deduplication: "true"
-        snapshotEnabled: "false"
-        cloneEnabled: "false"
-        resizeEnabled: "false"
-    snapshot:
-      name: "vast-snapshot"
-      provisioner: "vast-csi"
-      parameters:
-        storageType: "fast-ssd"
-        replication: "1"
-        compression: "lz4"
-        deduplication: "true"
-        snapshotEnabled: "true"
-        cloneEnabled: "true"
-        resizeEnabled: "true"
-        snapshotSchedule: "0 2 * * *"
-        snapshotRetention: "7d"
-  
-  applications:
-    postgres:
-      name: "postgres"
-      namespace: "default"
-      storage_class: "vast-fast-ssd"
-      storage_size: "10Gi"
-      image: "postgres:15"
-    jupyter:
-      name: "jupyter"
-      namespace: "default"
-      storage_class: "vast-capacity"
-      storage_size: "50Gi"
-      image: "jupyter/scipy-notebook:latest"
-    spark:
-      name: "spark"
-      namespace: "default"
-      storage_class: "vast-capacity"
-      storage_size: "100Gi"
-      image: "apache/spark:3.4"
-    redis:
-      name: "redis"
-      namespace: "default"
-      storage_class: "vast-fast-ssd"
-      storage_size: "5Gi"
-      image: "redis:7"
-
-# Lab 5: Real-Time Alert System Settings
-lab5:
-  alerts:
-    detection_interval_seconds: 10
-    alert_cooldown_minutes: 5
-    escalation_timeout_minutes: 15
-  
-  event_types:
-    gamma_ray_burst:
-      priority: "critical"
-      notification_channels: ["email", "slack", "pagerduty"]
-    solar_flare:
-      priority: "high"
-      notification_channels: ["email", "slack"]
-    meteor_detection:
-      priority: "medium"
-      notification_channels: ["slack"]
-
-# Logging Configuration
-logging:
-  level: "INFO"
-  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-  file: "/var/log/orbital-dynamics/labs.log"
-  max_size_mb: 100
-  backup_count: 5
-
-# Performance Settings
-performance:
-  max_concurrent_operations: 20
-  operation_timeout_seconds: 300
-  cache_size_mb: 500
-  enable_compression: true 
+      global: "Comprehensive 10-city global dataset for advanced analytics" 

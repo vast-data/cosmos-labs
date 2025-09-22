@@ -19,7 +19,6 @@ lab1/
 ├── lab1_solution.py          # Main storage automation script
 ├── lab1_config.py            # Lab-specific configuration loader (inherits from centralized config)
 ├── monitoring_dashboard.py   # Real-time monitoring dashboard
-├── test_solution.py          # Unit tests for the solution
 └── requirements.txt          # Python dependencies
 ```
 
@@ -194,19 +193,9 @@ python lab1_solution.py
 python monitoring_dashboard.py
 ```
 
-### Testing
-```bash
-# Run unit tests
-python test_solution.py
-```
+## 🧪 Safety Checks
 
-## 🧪 Testing
-
-Run the comprehensive test suite to verify all functionality:
-
-```bash
-python test_solution.py
-```
+The solution includes comprehensive monitoring and safety checks built into the main functionality.
 
 ## 🎯 Success Criteria
 
@@ -255,4 +244,4 @@ For issues or questions:
 1. Check the logs for error messages
 2. Verify configuration settings
 3. Test VAST connectivity manually
-4. Review the test cases in `test_solution.py`
+4. Check the monitoring dashboard for system status

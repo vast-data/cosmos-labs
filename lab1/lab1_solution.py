@@ -17,17 +17,15 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class OrbitalDynamicsStorageManager:
-    def __init__(self, config: Lab1ConfigLoader, production_mode: bool = False, show_api_calls: bool = False):
+    def __init__(self, config: Lab1ConfigLoader, production_mode: bool = False):
         """
         Initialize the storage manager for Orbital Dynamics
         
         Args:
             config: Lab1ConfigLoader instance with loaded configuration
             production_mode: If True, allows actual changes. If False, dry-run only.
-            show_api_calls: If True, show API calls being made (credentials obfuscated).
         """
         self.production_mode = production_mode
-        self.show_api_calls = show_api_calls
         # Load VAST configuration
         vast_config = config.get_vast_config()
         
@@ -73,14 +71,22 @@ class OrbitalDynamicsStorageManager:
         # Load configuration values
         self.config = config
         
-        # Storage configuration - ALL VALUES MUST BE EXPLICITLY CONFIGURED
-        data_dirs = config.get('data.directories', [])
-        if len(data_dirs) < 2:
-            raise ValueError("data.directories must contain at least 2 directories")
+        # Storage configuration - Get paths from view configuration
+        views_config = config.get('lab1.views', {})
+        if not views_config:
+            raise ValueError("lab1.views configuration is required")
         
-        self.raw_data_path = data_dirs[0]  # First directory from data.directories
-        self.processed_data_path = data_dirs[1]  # Second directory from data.directories
-        self.temp_data_path = data_dirs[2] if len(data_dirs) > 2 else None
+        raw_data_view = views_config.get('raw_data', {})
+        processed_data_view = views_config.get('processed_data', {})
+        
+        if not raw_data_view.get('path'):
+            raise ValueError("lab1.views.raw_data.path is required")
+        if not processed_data_view.get('path'):
+            raise ValueError("lab1.views.processed_data.path is required")
+        
+        self.raw_data_path = raw_data_view['path']
+        self.processed_data_path = processed_data_view['path']
+        self.temp_data_path = None  # No temp directory in Lab 1
         
         # Quota thresholds - ALL VALUES MUST BE EXPLICITLY CONFIGURED
         self.warning_threshold = config.get('lab1.monitoring.alert_threshold')
@@ -89,7 +95,7 @@ class OrbitalDynamicsStorageManager:
         self.max_expansion_gb = config.get('lab1.storage.max_expansion_gb')
         
         # Monitoring settings - ALL VALUES MUST BE EXPLICITLY CONFIGURED
-        self.monitoring_interval = config.get('monitoring.interval_seconds')
+        self.monitoring_interval = config.get('lab1.monitoring.interval_seconds')
         
         # Initialize safety checker
         self.safety_checker = SafetyChecker(config, self.client)
@@ -101,24 +107,6 @@ class OrbitalDynamicsStorageManager:
             logger.info("⚠️  DRY RUN MODE: No actual changes will be made")
         else:
             logger.warning("🚨 PRODUCTION MODE: Actual changes will be made to your VAST system")
-    
-    def _log_api_call(self, operation: str, details: str = ""):
-        """Log API calls if show_api_calls is enabled"""
-        if self.show_api_calls:
-            # Obfuscate credentials in the details
-            obfuscated_details = details
-            vast_config = self.config.get_vast_config()
-            if vast_config.get('user') and vast_config['user'] in obfuscated_details:
-                obfuscated_details = obfuscated_details.replace(vast_config['user'], '***')
-            if vast_config.get('password') and vast_config['password'] in obfuscated_details:
-                obfuscated_details = obfuscated_details.replace(vast_config['password'], '***')
-            if vast_config.get('token') and vast_config['token'] in obfuscated_details:
-                obfuscated_details = obfuscated_details.replace(vast_config['token'], '***')
-            
-            print(f"🔌 API CALL: {operation}")
-            if details:
-                print(f"   Details: {obfuscated_details}")
-            print()
     
     def show_current_view_status(self):
         """Display current status of all target views"""
@@ -189,6 +177,7 @@ class OrbitalDynamicsStorageManager:
         """Check if the required storage views exist (monitoring only)"""
         try:
             # Get default policy for views
+            
             policies = self.client.viewpolicies.get(name='default')
             if not policies:
                 logger.error("No default view policy found - please create one in VAST")
@@ -306,11 +295,6 @@ class OrbitalDynamicsStorageManager:
                 # Actually perform the expansion
                 logger.info("🚨 PRODUCTION MODE: Expanding quota...")
                 
-                # Log API call
-                self._log_api_call(
-                    "client.quotas[].patch()",
-                    f"quota_id={quota_info['id']}, hard_limit={new_hard_limit}"
-                )
                 
                 # Update the quota with new hard limit
                 quota_id = quota_info['id']
@@ -425,6 +409,168 @@ class OrbitalDynamicsStorageManager:
         
         return status
 
+    def create_views(self) -> bool:
+        """Create Lab 1 views with appropriate quotas"""
+        logger.info("🏗️  Creating Lab 1 storage views...")
+        
+        views_config = self.config.get('lab1.views', {})
+        if not views_config:
+            logger.error("❌ No view configuration found in lab1.views")
+            return False
+        
+        success = True
+        
+        for view_name, view_config in views_config.items():
+            view_path = view_config.get('path')
+            bucket_name = view_config.get('bucket_name')
+            quota_gb = view_config.get('quota_gb', 10240)
+            policy_name = view_config.get('policy_name', 's3_default_policy')
+            bucket_owner = view_config.get('bucket_owner')
+            protocols = view_config.get('protocols', ['S3', 'NFS'])
+            
+            if not view_path:
+                logger.error(f"❌ No path specified for view {view_name}")
+                success = False
+                continue
+            
+            if not bucket_name:
+                logger.error(f"❌ No bucket_name specified for view {view_name}")
+                success = False
+                continue
+            
+            logger.info(f"📁 Creating view: {view_path}")
+            logger.info(f"   Bucket: {bucket_name}")
+            logger.info(f"   Quota: {quota_gb} GB")
+            logger.info(f"   Policy: {policy_name}")
+            logger.info(f"   Protocols: {', '.join(protocols)}")
+            
+            if self.production_mode:
+                try:
+                    # Check if view already exists
+                    existing_views = self.client.views.get(path=view_path)
+                    if existing_views:
+                        logger.info(f"ℹ️  View '{view_path}' already exists, skipping creation")
+                        continue
+                    
+                    # Get policy ID from policy name
+                    
+                    policies = self.client.viewpolicies.get(name=policy_name)
+                    if not policies:
+                        logger.error(f"❌ Policy '{policy_name}' not found")
+                        success = False
+                        continue
+                    
+                    policy_id = policies[0]['id']
+                    logger.info(f"🔧 Using policy '{policy_name}' (ID: {policy_id})")
+                    
+                    # Create view (following Lab 2 pattern)
+                    view_kwargs = {
+                        'path': view_path,
+                        'bucket': bucket_name,
+                        'policy_id': policy_id,
+                        'protocols': protocols,
+                        'create_dir': True
+                    }
+                    
+                    if bucket_owner:
+                        view_kwargs['bucket_owner'] = bucket_owner
+                        logger.info(f"🔧 Setting bucket owner to '{bucket_owner}'")
+                    
+                    
+                    self.client.views.post(**view_kwargs)
+                    logger.info(f"✅ Created view '{view_path}'")
+                    
+                    # Set quota
+                    quota_bytes = quota_gb * 1024 * 1024 * 1024
+                    quota_data = {
+                        'name': f"{view_name}-quota",
+                        'path': view_path,
+                        'hard_limit': quota_bytes,
+                        'soft_limit': int(quota_bytes * 0.8)  # 80% soft limit
+                    }
+                    
+                    # Get the view ID for quota setting
+                    created_views = self.client.views.get(path=view_path)
+                    if created_views:
+                        view_id = created_views[0]['id']
+                        
+                        
+                        self.client.quotas.post(**quota_data)
+                        logger.info(f"✅ Set quota for '{view_path}': {quota_gb} GB")
+                    
+                except Exception as e:
+                    logger.error(f"❌ Failed to create view '{view_path}': {e}")
+                    success = False
+            else:
+                logger.info(f"🔍 [DRY RUN] Would create view '{view_path}' with {quota_gb} GB quota")
+        
+        return success
+
+    def remove_views(self) -> bool:
+        """Remove Lab 1 views"""
+        logger.info("🗑️  Removing Lab 1 storage views...")
+        
+        views_config = self.config.get('lab1.views', {})
+        if not views_config:
+            logger.error("❌ No view configuration found in lab1.views")
+            return False
+        
+        success = True
+        
+        for view_name, view_config in views_config.items():
+            view_path = view_config.get('path')
+            
+            if not view_path:
+                logger.error(f"❌ No path specified for view {view_name}")
+                success = False
+                continue
+            
+            logger.info(f"📁 Removing view: {view_path}")
+            
+            if self.production_mode:
+                try:
+                    # Check if view exists
+                    existing_views = self.client.views.get(path=view_path)
+                    if not existing_views:
+                        logger.info(f"ℹ️  View '{view_path}' does not exist, skipping removal")
+                        continue
+                    
+                    view = existing_views[0]
+                    view_id = view['id']
+                    
+                    # Check if view has data
+                    view_details = self.client.views[view_id].get()
+                    size_bytes = view_details.get('size', 0)
+                    if size_bytes > 0:
+                        logger.warning(f"⚠️  View '{view_path}' contains {size_bytes} bytes of data")
+                        confirm = input(f"   Are you sure you want to remove '{view_path}'? (type 'YES' to confirm): ")
+                        if confirm != 'YES':
+                            logger.info(f"ℹ️  Skipping removal of '{view_path}'")
+                            continue
+                    
+                    # Remove quotas first
+                    try:
+                        quotas = self.client.quotas.get(path=view_path)
+                        for quota in quotas:
+                            
+                            self.client.quotas[quota['id']].delete()
+                            logger.info(f"✅ Removed quota for '{view_path}'")
+                    except Exception as e:
+                        logger.warning(f"⚠️  Could not remove quotas for '{view_path}': {e}")
+                    
+                    # Remove view
+                    
+                    self.client.views[view_id].delete()
+                    logger.info(f"✅ Removed view '{view_path}'")
+                    
+                except Exception as e:
+                    logger.error(f"❌ Failed to remove view '{view_path}': {e}")
+                    success = False
+            else:
+                logger.info(f"🔍 [DRY RUN] Would remove view '{view_path}'")
+        
+        return success
+
 def main():
     """Main function to run the storage automation"""
     
@@ -432,14 +578,12 @@ def main():
     parser = argparse.ArgumentParser(description='Orbital Dynamics Storage Monitoring & Auto-Expansion')
     parser.add_argument('--pushtoprod', action='store_true', 
                        help='Enable production mode (actual changes will be made)')
-    parser.add_argument('--dry-run', action='store_true', 
-                       help='Run in dry-run mode (default, no changes made)')
+    parser.add_argument('--remove', action='store_true',
+                       help='Remove Lab 1 views (dry run by default, use --pushtoprod to actually remove)')
     parser.add_argument('--setup-only', action='store_true',
-                       help='Only check if required views exist, then exit')
+                       help='Only create views and check setup, then exit')
     parser.add_argument('--monitor-only', action='store_true',
                        help='Only run monitoring, skip setup')
-    parser.add_argument('--showapicalls', action='store_true',
-                       help='Show API calls being made (credentials obfuscated)')
     
     args = parser.parse_args()
     
@@ -469,14 +613,23 @@ def main():
             return
         
         # Initialize storage manager with production mode
-        storage_manager = OrbitalDynamicsStorageManager(config, production_mode=production_mode, show_api_calls=args.showapicalls)
+        storage_manager = OrbitalDynamicsStorageManager(config, production_mode=production_mode)
         
         # Handle different operation modes
-        if args.setup_only:
-            # Only check initial views (monitoring focus)
-            logger.info("Checking initial storage views...")
-            if not storage_manager.check_initial_views():
-                logger.error("Some required views are missing - please create them first")
+        if args.remove:
+            # Remove Lab 1 views
+            logger.info("Removing Lab 1 storage views...")
+            if not storage_manager.remove_views():
+                logger.error("Failed to remove views")
+                return
+            logger.info("✅ View removal complete. Exiting.")
+            return
+        
+        elif args.setup_only:
+            # Create views and check setup
+            logger.info("Creating Lab 1 storage views...")
+            if not storage_manager.create_views():
+                logger.error("Failed to create views")
                 return
             logger.info("✅ Setup complete. Exiting.")
             return
@@ -485,10 +638,10 @@ def main():
             # Skip setup, go straight to monitoring
             logger.info("Skipping setup, starting monitoring...")
         else:
-            # Normal mode: setup + monitoring
-            logger.info("Setting up initial storage views...")
-            if not storage_manager.check_initial_views():
-                logger.error("Failed to create initial views")
+            # Normal mode: create views + monitoring
+            logger.info("Creating Lab 1 storage views...")
+            if not storage_manager.create_views():
+                logger.error("Failed to create views")
                 return
         
         # Show current view status after setup

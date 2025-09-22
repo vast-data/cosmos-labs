@@ -50,18 +50,21 @@ class StorageDashboard:
                 # Re-raise other TypeError exceptions
                 raise
         
-        # Get view paths from the correct config structure
-        view_paths = self.config.get_data_directories()
-        if not view_paths:
+        # Get view paths from the lab1.views configuration
+        views_config = self.config.get('lab1.views', {})
+        if not views_config:
             # Fallback to default paths if config is missing
-            self.view_paths = ['/cosmos7/raw', '/cosmos7/processed', '/cosmos7/temp']
-            print("⚠️  Warning: No data directories configured, using defaults")
+            self.view_paths = ['/cosmos7/raw', '/cosmos7/processed']
+            print("⚠️  Warning: No lab1.views configured, using defaults")
         else:
-            # Use first 3 directories from config, or all if less than 3
-            self.view_paths = view_paths[:3] if len(view_paths) >= 3 else view_paths
+            # Extract paths from the views configuration
+            self.view_paths = []
+            for view_name, view_config in views_config.items():
+                if 'path' in view_config:
+                    self.view_paths.append(view_config['path'])
         
         # Get refresh interval from config
-        self.refresh_interval = self.config.get('monitoring.refresh_interval_seconds', 30)
+        self.refresh_interval = self.config.get('lab1.monitoring.refresh_interval_seconds', 30)
         
         # Initialize Rich console
         self.console = Console()
@@ -264,9 +267,11 @@ class StorageDashboard:
                 available_text = view_data['available_formatted']
                 
                 # Color utilization based on level
-                if view_data['utilization'] >= 90:
+                critical_threshold = self.config.get_critical_threshold()
+                alert_threshold = self.config.get_alert_threshold()
+                if view_data['utilization'] >= critical_threshold:
                     utilization_style = "bold red"
-                elif view_data['utilization'] >= 75:
+                elif view_data['utilization'] >= alert_threshold:
                     utilization_style = "bold yellow"
                 else:
                     utilization_style = "green"

@@ -151,9 +151,9 @@ class InfrastructureSetup:
     
     def create_metadata_database_view(self, client, vms_username: str) -> bool:
         """Create metadata database view with S3 and DATABASE protocols"""
-        metadata_view_path = self.config.get('lab2.metadata_database.view_path', '/lab2-metadata-db')
-        metadata_db_name = self.config.get('lab2.metadata_database.database_name', 'lab2-metadata-db')
-        bucket_owner = self.config.get('lab2.metadata_database.bucket_owner', vms_username)
+        metadata_view_path = self.config.get('lab2.database.view_path', '/lab2-metadata-db')
+        metadata_db_name = self.config.get('lab2.database.name', 'lab2-metadata-db')
+        bucket_owner = self.config.get('lab2.database.bucket_owner', vms_username)
         logger.info(f"🔧 Using bucket owner '{bucket_owner}' from config")
         
         try:
@@ -165,7 +165,7 @@ class InfrastructureSetup:
                 return True
             
             # Get policy name from config for DATABASE protocol view
-            policy_name = self.config.get('lab2.metadata_database.policy_name', 's3_default_policy')
+            policy_name = self.config.get('lab2.database.policy_name', 's3_default_policy')
             policies = client.viewpolicies.get(name=policy_name)
             if policies:
                 policy_id = policies[0]['id']
@@ -245,7 +245,7 @@ def main():
         # Check existing views
         try:
             raw_view_path = setup.config.get('lab2.raw_data.view_path')
-            metadata_view_path = setup.config.get('lab2.metadata_database.view_path')
+            metadata_view_path = setup.config.get('lab2.database.view_path')
             
             logger.info(f"🔍 Checking raw data view '{raw_view_path}'...")
             try:

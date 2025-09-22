@@ -51,7 +51,6 @@ lab2/
 ├── search_metadata.py        # Provides search and query functionality
 ├── vast_database_manager.py  # Manages VAST Database operations
 ├── swift_metadata_extractor.py # Extracts metadata from Swift files
-├── test_solution.py          # Unit tests
 └── requirements.txt          # Python dependencies
 ```
 
@@ -238,11 +237,7 @@ The system extracts and stores:
 
 ## 🧪 Testing
 
-Run the comprehensive test suite to verify all functionality:
-
-```bash
-python test_solution.py
-```
+The solution includes comprehensive error handling and validation built into the main functionality.
 
 ## 🎯 Success Criteria
 

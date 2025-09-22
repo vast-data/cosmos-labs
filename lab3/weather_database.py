@@ -19,9 +19,9 @@ class WeatherVASTDB:
     def __init__(self, config):
         self.config = config
         # Bucket is lab3-specific; endpoint and connection live under base 'vastdb.*'
-        self.bucket = config.get('lab3.weather.bucket', 'your-weather-bucket')
-        self.schema = config.get('lab3.weather.schema', 'weather_analytics')
-        self.endpoint = config.get('vastdb.endpoint', 'http://localhost:8080')
+        self.bucket = config.get('lab3.database.name', 'weather_analytics')
+        self.schema = config.get('lab3.database.schema', 'weather_analytics')
+        self.endpoint = config.get('vastdb.endpoint', 'https://your-vms-hostname')
         self.creds = {
             'access': config.get_secret('s3_access_key'),
             'secret': config.get_secret('s3_secret_key'),
@@ -311,7 +311,7 @@ class WeatherVASTDB:
             from vastpy import VASTClient
             
             # Get VMS connection details
-            vms_endpoint = self.config.get('vast.address', 'http://localhost:8080')
+            vms_endpoint = self.config.get('vast.address', 'https://your-vms-hostname')
             vms_username = self.config.get('vast.user')
             vms_password = self.config.get_secret('vast_password')
             
@@ -330,8 +330,9 @@ class WeatherVASTDB:
             client = VASTClient(address=address, user=vms_username, password=vms_password)
             
             # Get or create view (VAST uses views, not buckets directly)
-            view_path = self.config.get('lab3.weather.view_path', f"/{self.bucket}")
-            policy_id = self.config.get('lab3.weather.policy_id', 3)
+            view_path = self.config.get('lab3.database.view_path', f"/{self.bucket}")
+            policy_name = self.config.get('lab3.database.policy_name', 's3_default_policy')
+            bucket_owner = self.config.get('lab3.database.bucket_owner')
             
             try:
                 # Check if view exists
@@ -345,13 +346,29 @@ class WeatherVASTDB:
                 if existing_view:
                     logger.info(f"ℹ️ Using existing view '{view_path}'")
                 else:
-                    # Create view if it doesn't exist
-                    view_data = {
+                    # Get policy ID from policy name
+                    policies = client.viewpolicies.get(name=policy_name)
+                    if not policies:
+                        logger.error(f"❌ Policy '{policy_name}' not found")
+                        return False
+                    
+                    policy_id = policies[0]['id']
+                    logger.info(f"🔧 Using policy '{policy_name}' (ID: {policy_id})")
+                    
+                    # Create view if it doesn't exist (following Lab 2 pattern)
+                    view_kwargs = {
                         'path': view_path,
                         'policy_id': policy_id,
-                        'protocols': ['S3', 'DATABASE']
+                        'protocols': ['S3', 'DATABASE'],
+                        'create_dir': True
                     }
-                    client.views.post(view_data)
+                    
+                    # Add bucket_owner if provided
+                    if bucket_owner:
+                        view_kwargs['bucket_owner'] = bucket_owner
+                        logger.info(f"🔧 Setting bucket owner to '{bucket_owner}'")
+                    
+                    client.views.post(**view_kwargs)
                     logger.info(f"✅ Created view '{view_path}'")
                 
             except Exception as e:

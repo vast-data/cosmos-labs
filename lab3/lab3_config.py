@@ -43,10 +43,17 @@ class Lab3ConfigLoader(ConfigLoader):
         
         # Check weather configuration
         weather_config = self.get_weather_config()
-        if not weather_config.get('bucket'):
-            errors.append("lab3.weather.bucket is required")
-        if not weather_config.get('schema'):
-            errors.append("lab3.weather.schema is required")
+        database_config = self.get('lab3.database', {})
+        if not database_config.get('name'):
+            errors.append("lab3.database.name is required")
+        if not database_config.get('schema'):
+            errors.append("lab3.database.schema is required")
+        if not database_config.get('view_path'):
+            errors.append("lab3.database.view_path is required")
+        if not database_config.get('policy_name'):
+            errors.append("lab3.database.policy_name is required")
+        if not database_config.get('bucket_owner'):
+            errors.append("lab3.database.bucket_owner is required")
         
         # Check VAST configuration
         vast_config = self.get_vast_config()

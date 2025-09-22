@@ -73,23 +73,14 @@ def main():
     if not check_pip():
         return False
     
-    print("\n🔧 Installation Options:")
-    print("1. Full development environment (recommended)")
-    print("2. Lab 1 only (Storage Infrastructure)")
-    print("3. Lab 2 only (Metadata Infrastructure)")
-    print("4. Lab 6 only (Pipeline Storage Integration)")
-    print("5. Examples only (Directory Explorer, Orphaned Data Discovery)")
-    
-    print("\n💡 Recommendation: Start with option 1 for full functionality")
-    
     # Install root requirements (full environment)
     print("\n" + "="*40)
     print("🏗️  INSTALLING FULL DEVELOPMENT ENVIRONMENT")
     print("="*40)
     
     if install_requirements("requirements.txt", "full development environment"):
-        print("\n✅ Full environment installed successfully!")
-        print("   You can now run any lab with full functionality")
+        # Success message already printed by install_requirements function
+        pass
     else:
         print("\n⚠️  Full environment installation had issues")
         print("   Trying individual lab installations...")
@@ -120,9 +111,8 @@ def main():
     print("\n📚 Next Steps:")
     print("1. Configure your config.yaml and secrets.yaml")
     print("2. Set up VAST Data Platform access")
-    print("3. Run: python3 lab1/test_basic_imports.py")
-    print("4. Start with Lab 1: cd lab1 && python3 lab1_solution.py --help")
-    print("5. Try examples: cd examples && python3 08_directory_catalog_explorer.py")
+    print("3. Start with Lab 1: cd lab1 && python3 lab1_solution.py --help")
+    print("4. Try examples: cd examples && python3 08_directory_catalog_explorer.py")
     print("\n💡 For help: Check the README.md files in each lab directory")
     
     return True

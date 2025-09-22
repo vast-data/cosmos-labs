@@ -42,7 +42,7 @@ class DatasetUploader:
             endpoint_url = self.config.get('s3.endpoint_url')
             region_name = self.config.get('s3.region', 'us-east-1')
             path_style = self.config.get('s3.compatibility.path_style_addressing', True)
-            ssl_verify = self.config.get('verify_ssl', True)
+            ssl_verify = self.config.get('s3.verify_ssl', True)
             access_key = self.config.get_secret('s3_access_key')
             secret_key = self.config.get_secret('s3_secret_key')
             
