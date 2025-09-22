@@ -110,12 +110,7 @@ Meet the characters who will guide you through these challenges:
    python3 install_dependencies.py
    ```
 
-4. **Deactivate virtual environment when done**
-   ```bash
-   deactivate
-   ```
-
-5. **Verify installation**
+4. **Verify installation**
    ```bash
    # Test individual package imports
    python -c "import yaml; print('pyyaml installed successfully')"
