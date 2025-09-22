@@ -68,7 +68,7 @@ All examples use the centralized configuration system via `examples_config.py`. 
 
 **Run:** `python 06_chargeback_report.py`
 
-### 7. [Orphaned Data Discovery](07_orphaned_data_discovery.py)
+### 7. [Orphaned Data Discovery (catalog)](07_orphaned_data_discovery_catalog.py)
 **Purpose:** Efficiently find orphaned data using catalog-based approach
 - ✅ Gets all directory paths from VAST using vastdb catalog
 - ✅ Compares against current view paths to find orphaned directories
@@ -77,7 +77,17 @@ All examples use the centralized configuration system via `examples_config.py`. 
 - ✅ Skips VAST internal directories and shows progress indicators
 - ✅ Groups results by top-level folders with detailed breakdown
 
-**Run:** `python 07_orphaned_data_discovery.py`
+**Run:** `python 07_orphaned_data_discovery_catalog.py`
+
+### 7b. [Orphaned Data Discovery (no catalog)](07b_orphaned_data_discovery_no_catalog.py)
+**Purpose:** Find orphaned data using the VMS capacity API (no VAST DB required)
+- ✅ Enumerates directories via GET `/api/latest/capacity/list_dir?path=<dir>`
+- ✅ Compares against unique view paths to find orphaned directories
+- ✅ Depth-limited traversal for performance; concise text output
+
+**Run:**
+- `python 07b_orphaned_data_discovery_no_catalog.py --path / --max-depth 0`
+- Increase depth gradually for subtrees, e.g.: `--path /jonas --max-depth 1`
 
 ### 8. [Show User Quotas](08_show_user_quotas.py)
 **Purpose:** Display detailed user quota information with nice formatting

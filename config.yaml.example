@@ -5,6 +5,7 @@
 vast:
   user: admin
   address: "https://your-vms-hostname"
+  ssl_verify: false
   # Note: password, token, and tenant_name are stored in secrets.yaml
 
 # VAST Database Settings (one connection, multiple databases)
@@ -12,7 +13,7 @@ vast:
 # NOTE: This should be the VAST Database VIP pool endpoint, NOT the VMS endpoint
 vastdb:
   endpoint: "https://your-vastdb-vip-hostname"  # VAST Database VIP pool endpoint
-  ssl_verify: true
+  ssl_verify: false
   timeout: 30
 
 
