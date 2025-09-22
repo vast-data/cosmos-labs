@@ -73,21 +73,27 @@ All examples use the centralized configuration system via `examples_config.py`. 
 - ✅ Gets all directory paths from VAST using vastdb catalog
 - ✅ Compares against current view paths to find orphaned directories
 - ✅ Provides complete coverage of all orphaned data (not just from deleted views)
-- ✅ Much more efficient than event-based approaches
 - ✅ Skips VAST internal directories and shows progress indicators
 - ✅ Groups results by top-level folders with detailed breakdown
 
 **Run:** `python 07_orphaned_data_discovery_catalog.py`
 
 ### 7b. [Orphaned Data Discovery (no catalog)](07b_orphaned_data_discovery_no_catalog.py)
+> Note: This example scans only the path and depth you specify. Totals reflect that scope and will usually be much smaller than the full catalog-based example (7), which inventories everything.
 **Purpose:** Find orphaned data using the VMS capacity API (no VAST DB required)
 - ✅ Enumerates directories via GET `/api/latest/capacity/list_dir?path=<dir>`
 - ✅ Compares against unique view paths to find orphaned directories
 - ✅ Depth-limited traversal for performance; concise text output
 
+Output basics:
+- Shows counts of scanned directories, unique view paths, and orphaned directories
+- Coverage means: directory equals a view path, or is inside a view path (no ancestor coverage)
+- Results are grouped by first folder (e.g., `/pkg`, `/data`)
+
 **Run:**
 - `python 07b_orphaned_data_discovery_no_catalog.py --path / --max-depth 0`
-- Increase depth gradually for subtrees, e.g.: `--path /jonas --max-depth 1`
+- Increase depth gradually for subtrees, e.g.: `--path /data --max-depth 1`
+
 
 ### 8. [Show User Quotas](08_show_user_quotas.py)
 **Purpose:** Display detailed user quota information with nice formatting

@@ -24,12 +24,10 @@ import argparse
 from examples_config import ExamplesConfigLoader
 from vastpy import VASTClient
 
-
 def _normalize_base_url(vast_address: str) -> str:
     if vast_address.endswith('/'):
         return vast_address[:-1]
     return vast_address
-
 
 def _call_list_dir(base_url: str, path: str, user: str, password: str, verify_ssl: bool, timeout: int = 30):
     url = f"{base_url}/api/latest/capacity/list_dir"
@@ -47,7 +45,6 @@ def _call_list_dir(base_url: str, path: str, user: str, password: str, verify_ss
         return response.json()
     except ValueError:
         return json.loads(response.text)
-
 
 def get_all_directory_paths_via_capacity(
     root_path: str = "/",
@@ -121,7 +118,6 @@ def get_all_directory_paths_via_capacity(
         print(f"❌ Failed to get directory paths via capacity endpoint: {e}")
         return set()
 
-
 def get_current_view_paths() -> Dict[str, Dict[str, str]]:
     """Get current view paths from VAST."""
     print("\n🔍 Step 2: Getting current view paths...")
@@ -163,24 +159,21 @@ def get_current_view_paths() -> Dict[str, Dict[str, str]]:
         print(f"❌ Failed to get current view paths: {e}")
         return {}
 
-
-def find_orphaned_directories(all_directories: Set[str], current_views: Dict[str, Dict[str, str]]):
+def find_orphaned_directories(all_directories: Set[str], current_views: Dict[str, Dict[str, str]], cover_ancestors: bool = True):
     """Find directories that exist but have no corresponding views."""
     print("\n🔍 Step 3: Finding directories without corresponding views...")
 
     view_paths = set(current_views.keys())
-    print(f"      📊 Total view paths: {len(view_paths)}")
+    print(f"      📊 Total view paths (used for coverage): {len(view_paths)}")
 
-    parent_view_paths = set()
-    for view_path in view_paths:
-        if view_path != '/':
-            parent_view_paths.add(view_path)
-            parts = view_path.strip('/').split('/')
-            for i in range(1, len(parts) + 1):
-                parent_path = '/' + '/'.join(parts[:i])
-                parent_view_paths.add(parent_path)
-
-    print(f"      📊 Total parent view paths (including hierarchy): {len(parent_view_paths)}")
+    # Precompute ancestor paths of views if needed (for fast membership checks)
+    ancestor_paths: Set[str] = set()
+    if cover_ancestors:
+        for vp in view_paths:
+            parts = vp.strip('/').split('/')
+            for i in range(1, len(parts)):
+                ancestor = '/' + '/'.join(parts[:i])
+                ancestor_paths.add(ancestor)
 
     orphaned = []
     covered_directories = set()
@@ -192,16 +185,22 @@ def find_orphaned_directories(all_directories: Set[str], current_views: Dict[str
     for i in range(0, total_dirs, batch_size):
         batch = list(all_directories)[i:i + batch_size]
         for directory in batch:
+            # Covered if:
+            # - directory equals a view path, OR
+            # - directory is a descendant of a view path, OR
+            # - cover_ancestors enabled and directory is an ancestor of a view path
             is_covered = False
-            if directory in view_paths:
+            for vp in view_paths:
+                if directory == vp:
+                    is_covered = True
+                    break
+                # Ensure match on path boundary to avoid prefix collisions
+                vp_norm = vp.rstrip('/')
+                if vp_norm and directory.startswith(vp_norm + '/'):
+                    is_covered = True
+                    break
+            if not is_covered and cover_ancestors and directory in ancestor_paths:
                 is_covered = True
-            if not is_covered:
-                parts = directory.strip('/').split('/')
-                for j in range(1, len(parts) + 1):
-                    parent_path = '/' + '/'.join(parts[:j])
-                    if parent_path in parent_view_paths:
-                        is_covered = True
-                        break
             if is_covered:
                 covered_directories.add(directory)
             else:
@@ -213,7 +212,6 @@ def find_orphaned_directories(all_directories: Set[str], current_views: Dict[str
     print(f"✅ Found {len(orphaned)} directories without corresponding views")
     return orphaned
 
-
 def main():
     print("🔍 Example 7b: Orphaned Data Discovery (capacity endpoint)")
     print("=" * 60)
@@ -222,6 +220,7 @@ def main():
     parser.add_argument("--path", default="/", help="Path to start enumeration (default: /)")
     parser.add_argument("--max-depth", type=int, default=0, help="Traversal depth (0=list only root contents)")
     parser.add_argument("--timeout", type=int, default=30, help="HTTP timeout seconds (default: 30)")
+    parser.add_argument("--cover-ancestors", action="store_true", default=True, help="Treat parent folders of views as covered (default: on)")
     args = parser.parse_args()
 
     if args.max_depth > 0:
@@ -244,7 +243,7 @@ def main():
         return False
 
     # Step 3: Find orphaned directories
-    orphaned = find_orphaned_directories(all_directories, current_views)
+    orphaned = find_orphaned_directories(all_directories, current_views, cover_ancestors=args.cover_ancestors)
 
     # Display results
     print(f"\n📊 Orphaned Data Analysis Results:")
@@ -271,12 +270,11 @@ def main():
 
         # Keep output succinct: no further breakdown
 
-        print(f"\n📊 Total: {len(orphaned):,} orphaned directories across {len(sorted_folders)} top-level folders")
+        print(f"\n📊 Total (within scanned path/depth): {len(orphaned):,} orphaned directories across {len(sorted_folders)} top-level folders")
     else:
         print("\n✅ No orphaned directories found!")
 
     return True
-
 
 if __name__ == "__main__":
     success = main()
@@ -285,5 +283,3 @@ if __name__ == "__main__":
     else:
         print("\n❌ Orphaned data matching (capacity) failed")
         sys.exit(1)
-
-
