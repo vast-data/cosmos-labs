@@ -226,7 +226,7 @@ These labs are designed to mirror real-world challenges faced by organizations d
 - **VAST Documentation** - [https://support.vastdata.com/s/](https://support.vastdata.com/s/)
 - **vastpy GitHub** - [https://github.com/vast-data/vastpy](https://github.com/vast-data/vastpy)
 - **vastdb GitHub** - [https://github.com/vast-data/vastdb_sdk](https://github.com/vast-data/vastdb_sdk)
-- **Community Support** - Join the VAST community for additional help and examples
+- **Community Support** - Join VAST's [Cosmos community](https://community.vastdata.com) for additional help and examples
 
 ## Contributing
 
