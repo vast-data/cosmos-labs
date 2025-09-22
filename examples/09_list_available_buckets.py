@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-List Available VAST Views and Test Database Support
+VAST Storage and Database Inventory
+Analyzes your VAST system to show views by protocol and database statistics
 """
 
 import sys
@@ -19,7 +20,7 @@ except ImportError as e:
     sys.exit(1)
 
 def main():
-    """List available VAST views and test database support"""
+    """Analyze VAST system to show storage inventory and database statistics"""
     
     # Load configuration from parent directory
     config_path = str(parent_dir / "config.yaml")
@@ -52,11 +53,19 @@ def main():
             password=vast_password
         )
         
-        # List all views
+        # List all views and categorize by protocol
         print("📁 Available VAST Views:")
         views = client.views.get()
         
         if views:
+            # Categorize views by protocol
+            protocol_counts = {}
+            s3_views = []
+            nfs_views = []
+            smb_views = []
+            block_views = []
+            database_views = []
+            
             for view in views:
                 view_id = view.get('id', 'Unknown')
                 view_path = view.get('path', 'Unknown')
@@ -64,71 +73,130 @@ def main():
                 protocols = view.get('protocols', [])
                 bucket_name = view.get('bucket_name', 'N/A')
                 
-                print(f"   • {view_path}")
-                print(f"     ID: {view_id}")
-                print(f"     Name: {view_name}")
-                print(f"     Bucket: {bucket_name}")
-                print(f"     Protocols: {', '.join(protocols) if protocols else 'None'}")
-                print()
+                # Count protocols
+                for protocol in protocols:
+                    protocol_counts[protocol] = protocol_counts.get(protocol, 0) + 1
+                
+                # Categorize views
+                if 'S3' in protocols:
+                    s3_views.append((view_path, view_id, view_name, bucket_name, protocols))
+                if 'NFS' in protocols:
+                    nfs_views.append((view_path, view_id, view_name, bucket_name, protocols))
+                if 'SMB' in protocols:
+                    smb_views.append((view_path, view_id, view_name, bucket_name, protocols))
+                if 'BLOCK' in protocols:
+                    block_views.append((view_path, view_id, view_name, bucket_name, protocols))
+                if 'DATABASE' in protocols:
+                    database_views.append((view_path, view_id, view_name, bucket_name, protocols))
+            
+            # Show summary statistics
+            print(f"   📊 Summary: {len(views)} total views")
+            for protocol, count in sorted(protocol_counts.items()):
+                print(f"      • {protocol}: {count} views")
+            print()
         else:
             print("   No views found")
         
-        # Test database connection
-        print("🗄️  Testing VAST Database Connection:")
-        db_endpoint = config.get('vastdb.endpoint')
-        s3_access_key = config.get_secret('s3_access_key')
-        s3_secret_key = config.get_secret('s3_secret_key')
-        s3_verify_ssl = config.get('s3.verify_ssl', True)
-        
-        if db_endpoint and s3_access_key and s3_secret_key:
-            try:
-                # Connect to VAST Database using S3 credentials
-                db_client = vastdb.connect(
-                    endpoint=db_endpoint,
-                    access=s3_access_key,
-                    secret=s3_secret_key,
-                    ssl_verify=s3_verify_ssl
-                )
-                
-                # Test VAST Database connection by creating a transaction
-                print(f"   ✅ Connected to VAST Database at {db_endpoint}")
-                print("   🔍 Testing database functionality...")
-                
-                # Test transaction capability (this is how VAST DB works)
-                with db_client.transaction() as tx:
-                    print("   ✅ Transaction capability confirmed")
-                    print("   💡 VAST Database uses transaction-based operations")
-                    print("   💡 To work with data, you need to specify bucket and schema names")
-                    print("   💡 Example: bucket = tx.bucket('your_bucket_name')")
-                    print("   💡 Example: schema = bucket.schema('your_schema_name')")
+        # Analyze database views and show statistics
+        if database_views:
+            print("🗄️  VAST Database Analysis:")
+            print(f"   📊 Found {len(database_views)} database-enabled views")
+            
+            db_endpoint = config.get('vastdb.endpoint')
+            s3_access_key = config.get_secret('s3_access_key')
+            s3_secret_key = config.get_secret('s3_secret_key')
+            s3_verify_ssl = config.get('s3.verify_ssl', True)
+            
+            if db_endpoint and s3_access_key and s3_secret_key:
+                try:
+                    # Connect to VAST Database using S3 credentials
+                    db_client = vastdb.connect(
+                        endpoint=db_endpoint,
+                        access=s3_access_key,
+                        secret=s3_secret_key,
+                        ssl_verify=s3_verify_ssl
+                    )
                     
-            except Exception as e:
-                error_msg = str(e)
-                print(f"   ❌ Database connection failed: {error_msg}")
-                
-                # Provide helpful guidance for common VAST Database connection issues
-                if "is not a VAST DB server endpoint" in error_msg:
-                    print()
-                    print("   💡 VAST Database Connection Help:")
-                    print("   • You're connecting to the VAST Management System endpoint")
-                    print("   • VAST Database requires a different VIP pool endpoint")
-                    print("   • Check your config.yaml 'vastdb.endpoint' setting")
-                    print("   • It should point to the VAST Database VIP pool, not VMS")
-                    print("   • Example: 'https://vastdb-vip.your-domain.com' or similar")
-                    print("   • Contact your VAST administrator for the correct endpoint")
-                elif "SSL" in error_msg or "certificate" in error_msg:
-                    print()
-                    print("   💡 SSL Certificate Help:")
-                    print("   • Try setting 's3.verify_ssl: false' in your config.yaml")
-                    print("   • Or set 'vastdb.ssl_verify: false' for database connections")
-                elif "access" in error_msg.lower() or "secret" in error_msg.lower():
-                    print()
-                    print("   💡 Authentication Help:")
-                    print("   • Check your secrets.yaml has correct S3 credentials")
-                    print("   • Verify 's3_access_key' and 's3_secret_key' are set")
-                    print("   • These same credentials are used for VAST Database")
+                    print(f"   ✅ Connected to VAST Database at {db_endpoint}")
+                    
+                    # Analyze each database view
+                    total_rows = 0
+                    total_tables = 0
+                    
+                    with db_client.transaction() as tx:
+                        for view_path, view_id, view_name, bucket_name, protocols in database_views:
+                            print(f"   🔍 Analyzing database view: {view_path}")
+                            
+                            try:
+                                # Try to access the bucket (use view_name as bucket name if available)
+                                bucket_name_to_use = bucket_name if bucket_name != 'N/A' else view_name
+                                bucket = tx.bucket(bucket_name_to_use)
+                                
+                                # List schemas in this bucket
+                                schemas = bucket.schemas()
+                                print(f"      📊 Bucket '{bucket_name_to_use}': {len(schemas)} schemas")
+                                
+                                for schema in schemas:
+                                    try:
+                                        # Get tables in this schema
+                                        tables = schema.tables()
+                                        print(f"         📋 Schema '{schema.name}': {len(tables)} tables")
+                                        total_tables += len(tables)
+                                        
+                                        # Count rows in each table
+                                        for table in tables:
+                                            try:
+                                                # Get table info to count rows
+                                                table_info = table.info()
+                                                if hasattr(table_info, 'num_rows'):
+                                                    row_count = table_info.num_rows
+                                                    total_rows += row_count
+                                                    print(f"            📄 Table '{table.name}': {row_count:,} rows")
+                                                else:
+                                                    print(f"            📄 Table '{table.name}': row count unavailable")
+                                            except Exception as e:
+                                                print(f"            ⚠️  Table '{table.name}': {str(e)[:50]}...")
+                                                
+                                    except Exception as e:
+                                        print(f"         ⚠️  Schema '{schema.name}': {str(e)[:50]}...")
+                                        
+                            except Exception as e:
+                                print(f"      ⚠️  Bucket '{bucket_name_to_use}': {str(e)[:50]}...")
+                    
+                    print(f"   📈 Total Database Statistics:")
+                    print(f"      • Total tables: {total_tables}")
+                    print(f"      • Total rows: {total_rows:,}")
+                    
+                except Exception as e:
+                    error_msg = str(e)
+                    print(f"   ❌ Database connection failed: {error_msg}")
+                    
+                    # Provide helpful guidance for common VAST Database connection issues
+                    if "is not a VAST DB server endpoint" in error_msg:
+                        print()
+                        print("   💡 VAST Database Connection Help:")
+                        print("   • You're connecting to the VAST Management System endpoint")
+                        print("   • VAST Database requires a different VIP pool endpoint")
+                        print("   • Check your config.yaml 'vastdb.endpoint' setting")
+                        print("   • It should point to the VAST Database VIP pool, not VMS")
+                        print("   • Example: 'https://vastdb-vip.your-domain.com' or similar")
+                        print("   • Contact your VAST administrator for the correct endpoint")
+                    elif "SSL" in error_msg or "certificate" in error_msg:
+                        print()
+                        print("   💡 SSL Certificate Help:")
+                        print("   • Try setting 's3.verify_ssl: false' in your config.yaml")
+                        print("   • Or set 'vastdb.ssl_verify: false' for database connections")
+                    elif "access" in error_msg.lower() or "secret" in error_msg.lower():
+                        print()
+                        print("   💡 Authentication Help:")
+                        print("   • Check your secrets.yaml has correct S3 credentials")
+                        print("   • Verify 's3_access_key' and 's3_secret_key' are set")
+                        print("   • These same credentials are used for VAST Database")
+            else:
+                print("   ⚠️  Database credentials not configured")
         else:
-            print("   ⚠️  Database credentials not configured")
+            print("🗄️  VAST Database Analysis:")
+            print("   ℹ️  No database-enabled views found")
             
     except Exception as e:
         print(f"❌ Error: {e}")

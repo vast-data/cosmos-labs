@@ -8,13 +8,16 @@ vast:
   # Note: password, token, and tenant_name are stored in secrets.yaml
 
 # VAST Database Settings (one connection, multiple databases)
+# Uses S3 credentials from s3 section above
+# NOTE: This should be the VAST Database VIP pool endpoint, NOT the VMS endpoint
 vastdb:
-  endpoint: "https://your-vms-hostname"
+  endpoint: "https://your-vastdb-vip-hostname"  # VAST Database VIP pool endpoint
   ssl_verify: true
   timeout: 30
 
 
 # S3 Configuration for VAST Data Platform
+# NOTE: This uses the VMS endpoint for S3 operations
 s3:
   endpoint_url: "https://your-vms-hostname"
   region: "us-east-1"

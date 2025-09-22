@@ -26,6 +26,7 @@ class ConfigValidator:
         
         # Validate each section
         self._validate_vast_section(config.get('vast', {}))
+        self._validate_vastdb_section(config.get('vastdb', {}))
         
         # Validate lab-specific sections
         self._validate_lab_sections(config)
@@ -43,6 +44,23 @@ class ConfigValidator:
         address = vast_config.get('address')
         if address and not isinstance(address, str):
             self.errors.append("vast.address must be a string")
+    
+    def _validate_vastdb_section(self, vastdb_config: Dict[str, Any]):
+        """Validate VAST Database configuration"""
+        required_fields = ['endpoint']
+        for field in required_fields:
+            if not vastdb_config.get(field):
+                self.errors.append(f"vastdb.{field} is required")
+        
+        # Validate endpoint format
+        endpoint = vastdb_config.get('endpoint')
+        if endpoint and not isinstance(endpoint, str):
+            self.errors.append("vastdb.endpoint must be a string")
+        
+        # Validate ssl_verify is boolean
+        ssl_verify = vastdb_config.get('ssl_verify')
+        if ssl_verify is not None and not isinstance(ssl_verify, bool):
+            self.errors.append("vastdb.ssl_verify must be a boolean")
     
     def _validate_lab_sections(self, config: Dict[str, Any]):
         """Validate lab-specific configuration sections"""
