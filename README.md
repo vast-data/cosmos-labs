@@ -170,7 +170,6 @@ See individual lab READMEs for detailed safety information and command-line usag
 
 ## Utilities
 
-- **`test_login.py`** - Test script to verify VAST VMS connectivity and authentication
 - **`test_config_validation.py`** - Test script to verify configuration validation system
 
 
