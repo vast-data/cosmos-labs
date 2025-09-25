@@ -124,13 +124,40 @@ def main():
                     total_tables = 0
                     
                     with db_client.transaction() as tx:
+                        # First, let's see what buckets are actually available
+                        try:
+                            available_buckets = tx.buckets()
+                            print(f"   📊 Available buckets: {[b.name for b in available_buckets]}")
+                        except Exception as e:
+                            print(f"   ⚠️  Could not list buckets: {e}")
+                        
                         for view_path, view_id, view_name, bucket_name, protocols in database_views:
                             print(f"   🔍 Analyzing database view: {view_path}")
                             
                             try:
-                                # Try to access the bucket (use view_name as bucket name if available)
-                                bucket_name_to_use = bucket_name if bucket_name != 'N/A' else view_name
-                                bucket = tx.bucket(bucket_name_to_use)
+                                # Try different bucket naming approaches
+                                bucket_names_to_try = [
+                                    view_path.lstrip('/').replace('/', '_'),  # Convert path to bucket name
+                                    view_name,  # Use view name
+                                    bucket_name if bucket_name != 'N/A' else None,  # Use actual bucket name
+                                    f"view-{view_id}"  # Use view-{id} format
+                                ]
+                                
+                                bucket = None
+                                bucket_name_to_use = None
+                                
+                                for test_name in bucket_names_to_try:
+                                    if test_name:
+                                        try:
+                                            bucket = tx.bucket(test_name)
+                                            bucket_name_to_use = test_name
+                                            break
+                                        except:
+                                            continue
+                                
+                                if not bucket:
+                                    print(f"      ⚠️  Could not access bucket for view {view_path}")
+                                    continue
                                 
                                 # List schemas in this bucket
                                 schemas = bucket.schemas()
