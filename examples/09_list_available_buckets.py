@@ -5,16 +5,23 @@ Analyzes your VAST system to show views by protocol and database statistics
 """
 
 import sys
+import signal
 from pathlib import Path
 
 # Add parent directory to path for imports to avoid circular import
 parent_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(parent_dir))
 
+# Handle Ctrl-C gracefully
+def signal_handler(sig, frame):
+    print("\n\n⚠️  Interrupted by user. Exiting gracefully...")
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+
 try:
     from config_loader import ConfigLoader
     from vastpy import VASTClient
-    import vastdb
 except ImportError as e:
     print(f"❌ Import error: {e}")
     sys.exit(1)
@@ -89,6 +96,30 @@ def main():
                 if 'DATABASE' in protocols:
                     database_views.append((view_path, view_id, view_name, bucket_name, protocols))
             
+            # Show S3 views with their bucket names
+            if s3_views:
+                print(f"\n🪣 S3 Views ({len(s3_views)} total):")
+                for view_path, view_id, view_name, bucket_name, protocols in s3_views:
+                    print(f"   • {view_path} → Bucket: {bucket_name}")
+            
+            # Show NFS views
+            if nfs_views:
+                print(f"\n📁 NFS Views ({len(nfs_views)} total):")
+                for view_path, view_id, view_name, bucket_name, protocols in nfs_views:
+                    print(f"   • {view_path}")
+            
+            # Show SMB views
+            if smb_views:
+                print(f"\n💼 SMB Views ({len(smb_views)} total):")
+                for view_path, view_id, view_name, bucket_name, protocols in smb_views:
+                    print(f"   • {view_path}")
+            
+            # Show Block views
+            if block_views:
+                print(f"\n💾 Block Views ({len(block_views)} total):")
+                for view_path, view_id, view_name, bucket_name, protocols in block_views:
+                    print(f"   • {view_path}")
+            
             # Show summary statistics
             print(f"   📊 Summary: {len(views)} total views")
             for protocol, count in sorted(protocol_counts.items()):
@@ -97,122 +128,16 @@ def main():
         else:
             print("   No views found")
         
-        # Analyze database views and show statistics
+        # Show database views
         if database_views:
-            print("🗄️  VAST Database Analysis:")
-            print(f"   📊 Found {len(database_views)} database-enabled views")
-            
-            db_endpoint = config.get('vastdb.endpoint')
-            s3_access_key = config.get_secret('s3_access_key')
-            s3_secret_key = config.get_secret('s3_secret_key')
-            s3_verify_ssl = config.get('s3.verify_ssl', True)
-            
-            if db_endpoint and s3_access_key and s3_secret_key:
-                try:
-                    # Connect to VAST Database using S3 credentials
-                    db_client = vastdb.connect(
-                        endpoint=db_endpoint,
-                        access=s3_access_key,
-                        secret=s3_secret_key,
-                        ssl_verify=s3_verify_ssl
-                    )
-                    
-                    print(f"   ✅ Connected to VAST Database at {db_endpoint}")
-                    
-                    # Analyze each database view
-                    total_rows = 0
-                    total_tables = 0
-                    
-                    with db_client.transaction() as tx:
-                        # First, let's see what buckets are actually available
-                        try:
-                            available_buckets = list(tx.buckets())
-                            print(f"   📊 Available buckets: {[b.name for b in available_buckets]}")
-                        except Exception as e:
-                            print(f"   ⚠️  Could not list buckets: {e}")
-                        
-                        for view_path, view_id, view_name, bucket_name, protocols in database_views:
-                            print(f"   🔍 Analyzing database view: {view_path}")
-                            
-                            try:
-                                # Try different bucket naming approaches
-                                bucket_names_to_try = [
-                                    view_path.lstrip('/').replace('/', '_'),  # Convert path to bucket name
-                                    view_name,  # Use view name
-                                    bucket_name if bucket_name != 'N/A' else None,  # Use actual bucket name
-                                    f"view-{view_id}"  # Use view-{id} format
-                                ]
-                                
-                                bucket = None
-                                bucket_name_to_use = None
-                                
-                                for test_name in bucket_names_to_try:
-                                    if test_name:
-                                        try:
-                                            bucket = tx.bucket(test_name)
-                                            bucket_name_to_use = test_name
-                                            break
-                                        except:
-                                            continue
-                                
-                                if not bucket:
-                                    print(f"      ⚠️  Could not access bucket for view {view_path}")
-                                    continue
-                                
-                                # List schemas in this bucket
-                                schemas = bucket.schemas()
-                                print(f"      📊 Bucket '{bucket_name_to_use}': {len(schemas)} schemas")
-                                
-                                for schema in schemas:
-                                    try:
-                                        # Get tables in this schema
-                                        tables = schema.tables()
-                                        print(f"         📋 Schema '{schema.name}': {len(tables)} tables")
-                                        total_tables += len(tables)
-                                        
-                                        # List tables
-                                        for table in tables:
-                                            print(f"            📄 Table '{table.name}'")
-                                                
-                                    except Exception as e:
-                                        print(f"         ⚠️  Schema '{schema.name}': {str(e)[:50]}...")
-                                        
-                            except Exception as e:
-                                print(f"      ⚠️  Bucket '{bucket_name_to_use}': {str(e)[:50]}...")
-                    
-                    print(f"   📈 Total Database Statistics:")
-                    print(f"      • Total tables: {total_tables}")
-                    print(f"      • Database-enabled views: {len(database_views)}")
-                    
-                except Exception as e:
-                    error_msg = str(e)
-                    print(f"   ❌ Database connection failed: {error_msg}")
-                    
-                    # Provide helpful guidance for common VAST Database connection issues
-                    if "is not a VAST DB server endpoint" in error_msg:
-                        print()
-                        print("   💡 VAST Database Connection Help:")
-                        print("   • You're connecting to the VAST Management System endpoint")
-                        print("   • VAST Database requires a different VIP pool endpoint")
-                        print("   • Check your config.yaml 'vastdb.endpoint' setting")
-                        print("   • It should point to the VAST Database VIP pool, not VMS")
-                        print("   • Example: 'https://vastdb-vip.your-domain.com' or similar")
-                        print("   • Contact your VAST administrator for the correct endpoint")
-                    elif "SSL" in error_msg or "certificate" in error_msg:
-                        print()
-                        print("   💡 SSL Certificate Help:")
-                        print("   • Try setting 's3.verify_ssl: false' in your config.yaml")
-                        print("   • Or set 'vastdb.ssl_verify: false' for database connections")
-                    elif "access" in error_msg.lower() or "secret" in error_msg.lower():
-                        print()
-                        print("   💡 Authentication Help:")
-                        print("   • Check your secrets.yaml has correct S3 credentials")
-                        print("   • Verify 's3_access_key' and 's3_secret_key' are set")
-                        print("   • These same credentials are used for VAST Database")
-            else:
-                print("   ⚠️  Database credentials not configured")
+            print(f"\n🗄️  Database Views ({len(database_views)} total):")
+            for view_path, view_id, view_name, bucket_name, protocols in database_views:
+                if bucket_name != 'N/A' and bucket_name:
+                    print(f"   • {view_path} → Bucket: {bucket_name}")
+                else:
+                    print(f"   • {view_path} → No bucket name")
         else:
-            print("🗄️  VAST Database Analysis:")
+            print("\n🗄️  Database Views:")
             print("   ℹ️  No database-enabled views found")
             
     except Exception as e:
