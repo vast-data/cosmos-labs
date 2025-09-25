@@ -126,7 +126,7 @@ def main():
                     with db_client.transaction() as tx:
                         # First, let's see what buckets are actually available
                         try:
-                            available_buckets = tx.buckets()
+                            available_buckets = list(tx.buckets())
                             print(f"   📊 Available buckets: {[b.name for b in available_buckets]}")
                         except Exception as e:
                             print(f"   ⚠️  Could not list buckets: {e}")
@@ -170,19 +170,9 @@ def main():
                                         print(f"         📋 Schema '{schema.name}': {len(tables)} tables")
                                         total_tables += len(tables)
                                         
-                                        # Count rows in each table
+                                        # List tables
                                         for table in tables:
-                                            try:
-                                                # Get table info to count rows
-                                                table_info = table.info()
-                                                if hasattr(table_info, 'num_rows'):
-                                                    row_count = table_info.num_rows
-                                                    total_rows += row_count
-                                                    print(f"            📄 Table '{table.name}': {row_count:,} rows")
-                                                else:
-                                                    print(f"            📄 Table '{table.name}': row count unavailable")
-                                            except Exception as e:
-                                                print(f"            ⚠️  Table '{table.name}': {str(e)[:50]}...")
+                                            print(f"            📄 Table '{table.name}'")
                                                 
                                     except Exception as e:
                                         print(f"         ⚠️  Schema '{schema.name}': {str(e)[:50]}...")
@@ -192,7 +182,7 @@ def main():
                     
                     print(f"   📈 Total Database Statistics:")
                     print(f"      • Total tables: {total_tables}")
-                    print(f"      • Total rows: {total_rows:,}")
+                    print(f"      • Database-enabled views: {len(database_views)}")
                     
                 except Exception as e:
                     error_msg = str(e)
