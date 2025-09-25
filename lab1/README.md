@@ -1,5 +1,7 @@
 # Lab 1: Storage Monitoring & Auto-Expansion
 
+> 📖 **Hey, remember to read the [story](STORY.md) to understand what we're doing and why!** This will help you understand the business context and challenges the Orbital Dynamics team is facing.
+
 ## 🎯 Overview
 
 This solution demonstrates how to use `vastpy` to monitor existing storage infrastructure and automatically expand quotas when needed. We'll build a system that monitors storage utilization across multiple views and provides proactive quota expansion with comprehensive safety checks to prevent storage crises.

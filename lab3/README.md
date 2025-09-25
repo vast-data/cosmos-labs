@@ -1,5 +1,7 @@
 # Lab 3: Weather Data Pipeline and Analytics
 
+> 📖 **Hey, remember to read the [story](STORY.md) to understand what we're doing and why!** This will help you understand the business context and challenges the Orbital Dynamics team is facing.
+
 ## 🎯 Overview
 
 This Lab 3 solution provides a complete weather data pipeline and analytics system that:

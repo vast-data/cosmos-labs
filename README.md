@@ -27,7 +27,7 @@ Meet the characters who will guide you through these challenges:
 
 ## Lab Overview
 
-### [Lab 1: Storage Monitoring & Auto-Expansion](Lab_1_Satellite_Data_Infrastructure_Planning.md)
+### [Lab 1: Storage Monitoring & Auto-Expansion](lab1/README.md)
 **Challenge:** Monitor existing storage infrastructure and automatically expand quotas when needed
 - Use `vastpy` to monitor storage utilization across multiple views
 - Build automated quota expansion with comprehensive safety checks
@@ -35,7 +35,7 @@ Meet the characters who will guide you through these challenges:
 - Implement real-time monitoring and alerting for storage health
 - **Focus:** Monitoring existing infrastructure, not creating new views
 
-### [Lab 2: Metadata Database & Search System](Lab_2_Metadata_Infrastructure_Project.md)
+### [Lab 2: Metadata Database & Search System](lab2/README.md)
 **Challenge:** Build a comprehensive metadata database system for efficient data discovery and management
 - Use `vastdb` to create and manage VAST databases
 - Build automated metadata extraction workflows for various file formats (FITS, JSON, etc.)
@@ -53,14 +53,14 @@ Meet the characters who will guide you through these challenges:
 
 ## Upcoming labs
 
-### [Lab 4: The Snapshot Strategy](Lab_4_Snapshot_Strategy.md)
+### [Lab 4: The Snapshot Strategy](lab4/README.md)
 **Challenge:** Implement systematic version control for research datasets
 - Use `vastpy` to implement automated snapshot policies
 - Build named snapshot workflows for key milestones
 - Create tools for browsing and restoring from snapshots
 - Establish systematic version tracking and management
 
-### [Lab 5: The Real-Time Alert System](Lab_5_Real_Time_Alert_System.md)
+### [Lab 5: The Real-Time Alert System](lab5/README.md)
 **Challenge:** Detect astronomical events in real-time and alert appropriate teams
 - Use `vastdb` for real-time data ingestion and analysis
 - Build automated detection for specific astronomical events

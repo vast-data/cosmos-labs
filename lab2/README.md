@@ -1,5 +1,7 @@
 # Lab 2: Metadata Infrastructure Project
 
+> 📖 **Hey, remember to read the [story](STORY.md) to understand what we're doing and why!** This will help you understand the business context and challenges the Orbital Dynamics team is facing.
+
 ## 🎯 Overview
 
 A complete metadata infrastructure system that processes Swift satellite data and provides search capabilities using VAST Database and S3 storage. This solution demonstrates how to use `vastpy` for storage management and `vastdb` for metadata catalog functionality to create a comprehensive metadata system for Orbital Dynamics' satellite data.
@@ -239,6 +241,14 @@ The system extracts and stores:
 
 The solution includes comprehensive error handling and validation built into the main functionality.
 
+### Test Script
+```bash
+# Test all components
+python test_lab2_solution.py
+```
+
+This will verify that all components can be imported and initialized correctly.
+
 ## 🎯 Success Criteria
 
 - **Comprehensive Coverage** - All satellite data files properly cataloged with metadata
@@ -264,6 +274,9 @@ python debug_metadata.py
 python setup_infrastructure.py --dry-run
 python upload_datasets.py --dry-run
 python process_metadata.py --dry-run
+
+# Test complete solution
+python test_lab2_solution.py
 ```
 
 ## 📈 Performance
@@ -273,6 +286,30 @@ python process_metadata.py --dry-run
 - **Memory Management**: Streams large datasets without loading everything into memory
 - **Connection Pooling**: Reuses database connections efficiently
 
+## 📚 API Reference
+
+### VASTDatabaseManager
+- `connect()` - Connect to database server
+- `database_exists()` - Check if database exists
+- `create_database()` - Create database if needed
+- `create_schema()` - Create schema if needed
+- `create_metadata_table()` - Create metadata table if needed
+- `insert_metadata(metadata)` - Insert metadata record
+- `search_metadata(criteria)` - Search metadata
+- `get_metadata_stats()` - Get database statistics
+
+### SwiftMetadataExtractor
+- `extract_metadata_from_file(file_path)` - Extract from single file
+- `extract_metadata_from_dataset(dataset_path)` - Extract from dataset
+- `_extract_fits_metadata(file_path)` - FITS-specific extraction
+- `_extract_swift_lightcurve_metadata(file_path)` - Swift-specific extraction
+
+### Lab2Solution
+- `setup_database_infrastructure()` - Set up database infrastructure
+- `process_all_datasets()` - Process all available datasets
+- `show_database_stats()` - Display database statistics
+- `search_metadata(criteria)` - Search metadata
+
 ## 🔮 Next Steps
 
 1. **Advanced Analytics** - Add data quality analysis and trend reporting
@@ -280,3 +317,16 @@ python process_metadata.py --dry-run
 3. **Machine Learning** - Implement automated data classification and anomaly detection
 4. **Web Interface** - Build web-based search and visualization interface
 5. **Real-time Processing** - Add streaming metadata extraction for live data feeds
+
+## 📞 Support
+
+If you encounter issues:
+
+1. **Check the test script** output for specific errors
+2. **Verify configuration** in config.yaml and secrets.yaml
+3. **Check dependencies** are properly installed
+4. **Review logs** for detailed error messages
+
+---
+
+**🎉 Congratulations!** You now have a complete metadata infrastructure system that safely manages VAST Database operations and processes Swift satellite data.
