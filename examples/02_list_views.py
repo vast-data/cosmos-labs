@@ -40,20 +40,16 @@ def main():
         
         for i, view in enumerate(views, 1):
             path = view.get('path', 'Unknown')
-            size_gb = view.get('logical_size', 0) / (1024**3)  # Convert to GB
-            utilization = view.get('utilization_percent', 0)
+            logical_capacity = view.get('logical_capacity', 0)
+            physical_capacity = view.get('physical_capacity', 0)
             
-            # Status emoji based on utilization
-            if utilization > 90:
-                status_emoji = "🔴"
-            elif utilization > 70:
-                status_emoji = "🟡"
-            else:
-                status_emoji = "🟢"
+            # Convert to GB
+            logical_gb = logical_capacity / (1024**3) if logical_capacity else 0
+            physical_gb = physical_capacity / (1024**3) if physical_capacity else 0
             
-            print(f"{i:2d}. {status_emoji} {path}")
-            print(f"    📏 Size: {size_gb:.1f} GB")
-            print(f"    📈 Utilization: {utilization:.1f}%")
+            print(f"{i:2d}. {path}")
+            print(f"    📏 Logical Size: {logical_gb:.1f} GB")
+            print(f"    📏 Physical Size: {physical_gb:.1f} GB")
             print()
         
     except Exception as e:
