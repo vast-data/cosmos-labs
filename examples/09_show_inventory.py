@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-VAST Storage and Database Inventory
-Analyzes your VAST system to show views by protocol and database statistics
+VAST System Inventory
+Shows a comprehensive overview of your VAST system including views, protocols, and buckets
 """
 
 import sys
@@ -27,7 +27,7 @@ except ImportError as e:
     sys.exit(1)
 
 def main():
-    """Analyze VAST system to show storage inventory and database statistics"""
+    """Show comprehensive VAST system inventory including views, protocols, and buckets"""
     
     # Load configuration from parent directory
     config_path = str(parent_dir / "config.yaml")

@@ -110,16 +110,14 @@ Output basics:
 - `python 08_show_user_quotas.py 114` (show specific quota details)
 - `python 08_show_user_quotas.py 114 --json` (raw JSON output)
 
-### 9. [VAST Storage and Database Inventory](09_list_available_buckets.py)
-**Purpose:** Analyze your VAST system to show storage inventory and database statistics
-- ✅ Shows all VAST views categorized by protocol (S3, NFS, SMB, BLOCK, DATABASE)
+### 9. [VAST System Inventory](09_show_inventory.py)
+**Purpose:** Show comprehensive overview of your VAST system including views, protocols, and buckets
+- ✅ Lists all VAST views categorized by protocol (S3, NFS, SMB, BLOCK, DATABASE)
+- ✅ Shows bucket names for S3 and Database views
 - ✅ Displays summary statistics: total views, counts by protocol type
-- ✅ Analyzes database-enabled views and shows actual data statistics
-- ✅ Counts tables and rows in your accessible databases
-- ✅ Provides helpful error messages for common connection issues
-- ✅ Uses native VAST tools (vastpy, vastdb) for accurate analysis
+- ✅ Uses VAST Management System API for reliable data retrieval
 
-**Run:** `python 09_list_available_buckets.py`
+**Run:** `python 09_show_inventory.py`
 
 ## ⚠️ Safety Notes
 
