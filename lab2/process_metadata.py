@@ -257,7 +257,9 @@ class MetadataProcessor:
                     s3_client.download_file(bucket_name, file_info['key'], temp_file.name)
                     
                     # Process the file
+                    print(f"DEBUG: About to call extract_file_metadata for {filename}")
                     metadata = self.extract_file_metadata(temp_file.name, file_info['key'])
+                    print(f"DEBUG: extract_file_metadata returned: {metadata is not None}")
                     
                     if metadata:
                         # Insert metadata into database
@@ -301,14 +303,19 @@ class MetadataProcessor:
     def extract_file_metadata(self, file_path: str, s3_key: str) -> Dict[str, Any]:
         """Extract metadata from a file and prepare for database insertion"""
         try:
+            print(f"DEBUG: extract_file_metadata called with file_path={file_path}, s3_key={s3_key}")
             # Extract dataset name from S3 key (first part before first slash)
             dataset_name = s3_key.split('/')[0] if '/' in s3_key else 'unknown'
             
+            logger.info(f"Calling extract_metadata_from_file for: {file_path}")
             # Extract metadata using the Swift metadata extractor
             metadata = self.extractor.extract_metadata_from_file(file_path, dataset_name)
             
             if not metadata:
+                logger.info(f"No metadata returned for: {file_path}")
                 return None
+            else:
+                logger.info(f"Metadata extracted successfully for: {file_path}")
             
             # Add S3-specific information
             metadata['s3_key'] = s3_key
