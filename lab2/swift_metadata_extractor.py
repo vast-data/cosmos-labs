@@ -58,7 +58,7 @@ class SwiftMetadataExtractor:
             }
             
             # Extract format-specific metadata
-            if file_format == '.gz':
+            if file_path.suffix == '.gz':
                 # Compressed files - use Swift lightcurve metadata extraction
                 metadata.update(self._extract_swift_lightcurve_metadata(file_path))
             elif file_format in ['.fits', '.lc']:

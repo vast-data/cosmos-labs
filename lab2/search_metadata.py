@@ -10,12 +10,20 @@ import logging
 import json
 from pathlib import Path
 from typing import Dict, List, Any
+from datetime import datetime
 
 # Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
 
 from config_loader import ConfigLoader
 from lab2.vast_database_manager import VASTDatabaseManager
+
+class DateTimeEncoder(json.JSONEncoder):
+    """Custom JSON encoder to handle datetime objects"""
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
 
 # Configure logging
 logging.basicConfig(
@@ -174,7 +182,7 @@ def main():
     if args.stats:
         stats = searcher.get_metadata_stats()
         if args.json:
-            print(json.dumps(stats, indent=2))
+            print(json.dumps(stats, indent=2, cls=DateTimeEncoder))
         else:
             searcher.display_stats(stats)
         
@@ -185,7 +193,7 @@ def main():
     if args.recent:
         results = searcher.get_recent_metadata(args.recent)
         if args.json:
-            print(json.dumps(results, indent=2))
+            print(json.dumps(results, indent=2, cls=DateTimeEncoder))
         else:
             searcher.display_results(results)
         return
@@ -209,7 +217,7 @@ def main():
     results = searcher.search_metadata(criteria)
     
     if args.json:
-        print(json.dumps(results, indent=2))
+        print(json.dumps(results, indent=2, cls=DateTimeEncoder))
     else:
         searcher.display_results(results)
 
