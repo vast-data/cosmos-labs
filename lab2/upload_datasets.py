@@ -79,6 +79,7 @@ class DatasetUploader:
             logger.info(f"📤 Uploading datasets from {self.swift_datasets_dir} to s3://{bucket_name}")
             
             uploaded_count = 0
+            skipped_count = 0
             failed_count = 0
             
             for dataset_dir in self.swift_datasets_dir.iterdir():
@@ -92,21 +93,56 @@ class DatasetUploader:
                             key = str(relative_path).replace('\\', '/')  # Ensure forward slashes
                             
                             try:
+                                # Check if file already exists and is up-to-date
+                                if self._should_skip_file(s3_client, bucket_name, key, file_path):
+                                    skipped_count += 1
+                                    continue
+                                
                                 s3_client.upload_file(str(file_path), bucket_name, key)
                                 uploaded_count += 1
                                 
-                                if uploaded_count % 100 == 0:
-                                    logger.info(f"📤 Uploaded {uploaded_count} files so far…")
+                                if (uploaded_count + skipped_count) % 100 == 0:
+                                    logger.info(f"📤 Uploaded={uploaded_count}, Skipped={skipped_count} files so far…")
                                     
                             except Exception as e:
                                 logger.error(f"❌ Failed to upload {file_path} -> s3://{bucket_name}/{key}: {e}")
                                 failed_count += 1
             
-            logger.info(f"✅ Upload complete. Uploaded={uploaded_count}, Failed={failed_count}")
+            logger.info(f"✅ Upload complete. Uploaded={uploaded_count}, Skipped={skipped_count}, Failed={failed_count}")
             return failed_count == 0
             
         except Exception as e:
             logger.error(f"❌ Upload failed: {e}")
+            return False
+    
+    def _should_skip_file(self, s3_client, bucket_name: str, key: str, file_path: Path) -> bool:
+        """Check if file should be skipped (already exists and is up-to-date)"""
+        try:
+            # Get local file stats
+            local_size = file_path.stat().st_size
+            local_mtime = file_path.stat().st_mtime
+            
+            # Check if file exists in S3
+            try:
+                response = s3_client.head_object(Bucket=bucket_name, Key=key)
+                s3_size = response['ContentLength']
+                s3_mtime = response['LastModified'].timestamp()
+                
+                # Skip if sizes match and S3 file is newer or same age
+                if local_size == s3_size and s3_mtime >= local_mtime:
+                    return True
+                    
+            except s3_client.exceptions.NoSuchKey:
+                # File doesn't exist in S3, should upload
+                pass
+            except Exception as e:
+                # Other S3 errors, proceed with upload
+                logger.debug(f"Could not check S3 file {key}: {e}")
+                
+            return False
+            
+        except Exception as e:
+            logger.debug(f"Could not check local file {file_path}: {e}")
             return False
     
     def list_uploaded_datasets(self) -> list:
