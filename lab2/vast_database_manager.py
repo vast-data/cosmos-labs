@@ -525,6 +525,7 @@ class VASTDatabaseManager:
                         "table.select()",
                         f"table=swift_metadata, python_filtering=True, conditions={len(search_criteria)}"
                     )
+                    logger.info(f"Search criteria: {search_criteria}")
                     reader = table.select()
                     results = []
                     
@@ -543,10 +544,11 @@ class VASTDatabaseManager:
                             matches = True
                             for key, criteria in search_criteria.items():
                                 if key not in record:
+                                    logger.debug(f"Key '{key}' not found in record. Available keys: {list(record.keys())}")
                                     matches = False
                                     break
                                 
-                                record_value = str(record[key]).lower()
+                                record_value = str(record[key]).lower() if record[key] is not None else ""
                                 
                                 if criteria['type'] == 'exact':
                                     # Exact match
