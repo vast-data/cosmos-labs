@@ -215,6 +215,7 @@ class SwiftMetadataExtractor:
                 try:
                     import astropy.io.fits as fits
                     
+                    logger.info(f"Attempting to parse FITS file: {file_path}")
                     # Open the FITS file (handle gzipped files)
                     with fits.open(file_path) as hdul:
                         # Get the primary header
@@ -297,9 +298,9 @@ class SwiftMetadataExtractor:
                                 break
                             
                 except ImportError:
-                    logger.debug("astropy not available, using filename-based extraction only")
+                    logger.warning("astropy not available, using filename-based extraction only")
                 except Exception as e:
-                    logger.debug(f"FITS header extraction failed ({filename}): {e}")
+                    logger.warning(f"FITS header extraction failed ({filename}): {e}")
             
             return metadata
             
