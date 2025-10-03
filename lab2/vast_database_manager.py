@@ -688,6 +688,11 @@ class VASTDatabaseManager:
                                                         criteria_loop_break = True
                                                         break
                                 
+                                # Check if we should continue to the next record
+                                if criteria_loop_break:
+                                    if total_records_processed <= 3:
+                                        logger.info(f"Record {total_records_processed}: criteria loop broke, matches={matches}")
+                                
                                 if total_records_processed <= 3:
                                     logger.info(f"Record {total_records_processed}: matches={matches} (after criteria loop)")
                                 
