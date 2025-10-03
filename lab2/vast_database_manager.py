@@ -423,71 +423,70 @@ class VASTDatabaseManager:
             
             # Insert metadata (no need to log every file)
             
-            # Use VAST DB transaction to insert metadata
-            with self.connection.transaction() as tx:
-                bucket = tx.bucket(self.bucket_name)
-                schema = bucket.schema(self.schema_name)
-                table = schema.table("swift_metadata")
-                
-                # Convert metadata to PyArrow format
-                import pyarrow as pa
-                import json
-                
-                # Prepare data for insertion (matching the complete table schema - 17 columns)
-                # Convert timestamp strings to datetime objects for PyArrow
-                def parse_timestamp(ts_str):
-                    if not ts_str:
-                        return None
-                    if isinstance(ts_str, datetime):
-                        return ts_str
-                    try:
-                        # Try parsing ISO format timestamp
-                        return datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
-                    except:
-                        return None
-                
-                # PyArrow expects data as column arrays, not row arrays
-                data = {
-                    'file_path': [metadata.get('file_path', '')],
-                    'file_name': [metadata.get('file_name', '')],
-                    'file_size_bytes': [metadata.get('file_size_bytes', 0)],
-                    'file_format': [metadata.get('file_format', '')],
-                    'dataset_name': [metadata.get('dataset_name', '')],
-                    'mission_id': [metadata.get('mission_id', '')],
-                    'satellite_name': [metadata.get('satellite_name', '')],
-                    'instrument_type': [metadata.get('instrument_type', '')],
-                    'observation_timestamp': [parse_timestamp(metadata.get('observation_timestamp', datetime.now()))],
-                    'target_object': [metadata.get('target_object', '')],
-                    'processing_status': [metadata.get('processing_status', '')],
-                    'ingestion_timestamp': [parse_timestamp(metadata.get('ingestion_timestamp', datetime.now()))],
-                    'last_modified': [parse_timestamp(metadata.get('last_modified'))],
-                    'checksum': [metadata.get('checksum', '')],
-                    'metadata_version': [metadata.get('metadata_version', '1.0')],
-                    'created_at': [datetime.now()],
-                    'updated_at': [datetime.now()]
-                }
-                
-                # Validate schema and data match
-                schema = table.columns()
-                data_columns = len(data)
-                schema_columns = len(schema)
-                
-                # Schema validation
-                
-                if data_columns != schema_columns:
-                    error_msg = f"Schema mismatch: Data has {data_columns} columns but table schema expects {schema_columns} columns"
-                    logger.error(error_msg)
-                    raise ValueError(error_msg)
-                
-                # Create PyArrow table and insert
-                arrow_table = pa.table(data=data, schema=table.columns())
-                
-                # Log API call
+            # Use VAST DB to insert metadata (without transaction for now)
+            bucket = self.connection.bucket(self.bucket_name)
+            schema = bucket.schema(self.schema_name)
+            table = schema.table("swift_metadata")
+            
+            # Convert metadata to PyArrow format
+            import pyarrow as pa
+            import json
+            
+            # Prepare data for insertion (matching the complete table schema - 17 columns)
+            # Convert timestamp strings to datetime objects for PyArrow
+            def parse_timestamp(ts_str):
+                if not ts_str:
+                    return None
+                if isinstance(ts_str, datetime):
+                    return ts_str
+                try:
+                    # Try parsing ISO format timestamp
+                    return datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
+                except:
+                    return None
+            
+            # PyArrow expects data as column arrays, not row arrays
+            data = {
+                'file_path': [metadata.get('file_path', '')],
+                'file_name': [metadata.get('file_name', '')],
+                'file_size_bytes': [metadata.get('file_size_bytes', 0)],
+                'file_format': [metadata.get('file_format', '')],
+                'dataset_name': [metadata.get('dataset_name', '')],
+                'mission_id': [metadata.get('mission_id', '')],
+                'satellite_name': [metadata.get('satellite_name', '')],
+                'instrument_type': [metadata.get('instrument_type', '')],
+                'observation_timestamp': [parse_timestamp(metadata.get('observation_timestamp', datetime.now()))],
+                'target_object': [metadata.get('target_object', '')],
+                'processing_status': [metadata.get('processing_status', '')],
+                'ingestion_timestamp': [parse_timestamp(metadata.get('ingestion_timestamp', datetime.now()))],
+                'last_modified': [parse_timestamp(metadata.get('last_modified'))],
+                'checksum': [metadata.get('checksum', '')],
+                'metadata_version': [metadata.get('metadata_version', '1.0')],
+                'created_at': [datetime.now()],
+                'updated_at': [datetime.now()]
+            }
+            
+            # Validate schema and data match
+            schema = table.columns()
+            data_columns = len(data)
+            schema_columns = len(schema)
+            
+            # Schema validation
+            if data_columns != schema_columns:
+                error_msg = f"Schema mismatch: Data has {data_columns} columns but table schema expects {schema_columns} columns"
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+            
+            # Create PyArrow table and insert
+            arrow_table = pa.table(data=data, schema=table.columns())
+            
+            # Log API call
+            if self.config.get('debug.api_calls', False):
                 self._log_api_call(
                     "table.insert()",
                     f"table=swift_metadata, file_name={metadata.get('file_name', 'Unknown')}"
                 )
-                
+            
             table.insert(arrow_table)
             logger.info(f"Successfully inserted metadata for {metadata.get('file_name', 'Unknown')}")
             
