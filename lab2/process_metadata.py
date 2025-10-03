@@ -309,7 +309,8 @@ class MetadataProcessor:
             
             logger.info(f"Calling extract_metadata_from_file for: {file_path}")
             # Extract metadata using the Swift metadata extractor
-            metadata = self.extractor.extract_metadata_from_file(file_path, dataset_name)
+            original_filename = s3_key.split('/')[-1]  # Get the original filename from S3 key
+            metadata = self.extractor.extract_metadata_from_file(file_path, dataset_name, original_filename)
             
             if not metadata:
                 logger.info(f"No metadata returned for: {file_path}")

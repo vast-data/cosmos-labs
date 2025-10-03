@@ -24,7 +24,7 @@ class SwiftMetadataExtractor:
         self.config = config
         self.supported_formats = ['.fits', '.gz', '.txt', '.json', '.lc']
         
-    def extract_metadata_from_file(self, file_path: str, dataset_name: str = None) -> Optional[Dict[str, Any]]:
+    def extract_metadata_from_file(self, file_path: str, dataset_name: str = None, original_filename: str = None) -> Optional[Dict[str, Any]]:
         """Extract metadata from a Swift data file"""
         try:
             file_path = Path(file_path)
@@ -33,9 +33,10 @@ class SwiftMetadataExtractor:
                 logger.error(f"❌ File not found: {file_path}")
                 return None
             
-            # Skip temporary files
-            if "tmp" in file_path.name.lower():
-                logger.info(f"Skipping temporary file: {file_path.name}")
+            # Skip temporary files - check the original filename if provided, otherwise check the temp file name
+            filename_to_check = original_filename if original_filename else file_path.name
+            if "tmp" in filename_to_check.lower():
+                logger.info(f"Skipping temporary file: {filename_to_check}")
                 return None
             
             logger.info(f"Extracting metadata from: {file_path.name}")
