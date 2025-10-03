@@ -158,9 +158,9 @@ def main():
     parser = argparse.ArgumentParser(description='Search metadata in VAST Database')
     parser.add_argument('--config', default=None, help='Config file path (default: ../config.yaml)')
     parser.add_argument('--secrets', default=None, help='Secrets file path (default: ../secrets.yaml)')
-    parser.add_argument('--pattern', help='Search by file pattern')
-    parser.add_argument('--obs-id', help='Search by observation ID')
+    parser.add_argument('--pattern', help='Search by file pattern (e.g., swbj1421* for observation ID 1421)')
     parser.add_argument('--file-type', help='Search by file type')
+    parser.add_argument('--target', help='Search by target object')
     parser.add_argument('--recent', type=int, help='Show recent N files')
     parser.add_argument('--stats', action='store_true', help='Show statistics')
     parser.add_argument('--json', action='store_true', help='Output results as JSON')
@@ -179,7 +179,7 @@ def main():
             searcher.display_stats(stats)
         
         # If only stats requested, return here
-        if not any([args.pattern, args.obs_id, args.file_type, args.recent]):
+        if not any([args.pattern, args.file_type, args.target, args.recent]):
             return
     
     if args.recent:
@@ -196,11 +196,11 @@ def main():
     if args.pattern:
         criteria['file_name'] = {'type': 'wildcard', 'pattern': args.pattern}
     
-    if args.obs_id:
-        criteria['observation_id'] = {'type': 'exact', 'value': args.obs_id}
-    
     if args.file_type:
         criteria['file_format'] = {'type': 'exact', 'value': args.file_type}
+    
+    if args.target:
+        criteria['target_object'] = {'type': 'wildcard', 'pattern': args.target}
     
     if not criteria:
         print("❌ No search criteria provided. Use --help for options.")

@@ -99,8 +99,8 @@ class Lab2Orchestrator:
         
         return self.run_command("process_metadata.py", args)
     
-    def search_metadata(self, pattern: str = None, obs_id: str = None, file_type: str = None, 
-                       recent: int = None, stats: bool = False) -> bool:
+    def search_metadata(self, pattern: str = None, file_type: str = None, 
+                       target: str = None, recent: int = None, stats: bool = False) -> bool:
         """Search metadata in VAST Database"""
         logger.info("🔍 Searching metadata...")
         
@@ -108,10 +108,10 @@ class Lab2Orchestrator:
         
         if pattern:
             args.extend(["--pattern", pattern])
-        if obs_id:
-            args.extend(["--obs-id", obs_id])
         if file_type:
             args.extend(["--file-type", file_type])
+        if target:
+            args.extend(["--target", target])
         if recent:
             args.extend(["--recent", str(recent)])
         if stats:
@@ -163,9 +163,9 @@ def main():
     parser.add_argument('--complete', action='store_true', help='Run complete workflow')
     
     # Search options
-    parser.add_argument('--pattern', help='Search by file pattern')
-    parser.add_argument('--obs-id', help='Search by observation ID')
+    parser.add_argument('--pattern', help='Search by file pattern (e.g., swbj1421* for observation ID 1421)')
     parser.add_argument('--file-type', help='Search by file type')
+    parser.add_argument('--target', help='Search by target object')
     parser.add_argument('--recent', type=int, help='Show recent N files')
     parser.add_argument('--stats', action='store_true', help='Show statistics')
     
@@ -202,8 +202,8 @@ def main():
         success = orchestrator.process_metadata(dry_run, args.dataset)
     elif args.search_only:
         success = orchestrator.search_metadata(
-            args.pattern, args.obs_id, args.file_type, 
-            args.recent, args.stats
+            args.pattern, args.file_type, 
+            args.target, args.recent, args.stats
         )
     elif args.complete or (not any([args.setup_only, args.upload_only, args.process_only, args.search_only, args.list_datasets])):
         success = orchestrator.run_complete_workflow(dry_run)

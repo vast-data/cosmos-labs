@@ -692,16 +692,14 @@ class VASTDatabaseManager:
                                 if criteria_loop_break:
                                     if total_records_processed <= 3:
                                         logger.info(f"Record {total_records_processed}: criteria loop broke, matches={matches}")
-                                    break
-                            
-                            # Check if record matches after processing all criteria
-                            if total_records_processed <= 3:
-                                logger.info(f"Record {total_records_processed}: matches={matches} (after criteria loop)")
-                            
-                            if matches:
-                                results.append(record)
-                                if len(results) <= 3:
-                                    logger.info(f"Added record {len(results)} to results: {record.get('file_name', 'N/A')}")
+                                
+                                if total_records_processed <= 3:
+                                    logger.info(f"Record {total_records_processed}: matches={matches} (after criteria loop)")
+                                
+                                if matches:
+                                    results.append(record)
+                                    if len(results) <= 3:
+                                        logger.info(f"Added record {len(results)} to results: {record.get('file_name', 'N/A')}")
                     
                     logger.info(f"🔍 Found {len(results)} metadata records")
                     return results
