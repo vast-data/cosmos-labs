@@ -170,13 +170,17 @@ def main():
     searcher = MetadataSearcher(args.config, args.secrets)
     
     
+    # Show stats first if requested
     if args.stats:
         stats = searcher.get_metadata_stats()
         if args.json:
             print(json.dumps(stats, indent=2))
         else:
             searcher.display_stats(stats)
-        return
+        
+        # If only stats requested, return here
+        if not any([args.pattern, args.obs_id, args.file_type, args.recent]):
+            return
     
     if args.recent:
         results = searcher.get_recent_metadata(args.recent)
