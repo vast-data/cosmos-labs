@@ -130,7 +130,7 @@ class Lab2Orchestrator:
             return False
     
     def search_metadata(self, pattern: str = None, file_type: str = None, 
-                       target: str = None, recent: int = None, stats: bool = False) -> bool:
+                       target: str = None, recent: int = None, stats: bool = False, json: bool = False) -> bool:
         """Search metadata in VAST Database"""
         logger.info("🔍 Searching metadata...")
         
@@ -146,6 +146,8 @@ class Lab2Orchestrator:
             args.extend(["--recent", str(recent)])
         if stats:
             args.append("--stats")
+        if json:
+            args.append("--json")
         
         return self.run_command("search_metadata.py", args)
     
@@ -199,6 +201,7 @@ def main():
     parser.add_argument('--target', help='Search by target object')
     parser.add_argument('--recent', type=int, help='Show recent N files')
     parser.add_argument('--stats', action='store_true', help='Show statistics')
+    parser.add_argument('--json', action='store_true', help='Output results as JSON')
     
     # Dataset options
     parser.add_argument('--dataset', help='Process specific dataset')
@@ -234,7 +237,7 @@ def main():
     elif args.search_only:
         success = orchestrator.search_metadata(
             args.pattern, args.file_type, 
-            args.target, args.recent, args.stats
+            args.target, args.recent, args.stats, args.json
         )
     elif args.clear_only:
         success = orchestrator.clear_metadata(dry_run)
