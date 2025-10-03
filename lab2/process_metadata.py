@@ -111,6 +111,9 @@ class MetadataProcessor:
             access_key = self.config.get_secret('s3_access_key')
             secret_key = self.config.get_secret('s3_secret_key')
             region_name = self.config.get('s3.region', 'us-east-1')
+            # Standardized SSL verify setting (support legacy key)
+            ssl_verify = self.config.get('s3.ssl_verify', self.config.get('s3.verify_ssl', True))
+            path_style = self.config.get('s3.compatibility.path_style_addressing', True)
             
             if not endpoint_url or not access_key or not secret_key:
                 logger.error("❌ Missing S3 configuration for dataset discovery")
@@ -125,7 +128,11 @@ class MetadataProcessor:
                 endpoint_url=endpoint_url,
                 aws_access_key_id=access_key,
                 aws_secret_access_key=secret_key,
-                region_name=region_name
+                region_name=region_name,
+                verify=ssl_verify,
+                config=boto3.session.Config(
+                    s3={'addressing_style': 'path' if path_style else 'auto'}
+                )
             )
             
             logger.info(f"🔍 Scanning S3 bucket: s3://{bucket_name}")
@@ -178,6 +185,8 @@ class MetadataProcessor:
             access_key = self.config.get_secret('s3_access_key')
             secret_key = self.config.get_secret('s3_secret_key')
             region_name = self.config.get('s3.region', 'us-east-1')
+            ssl_verify = self.config.get('s3.ssl_verify', self.config.get('s3.verify_ssl', True))
+            path_style = self.config.get('s3.compatibility.path_style_addressing', True)
             
             if not endpoint_url or not access_key or not secret_key:
                 logger.error("❌ Missing S3 configuration for metadata processing")
@@ -192,7 +201,11 @@ class MetadataProcessor:
                 endpoint_url=endpoint_url,
                 aws_access_key_id=access_key,
                 aws_secret_access_key=secret_key,
-                region_name=region_name
+                region_name=region_name,
+                verify=ssl_verify,
+                config=boto3.session.Config(
+                    s3={'addressing_style': 'path' if path_style else 'auto'}
+                )
             )
             
             logger.info(f"📊 Processing dataset from S3: {dataset_name}")
@@ -299,6 +312,7 @@ def main():
     parser.add_argument('--secrets', default=None, help='Secrets file path (default: ../secrets.yaml)')
     parser.add_argument('--dataset', help='Process specific dataset only')
     parser.add_argument('--dry-run', action='store_true', help='Dry run mode (no changes)')
+    parser.add_argument('--skip-db-check', action='store_true', help='Skip DB connectivity check in dry-run (setup already verified)')
     
     args = parser.parse_args()
     
@@ -308,18 +322,19 @@ def main():
         logger.info("⚠️  DRY RUN MODE: No actual changes will be made")
         logger.info("🔍 Testing connections and checking available datasets...")
         
-        # Test database connection
-        try:
-            logger.info("🔧 Testing VAST Database connection...")
-            if processor.db_manager.connect():
-                logger.info("✅ VAST Database connection successful")
-                processor.db_manager.close()
-            else:
-                logger.error("❌ VAST Database connection failed")
+        # Test database connection (unless explicitly skipped)
+        if not args.skip_db_check:
+            try:
+                logger.info("🔧 Testing VAST Database connection...")
+                if processor.db_manager.connect():
+                    logger.info("✅ VAST Database connection successful")
+                    processor.db_manager.close()
+                else:
+                    logger.error("❌ VAST Database connection failed")
+                    return False
+            except Exception as e:
+                logger.error(f"❌ VAST Database connection failed: {e}")
                 return False
-        except Exception as e:
-            logger.error(f"❌ VAST Database connection failed: {e}")
-            return False
         
         # Test S3 connection and list available datasets
         try:

@@ -251,22 +251,17 @@ class VASTDatabaseManager:
             if not self.connection:
                 if not self.connect():
                     return False
-            
-            cursor = self.connection.cursor()
-            cursor.execute("""
-                SELECT 1 FROM information_schema.schemata 
-                WHERE schema_name = %s
-            """, (self.schema_name,))
-            
-            exists = cursor.fetchone() is not None
-            cursor.close()
-            
-            if exists:
-                logger.info(f"✅ Schema '{self.schema_name}' exists")
-            else:
-                logger.info(f"ℹ️  Schema '{self.schema_name}' does not exist")
-            
-            return exists
+
+            # Use vastdb transaction API to check schema existence
+            with self.connection.transaction() as tx:
+                bucket = tx.bucket(self.bucket_name)
+                try:
+                    _ = bucket.schema(self.schema_name)
+                    logger.info(f"✅ Schema '{self.schema_name}' exists")
+                    return True
+                except Exception:
+                    logger.info(f"ℹ️  Schema '{self.schema_name}' does not exist")
+                    return False
             
         except Exception as e:
             logger.error(f"❌ Error checking schema existence: {e}")
@@ -278,13 +273,20 @@ class VASTDatabaseManager:
             if self.schema_exists():
                 logger.info(f"ℹ️  Schema '{self.schema_name}' already exists")
                 return True
-            
-            cursor = self.connection.cursor()
-            cursor.execute(f"CREATE SCHEMA {self.schema_name}")
-            cursor.close()
-            
-            logger.info(f"✅ Created schema '{self.schema_name}'")
-            return True
+
+            # Create schema using vastdb API
+            with self.connection.transaction() as tx:
+                bucket = tx.bucket(self.bucket_name)
+                try:
+                    bucket.create_schema(self.schema_name)
+                    logger.info(f"✅ Created schema '{self.schema_name}'")
+                    return True
+                except vastdb.errors.SchemaExists:
+                    logger.info(f"✅ Schema '{self.schema_name}' already exists")
+                    return True
+                except Exception as e:
+                    logger.error(f"❌ Failed to create schema '{self.schema_name}': {e}")
+                    return False
             
         except Exception as e:
             logger.error(f"❌ Failed to create schema: {e}")
@@ -293,16 +295,17 @@ class VASTDatabaseManager:
     def table_exists(self, table_name: str) -> bool:
         """Check if a specific table exists"""
         try:
-            cursor = self.connection.cursor()
-            cursor.execute("""
-                SELECT 1 FROM information_schema.tables 
-                WHERE table_schema = %s AND table_name = %s
-            """, (self.schema_name, table_name))
-            
-            exists = cursor.fetchone() is not None
-            cursor.close()
-            
-            return exists
+            if not self.connection:
+                if not self.connect():
+                    return False
+            with self.connection.transaction() as tx:
+                bucket = tx.bucket(self.bucket_name)
+                try:
+                    schema = bucket.schema(self.schema_name)
+                    _ = schema.table(table_name)
+                    return True
+                except Exception:
+                    return False
             
         except Exception as e:
             logger.error(f"❌ Error checking table existence: {e}")
@@ -316,59 +319,49 @@ class VASTDatabaseManager:
             if self.table_exists(table_name):
                 logger.info(f"ℹ️  Table '{table_name}' already exists")
                 return True
-            
-            cursor = self.connection.cursor()
-            
-            # Create metadata table with comprehensive schema
-            create_table_sql = f"""
-            CREATE TABLE {self.schema_name}.{table_name} (
-                id SERIAL PRIMARY KEY,
-                file_path VARCHAR(500) NOT NULL,
-                file_name VARCHAR(255) NOT NULL,
-                file_size_bytes BIGINT,
-                file_format VARCHAR(50),
-                dataset_name VARCHAR(100),
+
+            # Create table using vastdb API
+            with self.connection.transaction() as tx:
+                bucket = tx.bucket(self.bucket_name)
+                schema = bucket.schema(self.schema_name)
                 
-                -- Swift-specific metadata
-                mission_id VARCHAR(100),
-                satellite_name VARCHAR(100),
-                instrument_type VARCHAR(100),
-                observation_timestamp TIMESTAMP,
-                target_object VARCHAR(100),
-                processing_status VARCHAR(50),
+                import pyarrow as pa
+                columns = pa.schema([
+                    ('file_path', pa.utf8()),
+                    ('file_name', pa.utf8()),
+                    ('file_size_bytes', pa.int64()),
+                    ('file_format', pa.utf8()),
+                    ('dataset_name', pa.utf8()),
+                    ('mission_id', pa.utf8()),
+                    ('satellite_name', pa.utf8()),
+                    ('instrument_type', pa.utf8()),
+                    ('observation_timestamp', pa.timestamp('us')),
+                    ('target_object', pa.utf8()),
+                    ('processing_status', pa.utf8()),
+                    ('ingestion_timestamp', pa.timestamp('us')),
+                    ('last_modified', pa.timestamp('us')),
+                    ('checksum', pa.utf8()),
+                    ('metadata_version', pa.utf8()),
+                    ('created_at', pa.timestamp('us')),
+                    ('updated_at', pa.timestamp('us'))
+                ])
                 
-                -- File metadata
-                ingestion_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                last_modified TIMESTAMP,
-                checksum VARCHAR(64),
-                metadata_version VARCHAR(20),
+                # Log API call
+                self._log_api_call(
+                    "schema.create_table()",
+                    f"schema={self.schema_name}, table=swift_metadata, columns={len(columns)}"
+                )
                 
-                -- Search optimization
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-            """
-            
-            cursor.execute(create_table_sql)
-            
-            # Create indexes for better search performance
-            cursor.execute(f"""
-                CREATE INDEX idx_{table_name}_mission_id ON {self.schema_name}.{table_name} (mission_id)
-            """)
-            cursor.execute(f"""
-                CREATE INDEX idx_{table_name}_target_object ON {self.schema_name}.{table_name} (target_object)
-            """)
-            cursor.execute(f"""
-                CREATE INDEX idx_{table_name}_observation_timestamp ON {self.schema_name}.{table_name} (observation_timestamp)
-            """)
-            cursor.execute(f"""
-                CREATE INDEX idx_{table_name}_file_path ON {self.schema_name}.{table_name} (file_path)
-            """)
-            
-            cursor.close()
-            
-            logger.info(f"✅ Created metadata table '{table_name}' with indexes")
-            return True
+                try:
+                    schema.create_table(table_name, columns)
+                    logger.info(f"✅ Created metadata table '{table_name}'")
+                    return True
+                except vastdb.errors.TableExists:
+                    logger.info(f"✅ Table '{table_name}' already exists")
+                    return True
+                except Exception as e:
+                    logger.error(f"❌ Failed to create metadata table '{table_name}': {e}")
+                    return False
             
         except Exception as e:
             logger.error(f"❌ Failed to create metadata table: {e}")

@@ -85,13 +85,15 @@ class Lab2Orchestrator:
         
         return self.run_command("upload_datasets.py", args)
     
-    def process_metadata(self, dry_run: bool = False, dataset: str = None) -> bool:
+    def process_metadata(self, dry_run: bool = False, dataset: str = None, skip_db_check: bool = False) -> bool:
         """Process metadata from S3 datasets"""
         logger.info("🔍 Processing metadata from S3...")
         
         args = ["--config", self.config_path, "--secrets", self.secrets_path]
         if dry_run:
             args.append("--dry-run")
+        if skip_db_check:
+            args.append("--skip-db-check")
         if dataset:
             args.extend(["--dataset", dataset])
         
@@ -131,8 +133,8 @@ class Lab2Orchestrator:
             logger.error("❌ Dataset upload failed")
             return False
         
-        # Step 3: Process metadata
-        if not self.process_metadata(dry_run):
+        # Step 3: Process metadata (skip DB check in dry-run since setup already verified it)
+        if not self.process_metadata(dry_run, skip_db_check=dry_run):
             logger.error("❌ Metadata processing failed")
             return False
         

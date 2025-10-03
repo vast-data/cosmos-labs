@@ -86,8 +86,9 @@ class InfrastructureSetup:
             client = VASTClient(address=address, user=vms_username, password=vms_password)
             
             try:
-                users = client.users.get()
-                logger.info(f"✅ Successfully connected to VAST, found {len(users)} users")
+                # Lightweight call to validate connectivity
+                _ = client.views.get()
+                logger.info("✅ Successfully connected to VAST")
             except Exception as e:
                 logger.error(f"❌ Failed to connect to VAST: {e}")
                 return False
@@ -222,8 +223,9 @@ def main():
             
             logger.info(f"🔧 Testing VAST connection to {vms_address}...")
             client = VASTClient(address=vms_address, user=vms_username, password=vms_password)
-            users = client.users.get()
-            logger.info(f"✅ VAST connection successful, found {len(users)} users")
+            # Lightweight call to ensure connectivity
+            _ = client.views.get()
+            logger.info("✅ VAST connection successful")
             
         except Exception as e:
             logger.error(f"❌ VAST connection failed: {e}")
@@ -234,13 +236,36 @@ def main():
             logger.info("🔧 Testing VAST Database connection...")
             if setup.db_manager.connect():
                 logger.info("✅ VAST Database connection successful")
-                setup.db_manager.close()
             else:
                 logger.error("❌ VAST Database connection failed")
                 return False
         except Exception as e:
             logger.error(f"❌ VAST Database connection failed: {e}")
             return False
+        
+        # Check actual database (bucket) and schema existence
+        try:
+            bucket_name = setup.db_manager.bucket_name
+            schema_name = setup.db_manager.schema_name
+            
+            logger.info(f"🔍 Checking VAST Database bucket '{bucket_name}'...")
+            bucket_exists = setup.db_manager.database_exists()
+            if bucket_exists:
+                logger.info(f"✅ Bucket '{bucket_name}' exists")
+            else:
+                logger.info(f"ℹ️  Bucket '{bucket_name}' does not exist (would be created)")
+            
+            logger.info(f"🔍 Checking schema '{schema_name}' in bucket '{bucket_name}'...")
+            schema_exists = setup.db_manager.schema_exists()
+            if schema_exists:
+                logger.info(f"✅ Schema '{schema_name}' exists")
+            else:
+                logger.info(f"ℹ️  Schema '{schema_name}' does not exist (would be created)")
+        except Exception as e:
+            logger.error(f"❌ Error checking database/schema existence: {e}")
+            return False
+        finally:
+            setup.db_manager.close()
         
         # Check existing views
         try:
@@ -249,17 +274,27 @@ def main():
             
             logger.info(f"🔍 Checking raw data view '{raw_view_path}'...")
             try:
-                raw_view = client.views.get(path=raw_view_path)
-                logger.info(f"✅ Raw data view '{raw_view_path}' exists")
-            except Exception:
-                logger.info(f"ℹ️  Raw data view '{raw_view_path}' does not exist (would be created)")
+                all_views = client.views.get()
+                raw_exists = any(v.get('path') == raw_view_path for v in all_views)
+                if raw_exists:
+                    logger.info(f"✅ Raw data view '{raw_view_path}' exists")
+                else:
+                    logger.info(f"ℹ️  Raw data view '{raw_view_path}' does not exist (would be created)")
+            except Exception as e:
+                logger.error(f"❌ Failed to list views for raw view check: {e}")
+                return False
             
             logger.info(f"🔍 Checking metadata database view '{metadata_view_path}'...")
             try:
-                metadata_view = client.views.get(path=metadata_view_path)
-                logger.info(f"✅ Metadata database view '{metadata_view_path}' exists")
-            except Exception:
-                logger.info(f"ℹ️  Metadata database view '{metadata_view_path}' does not exist (would be created)")
+                all_views = all_views or client.views.get()
+                metadata_exists = any(v.get('path') == metadata_view_path for v in all_views)
+                if metadata_exists:
+                    logger.info(f"✅ Metadata database view '{metadata_view_path}' exists")
+                else:
+                    logger.info(f"ℹ️  Metadata database view '{metadata_view_path}' does not exist (would be created)")
+            except Exception as e:
+                logger.error(f"❌ Failed to list views for metadata view check: {e}")
+                return False
             
         except Exception as e:
             logger.error(f"❌ Error checking views: {e}")

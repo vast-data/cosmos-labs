@@ -42,7 +42,7 @@ class DatasetUploader:
             endpoint_url = self.config.get('s3.endpoint_url')
             region_name = self.config.get('s3.region', 'us-east-1')
             path_style = self.config.get('s3.compatibility.path_style_addressing', True)
-            ssl_verify = self.config.get('s3.verify_ssl', True)
+            ssl_verify = self.config.get('s3.ssl_verify', self.config.get('s3.verify_ssl', True))
             access_key = self.config.get_secret('s3_access_key')
             secret_key = self.config.get_secret('s3_secret_key')
             
@@ -61,7 +61,10 @@ class DatasetUploader:
                 aws_access_key_id=access_key,
                 aws_secret_access_key=secret_key,
                 region_name=region_name,
-                use_ssl=ssl_verify
+                verify=ssl_verify,
+                config=boto3.session.Config(
+                    s3={'addressing_style': 'path' if path_style else 'auto'}
+                )
             )
             
             if not self.swift_datasets_dir.exists():
@@ -125,7 +128,11 @@ class DatasetUploader:
                 endpoint_url=endpoint_url,
                 aws_access_key_id=access_key,
                 aws_secret_access_key=secret_key,
-                region_name=region_name
+                region_name=region_name,
+                verify=self.config.get('s3.ssl_verify', self.config.get('s3.verify_ssl', True)),
+                config=boto3.session.Config(
+                    s3={'addressing_style': 'path' if self.config.get('s3.compatibility.path_style_addressing', True) else 'auto'}
+                )
             )
             
             # List datasets (top-level prefixes)
