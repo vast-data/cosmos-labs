@@ -200,7 +200,7 @@ class SwiftMetadataExtractor:
             # Parse Swift BAT filename pattern
             # Example: swbj0001_0m9012_c_s157.lc.gz
             # Format: swbjXXXX_XXXXXXX_XXXX_XXXX.extension
-            pattern = r'swbj(\d{4})_([a-z0-9]+)_([a-z0-9]+)_([a-z0-9]+)\.([a-z0-9]+)'
+            pattern = r'swbj(\d{4})_([a-z0-9]+)_([a-z0-9]+)_([a-z0-9]+)\.([a-z0-9.]+)'
             match = re.match(pattern, filename)
             
             if match:
