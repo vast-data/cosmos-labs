@@ -548,6 +548,8 @@ class VASTDatabaseManager:
                             # Apply search criteria with wildcard support (Python filtering)
                             matches = True
                             for key, criteria in search_criteria.items():
+                                if total_records_processed <= 3:
+                                    logger.info(f"Processing criteria for record {total_records_processed}: {key}")
                                 if key not in record:
                                     logger.info(f"Key '{key}' not found in record. Available keys: {list(record.keys())}")
                                     matches = False
@@ -667,7 +669,7 @@ class VASTDatabaseManager:
                                                         break
                                 
                                 if total_records_processed <= 3:
-                                    logger.info(f"Record {total_records_processed}: matches={matches}")
+                                    logger.info(f"Record {total_records_processed}: matches={matches} (after criteria loop)")
                                 
                                 if matches:
                                     results.append(record)
