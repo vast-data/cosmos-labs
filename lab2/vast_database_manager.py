@@ -419,6 +419,8 @@ class VASTDatabaseManager:
                     logger.error("❌ Failed to connect to database")
                     return False
             
+            logger.debug(f"Inserting metadata for file: {metadata.get('file_name', 'Unknown')}")
+            
             # Insert metadata (no need to log every file)
             
             # Use VAST DB transaction to insert metadata
@@ -487,7 +489,7 @@ class VASTDatabaseManager:
                 )
                 
                 table.insert(arrow_table)
-                # Success - no need to log every single insertion
+                logger.debug(f"Successfully inserted metadata for {metadata.get('file_name', 'Unknown')}")
                 
                 return True
                 
