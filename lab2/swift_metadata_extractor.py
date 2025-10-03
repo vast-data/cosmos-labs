@@ -33,13 +33,18 @@ class SwiftMetadataExtractor:
                 logger.error(f"❌ File not found: {file_path}")
                 return None
             
+            # Skip temporary files
+            if "tmp" in file_path.name.lower():
+                logger.debug(f"Skipping temporary file: {file_path.name}")
+                return None
+            
             # Get basic file information
             file_stat = file_path.stat()
             file_size = file_stat.st_size
             
             # Skip empty files to avoid processing errors
             if file_size == 0:
-                logger.debug(f"⚠️  Skipping empty file: {file_path.name}")
+                logger.debug(f"Skipping empty file: {file_path.name}")
                 return None
             
             file_format = self._get_file_format(file_path)
