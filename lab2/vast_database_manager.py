@@ -1094,31 +1094,69 @@ class VASTDatabaseManager:
             return {}
     
     def clear_all_tables(self) -> bool:
-        """Clear all data from metadata tables while preserving structure"""
+        """Clear all data from metadata tables while preserving structure using VAST DB"""
         try:
             if not VASTDB_AVAILABLE:
                 logger.warning("⚠️  vastdb not available - mock table clearing")
                 return True
             
-            cursor = self.connection.cursor()
+            if not self.connection:
+                if not self.connect():
+                    return False
             
-            # Clear the main metadata table
-            cursor.execute(f"DELETE FROM {self.schema_name}.swift_metadata")
-            deleted_count = cursor.rowcount
-            
-            # Reset sequence if it exists
-            cursor.execute(f"ALTER SEQUENCE {self.schema_name}.swift_metadata_id_seq RESTART WITH 1")
-            
-            self.connection.commit()
-            cursor.close()
-            
-            logger.info(f"✅ Cleared {deleted_count} records from metadata tables")
-            return True
+            # Use VAST DB transaction to clear metadata
+            with self.connection.transaction() as tx:
+                bucket = tx.bucket(self.bucket_name)
+                
+                # Check if schema and table exist
+                try:
+                    schema = bucket.schema(self.schema_name)
+                    table = schema.table("swift_metadata")
+                    
+                    # Get count of records before clearing
+                    reader = table.select()
+                    total_count = 0
+                    for batch in reader:
+                        total_count += len(batch)
+                    
+                    # Drop and recreate the table to clear all data
+                    table.drop()
+                    
+                    # Recreate the table with the same schema
+                    import pyarrow as pa
+                    columns = pa.schema([
+                        ('file_path', pa.utf8()),
+                        ('file_name', pa.utf8()),
+                        ('file_size_bytes', pa.int64()),
+                        ('file_format', pa.utf8()),
+                        ('dataset_name', pa.utf8()),
+                        ('mission_id', pa.utf8()),
+                        ('satellite_name', pa.utf8()),
+                        ('instrument_type', pa.utf8()),
+                        ('observation_timestamp', pa.timestamp('us')),
+                        ('target_object', pa.utf8()),
+                        ('processing_status', pa.utf8()),
+                        ('ingestion_timestamp', pa.timestamp('us')),
+                        ('last_modified', pa.timestamp('us')),
+                        ('checksum', pa.utf8()),
+                        ('metadata_version', pa.utf8()),
+                        ('created_at', pa.timestamp('us')),
+                        ('updated_at', pa.timestamp('us'))
+                    ])
+                    
+                    # Create empty table with same schema
+                    schema.create_table("swift_metadata", columns)
+                    
+                    logger.info(f"✅ Cleared {total_count} records from metadata tables")
+                    return True
+                    
+                except Exception as e:
+                    # Schema or table doesn't exist yet
+                    logger.info(f"ℹ️  Schema '{self.schema_name}' or table 'swift_metadata' doesn't exist yet - nothing to clear")
+                    return True
             
         except Exception as e:
             logger.error(f"❌ Failed to clear tables: {e}")
-            if self.connection and VASTDB_AVAILABLE:
-                self.connection.rollback()
             return False
     
     def remove_database(self) -> bool:
