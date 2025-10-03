@@ -126,7 +126,40 @@ class MetadataSearcher:
             print(f"   Satellite: {result.get('satellite_name', 'N/A')}")
             print(f"   Instrument: {result.get('instrument_type', 'N/A')}")
             print(f"   Target: {result.get('target_object', 'N/A')}")
-            print(f"   Observation Date: {result.get('observation_timestamp', 'N/A')}")
+            
+            # Show observation date if available
+            obs_date = result.get('observation_timestamp', 'N/A')
+            if obs_date and obs_date != 'N/A' and obs_date != 'unknown':
+                print(f"   Observation Date: {obs_date}")
+            else:
+                print(f"   Observation Date: None")
+            
+            # Show additional Swift metadata if available
+            if result.get('ra_deg') is not None and result.get('dec_deg') is not None:
+                print(f"   RA: {result.get('ra_deg', 'N/A')}°")
+                print(f"   Dec: {result.get('dec_deg', 'N/A')}°")
+            
+            if result.get('observation_end') and result.get('observation_end') != 'N/A' and result.get('observation_end') != 'unknown':
+                print(f"   Observation End: {result.get('observation_end')}")
+            
+            if result.get('energy_min_kev') is not None and result.get('energy_max_kev') is not None:
+                print(f"   Energy Range: {result.get('energy_min_kev', 'N/A')} - {result.get('energy_max_kev', 'N/A')} keV")
+            
+            if result.get('on_target_time_s') is not None:
+                print(f"   On-target Time: {result.get('on_target_time_s', 'N/A')} seconds")
+            
+            if result.get('catalog_number') is not None:
+                print(f"   Catalog Number: {result.get('catalog_number', 'N/A')}")
+            
+            if result.get('catalog_name') and result.get('catalog_name') != 'N/A' and result.get('catalog_name') != 'unknown':
+                print(f"   Catalog Name: {result.get('catalog_name')}")
+            
+            if result.get('lightcurve_type') and result.get('lightcurve_type') != 'N/A' and result.get('lightcurve_type') != 'unknown':
+                print(f"   Lightcurve Type: {result.get('lightcurve_type')}")
+            
+            if result.get('background_applied') is not None:
+                print(f"   Background Applied: {result.get('background_applied', 'N/A')}")
+            
             print(f"   File Format: {result.get('file_format', 'N/A')}")
             print(f"   Size: {result.get('file_size_bytes', 'N/A')} bytes")
             print(f"   Dataset: {result.get('dataset_name', 'N/A')}")
