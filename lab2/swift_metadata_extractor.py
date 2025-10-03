@@ -188,22 +188,8 @@ class SwiftMetadataExtractor:
             return self._get_default_metadata()
     
     def _extract_swift_lightcurve_metadata(self, file_path: Path, original_filename: str = None) -> Dict[str, Any]:
-        """Extract metadata from Swift lightcurve files"""
+        """Extract metadata from Swift lightcurve files (FITS format)"""
         try:
-            # Try to read the file content
-            content = ""
-            if file_path.suffix == '.gz':
-                try:
-                    with gzip.open(file_path, 'rt', encoding='utf-8', errors='ignore') as f:
-                        content = f.read(1000)  # Read first 1000 characters
-                except (gzip.BadGzipFile, OSError):
-                    # If gzip fails, try reading as regular text file
-                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                        content = f.read(1000)
-            else:
-                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    content = f.read(1000)
-            
             metadata = self._get_default_metadata()
             
             # Extract Swift-specific information from filename
@@ -225,10 +211,40 @@ class SwiftMetadataExtractor:
                     'processing_status': 'raw'
                 })
                 
-                # Try to extract timestamp from content
-                timestamp_match = re.search(r'(\d{4}-\d{2}-\d{2})', content)
-                if timestamp_match:
-                    metadata['observation_timestamp'] = timestamp_match.group(1)
+                # Try to extract FITS header information
+                try:
+                    import astropy.io.fits as fits
+                    
+                    # Open the FITS file (handle gzipped files)
+                    with fits.open(file_path) as hdul:
+                        # Get the primary header
+                        header = hdul[0].header
+                        
+                        # Extract observation date
+                        if 'DATE-OBS' in header:
+                            date_obs = header['DATE-OBS']
+                            # Convert to ISO format if needed
+                            if 'T' in str(date_obs):
+                                metadata['observation_timestamp'] = str(date_obs).split('T')[0]  # Just the date part
+                            else:
+                                metadata['observation_timestamp'] = str(date_obs)
+                        
+                        # Extract object name if available
+                        if 'OBJECT' in header and metadata.get('target_object') == f"BAT_{match.group(1)}":
+                            object_name = header['OBJECT']
+                            if object_name and object_name.strip() != '':
+                                metadata['target_object'] = str(object_name).strip()
+                        
+                        # Extract additional metadata
+                        if 'TELESCOP' in header:
+                            metadata['mission_id'] = str(header['TELESCOP']).strip()
+                        if 'INSTRUME' in header:
+                            metadata['instrument_type'] = str(header['INSTRUME']).strip()
+                            
+                except ImportError:
+                    logger.debug("astropy not available, using filename-based extraction only")
+                except Exception as e:
+                    logger.debug(f"FITS header extraction failed ({filename}): {e}")
             
             return metadata
             
