@@ -108,8 +108,11 @@ class Lab2Orchestrator:
             return True
         
         try:
-            from vast_database_manager import VASTDatabaseManager
+            # Add parent directory to path for imports
+            sys.path.append(str(Path(__file__).parent.parent))
+            
             from config_loader import ConfigLoader
+            from lab2.vast_database_manager import VASTDatabaseManager
             
             config = ConfigLoader(self.config_path, self.secrets_path)
             db_manager = VASTDatabaseManager(config)
