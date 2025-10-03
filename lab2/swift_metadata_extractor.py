@@ -202,6 +202,8 @@ class SwiftMetadataExtractor:
             pattern = r'swbj(\d{4})_([a-z0-9]+)_([a-z0-9]+)_([a-z0-9]+)\.([a-z0-9.]+)'
             match = re.match(pattern, filename)
             
+            logger.info(f"Filename: {filename}, Pattern match: {match is not None}")
+            
             if match:
                 metadata.update({
                     'mission_id': 'SWIFT',
@@ -218,8 +220,10 @@ class SwiftMetadataExtractor:
                     logger.info(f"Attempting to parse FITS file: {file_path}")
                     # Open the FITS file (handle gzipped files)
                     with fits.open(file_path) as hdul:
+                        logger.info(f"FITS file opened successfully, {len(hdul)} HDUs found")
                         # Get the primary header
                         header = hdul[0].header
+                        logger.info(f"Primary header keys: {list(header.keys())[:10]}...")  # Show first 10 keys
                         
                         # Extract observation date (use DATE-OBS from primary header)
                         if 'DATE-OBS' in header:
@@ -229,6 +233,7 @@ class SwiftMetadataExtractor:
                                 metadata['observation_timestamp'] = str(date_obs).split('T')[0]  # Just the date part
                             else:
                                 metadata['observation_timestamp'] = str(date_obs)
+                            logger.info(f"Extracted observation date: {metadata['observation_timestamp']}")
                         
                         # Extract object name if available
                         if 'OBJECT' in header and metadata.get('target_object') == f"BAT_{match.group(1)}":
@@ -296,6 +301,8 @@ class SwiftMetadataExtractor:
                                 
                                 # Break after first extension (usually contains the main data)
                                 break
+                            
+                        logger.info(f"FITS parsing completed. Extracted metadata: {metadata}")
                             
                 except ImportError:
                     logger.warning("astropy not available, using filename-based extraction only")
