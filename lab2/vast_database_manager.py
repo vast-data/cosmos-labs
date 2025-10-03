@@ -419,7 +419,7 @@ class VASTDatabaseManager:
                     logger.error("❌ Failed to connect to database")
                     return False
             
-            logger.debug(f"Inserting metadata for file: {metadata.get('file_name', 'Unknown')}")
+            logger.info(f"Inserting metadata for file: {metadata.get('file_name', 'Unknown')}")
             
             # Insert metadata (no need to log every file)
             
@@ -488,10 +488,10 @@ class VASTDatabaseManager:
                     f"table=swift_metadata, file_name={metadata.get('file_name', 'Unknown')}"
                 )
                 
-                table.insert(arrow_table)
-                logger.debug(f"Successfully inserted metadata for {metadata.get('file_name', 'Unknown')}")
-                
-                return True
+            table.insert(arrow_table)
+            logger.info(f"Successfully inserted metadata for {metadata.get('file_name', 'Unknown')}")
+            
+            return True
                 
         except Exception as e:
             logger.error(f"❌ Failed to insert metadata: {e}")

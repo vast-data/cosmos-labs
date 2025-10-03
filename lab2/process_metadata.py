@@ -261,10 +261,10 @@ class MetadataProcessor:
                     
                     if metadata:
                         # Insert metadata into database
-                        logger.debug(f"Attempting to insert metadata for {filename}")
+                        logger.info(f"Attempting to insert metadata for {filename}")
                         if self.db_manager.insert_metadata(metadata):
                             inserted += 1
-                            logger.debug(f"Successfully inserted {filename}")
+                            logger.info(f"Successfully inserted {filename}")
                         else:
                             logger.warning(f"Failed to insert metadata for {filename}")
                             skipped += 1
