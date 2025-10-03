@@ -108,7 +108,7 @@ class Lab2Orchestrator:
             return True
         
         try:
-            from lab2.vast_database_manager import VASTDatabaseManager
+            from vast_database_manager import VASTDatabaseManager
             db_manager = VASTDatabaseManager(self.config)
             
             if db_manager.connect():
