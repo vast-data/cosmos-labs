@@ -247,8 +247,9 @@ class MetadataProcessor:
             failed = 0
             
             for i, file_info in enumerate(files, 1):
+                filename = file_info['key'].split('/')[-1]
                 if i % 100 == 0 or i == len(files):
-                    logger.info(f"Processing file {i}/{len(files)}: {file_info['key'].split('/')[-1]}")
+                    logger.info(f"Processing file {i}/{len(files)}: {filename}")
                 
                 try:
                     # Download file temporarily for processing
@@ -265,6 +266,11 @@ class MetadataProcessor:
                         else:
                             skipped += 1
                     else:
+                        # Log why file was skipped
+                        if "tmp" in filename.lower():
+                            logger.debug(f"Skipped tmp file: {filename}")
+                        else:
+                            logger.debug(f"Skipped file (no metadata): {filename}")
                         skipped += 1
                     
                     processed += 1
@@ -277,6 +283,7 @@ class MetadataProcessor:
                     failed += 1
                     processed += 1
             
+            logger.info(f"Processing complete: {inserted} inserted, {skipped} skipped, {failed} failed")
             return {
                 'processed': processed,
                 'inserted': inserted,
