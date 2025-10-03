@@ -220,7 +220,7 @@ class SwiftMetadataExtractor:
                         # Get the primary header
                         header = hdul[0].header
                         
-                        # Extract observation date
+                        # Extract observation date (use DATE-OBS from primary header)
                         if 'DATE-OBS' in header:
                             date_obs = header['DATE-OBS']
                             # Convert to ISO format if needed
@@ -235,11 +235,66 @@ class SwiftMetadataExtractor:
                             if object_name and object_name.strip() != '':
                                 metadata['target_object'] = str(object_name).strip()
                         
-                        # Extract additional metadata
+                        # Extract additional metadata from primary header
                         if 'TELESCOP' in header:
                             metadata['mission_id'] = str(header['TELESCOP']).strip()
                         if 'INSTRUME' in header:
                             metadata['instrument_type'] = str(header['INSTRUME']).strip()
+                        
+                        # Extract coordinates if available
+                        if 'RA_OBJ' in header:
+                            metadata['ra_deg'] = float(header['RA_OBJ'])
+                        if 'DEC_OBJ' in header:
+                            metadata['dec_deg'] = float(header['DEC_OBJ'])
+                        
+                        # Look for additional metadata in extension headers
+                        for i, hdu in enumerate(hdul):
+                            if i > 0:  # Skip primary header
+                                ext_header = hdu.header
+                                
+                                # Extract time range information
+                                if 'DATE-OBS' in ext_header and 'observation_timestamp' not in metadata:
+                                    date_obs = ext_header['DATE-OBS']
+                                    if 'T' in str(date_obs):
+                                        metadata['observation_timestamp'] = str(date_obs).split('T')[0]
+                                    else:
+                                        metadata['observation_timestamp'] = str(date_obs)
+                                
+                                if 'DATE-END' in ext_header:
+                                    date_end = ext_header['DATE-END']
+                                    if 'T' in str(date_end):
+                                        metadata['observation_end'] = str(date_end).split('T')[0]
+                                    else:
+                                        metadata['observation_end'] = str(date_end)
+                                
+                                # Extract energy range
+                                if 'E_MIN' in ext_header:
+                                    metadata['energy_min_kev'] = float(ext_header['E_MIN'])
+                                if 'E_MAX' in ext_header:
+                                    metadata['energy_max_kev'] = float(ext_header['E_MAX'])
+                                
+                                # Extract observation duration
+                                if 'ONTIME' in ext_header:
+                                    metadata['on_target_time_s'] = float(ext_header['ONTIME'])
+                                if 'TELAPSE' in ext_header:
+                                    metadata['elapsed_time_s'] = float(ext_header['TELAPSE'])
+                                
+                                # Extract catalog information
+                                if 'CATNUM' in ext_header:
+                                    metadata['catalog_number'] = int(ext_header['CATNUM'])
+                                if 'CAT_NAME' in ext_header:
+                                    metadata['catalog_name'] = str(ext_header['CAT_NAME']).strip()
+                                
+                                # Extract lightcurve type
+                                if 'LCTYPE' in ext_header:
+                                    metadata['lightcurve_type'] = str(ext_header['LCTYPE']).strip()
+                                
+                                # Extract data quality flags
+                                if 'BACKAPP' in ext_header:
+                                    metadata['background_applied'] = bool(ext_header['BACKAPP'])
+                                
+                                # Break after first extension (usually contains the main data)
+                                break
                             
                 except ImportError:
                     logger.debug("astropy not available, using filename-based extraction only")

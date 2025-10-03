@@ -168,7 +168,19 @@ class VASTDatabaseManager:
                     ('checksum', pa.utf8()),
                     ('metadata_version', pa.utf8()),
                     ('created_at', pa.timestamp('us')),
-                    ('updated_at', pa.timestamp('us'))
+                    ('updated_at', pa.timestamp('us')),
+                    # New Swift-specific metadata fields
+                    ('ra_deg', pa.float64()),
+                    ('dec_deg', pa.float64()),
+                    ('observation_end', pa.timestamp('us')),
+                    ('energy_min_kev', pa.float64()),
+                    ('energy_max_kev', pa.float64()),
+                    ('on_target_time_s', pa.float64()),
+                    ('elapsed_time_s', pa.float64()),
+                    ('catalog_number', pa.int64()),
+                    ('catalog_name', pa.utf8()),
+                    ('lightcurve_type', pa.utf8()),
+                    ('background_applied', pa.bool_())
                 ])
                 
                 # Log API call
@@ -343,7 +355,19 @@ class VASTDatabaseManager:
                     ('checksum', pa.utf8()),
                     ('metadata_version', pa.utf8()),
                     ('created_at', pa.timestamp('us')),
-                    ('updated_at', pa.timestamp('us'))
+                    ('updated_at', pa.timestamp('us')),
+                    # New Swift-specific metadata fields
+                    ('ra_deg', pa.float64()),
+                    ('dec_deg', pa.float64()),
+                    ('observation_end', pa.timestamp('us')),
+                    ('energy_min_kev', pa.float64()),
+                    ('energy_max_kev', pa.float64()),
+                    ('on_target_time_s', pa.float64()),
+                    ('elapsed_time_s', pa.float64()),
+                    ('catalog_number', pa.int64()),
+                    ('catalog_name', pa.utf8()),
+                    ('lightcurve_type', pa.utf8()),
+                    ('background_applied', pa.bool_())
                 ])
                 
                 # Log API call
@@ -462,7 +486,19 @@ class VASTDatabaseManager:
                     'checksum': [metadata.get('checksum', '')],
                     'metadata_version': [metadata.get('metadata_version', '1.0')],
                     'created_at': [datetime.now()],
-                    'updated_at': [datetime.now()]
+                    'updated_at': [datetime.now()],
+                    # New Swift-specific metadata fields
+                    'ra_deg': [metadata.get('ra_deg', None)],
+                    'dec_deg': [metadata.get('dec_deg', None)],
+                    'observation_end': [parse_timestamp(metadata.get('observation_end'))],
+                    'energy_min_kev': [metadata.get('energy_min_kev', None)],
+                    'energy_max_kev': [metadata.get('energy_max_kev', None)],
+                    'on_target_time_s': [metadata.get('on_target_time_s', None)],
+                    'elapsed_time_s': [metadata.get('elapsed_time_s', None)],
+                    'catalog_number': [metadata.get('catalog_number', None)],
+                    'catalog_name': [metadata.get('catalog_name', '')],
+                    'lightcurve_type': [metadata.get('lightcurve_type', '')],
+                    'background_applied': [metadata.get('background_applied', None)]
                 }
                 
                 # Validate schema and data match
