@@ -22,7 +22,7 @@ from lab2.swift_metadata_extractor import SwiftMetadataExtractor
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
@@ -247,8 +247,8 @@ class MetadataProcessor:
             failed = 0
             
             for i, file_info in enumerate(files, 1):
-                if i % 10 == 0 or i == len(files):
-                    logger.info(f"🔧 Processing file {i}/{len(files)}: {file_info['key'].split('/')[-1]}")
+                if i % 100 == 0 or i == len(files):
+                    logger.info(f"Processing file {i}/{len(files)}: {file_info['key'].split('/')[-1]}")
                 
                 try:
                     # Download file temporarily for processing
@@ -328,13 +328,13 @@ def main():
     processor = MetadataProcessor(args.config, args.secrets)
     
     if args.dry_run:
-        logger.info("⚠️  DRY RUN MODE: No actual changes will be made")
-        logger.info("🔍 Testing connections and checking available datasets...")
+        logger.info("DRY RUN MODE: No actual changes will be made")
+        logger.info("Testing connections and checking available datasets...")
         
         # Test database connection (unless explicitly skipped)
         if not args.skip_db_check:
             try:
-                logger.info("🔧 Testing VAST Database connection...")
+                logger.info("Testing VAST Database connection...")
                 if processor.db_manager.connect():
                     logger.info("✅ VAST Database connection successful")
                     processor.db_manager.close()
@@ -347,7 +347,7 @@ def main():
         
         # Test S3 connection and list available datasets
         try:
-            logger.info("🔧 Testing S3 connection and scanning for datasets...")
+            logger.info("Testing S3 connection and scanning for datasets...")
             datasets = processor.get_available_datasets_from_s3()
             logger.info(f"✅ Found {len(datasets)} datasets in S3")
             

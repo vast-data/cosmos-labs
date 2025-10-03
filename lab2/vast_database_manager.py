@@ -48,9 +48,9 @@ class VASTDatabaseManager:
         }
         
         # Debug: log what we're trying to connect with
-        logger.info(f"🔧 VAST DB config - access: {'***' if self.db_config['access'] else 'None'}, "
-                   f"secret: {'***' if self.db_config['secret'] else 'None'}, "
-                   f"endpoint: {self.db_config['endpoint']}")
+        logger.debug(f"VAST DB config - access: {'***' if self.db_config['access'] else 'None'}, "
+                    f"secret: {'***' if self.db_config['secret'] else 'None'}, "
+                    f"endpoint: {self.db_config['endpoint']}")
         
         self.connection = None
         self.database = None
@@ -414,7 +414,7 @@ class VASTDatabaseManager:
             
         try:
             if not self.connection:
-                logger.info("🔧 No database connection, attempting to connect...")
+                logger.debug("No database connection, attempting to connect...")
                 if not self.connect():
                     logger.error("❌ Failed to connect to database")
                     return False
@@ -470,16 +470,11 @@ class VASTDatabaseManager:
                 data_columns = len(data)
                 schema_columns = len(schema)
                 
-                # Schema validation (debug level to reduce noise)
-                logger.debug(f"🔧 Table schema has {schema_columns} columns: {[col.name for col in schema]}")
-                logger.debug(f"🔧 Data dictionary has {data_columns} columns")
+                # Schema validation
                 
                 if data_columns != schema_columns:
-                    error_msg = f"❌ SCHEMA MISMATCH: Data has {data_columns} columns but table schema expects {schema_columns} columns"
+                    error_msg = f"Schema mismatch: Data has {data_columns} columns but table schema expects {schema_columns} columns"
                     logger.error(error_msg)
-                    logger.error(f"❌ Table columns: {[col.name for col in schema]}")
-                    logger.error(f"❌ Data columns: {list(data.keys())}")
-                    logger.error("❌ Stopping processing to prevent data corruption. Please fix schema mismatch.")
                     raise ValueError(error_msg)
                 
                 # Create PyArrow table and insert
@@ -533,7 +528,6 @@ class VASTDatabaseManager:
                     total_records_processed = 0
                     for batch in reader:
                         batch_count += 1
-                        logger.info(f"Processing batch {batch_count} with {len(batch)} records")
                         for i in range(len(batch)):
                             total_records_processed += 1
                             record = {}
@@ -549,18 +543,12 @@ class VASTDatabaseManager:
                             matches = True
                             criteria_loop_break = False
                             for key, criteria in search_criteria.items():
-                                if total_records_processed <= 3:
-                                    logger.info(f"Processing criteria for record {total_records_processed}: {key}")
                                 if key not in record:
-                                    logger.info(f"Key '{key}' not found in record. Available keys: {list(record.keys())}")
                                     matches = False
                                     criteria_loop_break = True
                                     break
                                 
                                 record_value = str(record[key]).lower() if record[key] is not None else ""
-                                
-                                if total_records_processed <= 3:  # Debug first few records
-                                    logger.info(f"Record {total_records_processed}: {key}='{record_value}' (criteria: {criteria})")
                                 
                                 if criteria['type'] == 'exact':
                                     # Exact match
@@ -574,8 +562,6 @@ class VASTDatabaseManager:
                                     
                                     if pattern == '*':
                                         # Match everything - set matches to True and break out of criteria loop
-                                        if total_records_processed <= 3:
-                                            logger.info(f"Wildcard '*' match - setting matches=True")
                                         matches = True
                                         criteria_loop_break = True
                                         break
@@ -690,18 +676,11 @@ class VASTDatabaseManager:
                                 
                                 # Check if we should continue to the next record
                                 if criteria_loop_break:
-                                    if total_records_processed <= 3:
-                                        logger.info(f"Record {total_records_processed}: criteria loop broke, matches={matches}")
                                     break
                             
                             # Check if record matches after processing all criteria
-                            if total_records_processed <= 3:
-                                logger.info(f"Record {total_records_processed}: matches={matches} (after criteria loop)")
-                            
                             if matches:
                                 results.append(record)
-                                if len(results) <= 3:
-                                    logger.info(f"Added record {len(results)} to results: {record.get('file_name', 'N/A')}")
                     
                     logger.info(f"🔍 Found {len(results)} metadata records")
                     return results
