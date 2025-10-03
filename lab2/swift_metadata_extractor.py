@@ -35,8 +35,10 @@ class SwiftMetadataExtractor:
             
             # Skip temporary files
             if "tmp" in file_path.name.lower():
-                logger.debug(f"Skipping temporary file: {file_path.name}")
+                logger.info(f"Skipping temporary file: {file_path.name}")
                 return None
+            
+            logger.info(f"Extracting metadata from: {file_path.name}")
             
             # Get basic file information
             file_stat = file_path.stat()
@@ -78,12 +80,15 @@ class SwiftMetadataExtractor:
             # Add checksum
             metadata['checksum'] = self._calculate_checksum(file_path)
             
+            logger.info(f"Successfully extracted metadata for: {file_path.name}")
             return metadata
             
         except Exception as e:
             # Only log errors for files that should have worked
             if file_path.suffix in ['.fits', '.lc', '.gz']:
                 logger.warning(f"⚠️  Could not extract metadata from {file_path.name}: {e}")
+            else:
+                logger.info(f"Could not extract metadata from {file_path.name}: {e}")
             return None
     
     def _get_file_format(self, file_path: Path) -> str:
