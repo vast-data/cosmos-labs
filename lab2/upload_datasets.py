@@ -182,7 +182,7 @@ class DatasetUploader:
                 )
             )
             
-            # List datasets (top-level prefixes)
+            # List datasets (top-level prefixes) and count files
             datasets = []
             paginator = s3_client.get_paginator('list_objects_v2')
             
@@ -191,9 +191,23 @@ class DatasetUploader:
                     for prefix in page['CommonPrefixes']:
                         dataset_name = prefix['Prefix'].rstrip('/')
                         if dataset_name:
-                            datasets.append(dataset_name)
+                            # Count files and calculate total size in this dataset
+                            file_count = 0
+                            total_size = 0
+                            for file_page in paginator.paginate(Bucket=bucket_name, Prefix=f"{dataset_name}/"):
+                                if 'Contents' in file_page:
+                                    for obj in file_page['Contents']:
+                                        if not obj['Key'].endswith('/'):
+                                            file_count += 1
+                                            total_size += obj['Size']
+                            
+                            datasets.append({
+                                'name': dataset_name,
+                                'file_count': file_count,
+                                'total_size_bytes': total_size
+                            })
             
-            return sorted(datasets)
+            return sorted(datasets, key=lambda x: x['name'])
             
         except Exception as e:
             logger.error(f"❌ Failed to list datasets: {e}")
@@ -217,8 +231,17 @@ def main():
         datasets = uploader.list_uploaded_datasets()
         if datasets:
             logger.info(f"📁 Found {len(datasets)} uploaded datasets:")
+            total_files = 0
+            total_size = 0
             for dataset in datasets:
-                logger.info(f"  - {dataset}")
+                size_gb = dataset['total_size_bytes'] / (1024**3)
+                logger.info(f"  - {dataset['name']}: {dataset['file_count']} files ({size_gb:.2f} GB)")
+                total_files += dataset['file_count']
+                total_size += dataset['total_size_bytes']
+            
+            total_size_gb = total_size / (1024**3)
+            logger.info(f"📊 Total files in S3: {total_files}")
+            logger.info(f"📊 Total size in S3: {total_size_gb:.2f} GB")
         else:
             logger.info("📁 No datasets found in S3")
         return
