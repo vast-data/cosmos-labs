@@ -547,12 +547,14 @@ class VASTDatabaseManager:
                             
                             # Apply search criteria with wildcard support (Python filtering)
                             matches = True
+                            criteria_loop_break = False
                             for key, criteria in search_criteria.items():
                                 if total_records_processed <= 3:
                                     logger.info(f"Processing criteria for record {total_records_processed}: {key}")
                                 if key not in record:
                                     logger.info(f"Key '{key}' not found in record. Available keys: {list(record.keys())}")
                                     matches = False
+                                    criteria_loop_break = True
                                     break
                                 
                                 record_value = str(record[key]).lower() if record[key] is not None else ""
@@ -564,6 +566,7 @@ class VASTDatabaseManager:
                                     # Exact match
                                     if record_value != str(criteria['value']).lower():
                                         matches = False
+                                        criteria_loop_break = True
                                         break
                                 elif criteria['type'] == 'wildcard':
                                     # Wildcard match
@@ -574,6 +577,7 @@ class VASTDatabaseManager:
                                         if total_records_processed <= 3:
                                             logger.info(f"Wildcard '*' match - setting matches=True")
                                         matches = True
+                                        criteria_loop_break = True
                                         break
                                     else:
                                         # Other wildcard patterns
@@ -582,23 +586,27 @@ class VASTDatabaseManager:
                                             search_value = pattern[1:-1]
                                             if search_value not in record_value:
                                                 matches = False
+                                                criteria_loop_break = True
                                                 break
                                         elif pattern.startswith('*'):
                                             # Ends with pattern: *value
                                             search_value = pattern[1:]
                                             if not record_value.endswith(search_value):
                                                 matches = False
+                                                criteria_loop_break = True
                                                 break
                                         elif pattern.endswith('*'):
                                             # Starts with pattern: value*
                                             search_value = pattern[:-1]
                                             if not record_value.startswith(search_value):
                                                 matches = False
+                                                criteria_loop_break = True
                                                 break
                                         else:
                                             # No wildcards, treat as exact match
                                             if record_value != pattern:
                                                 matches = False
+                                                criteria_loop_break = True
                                                 break
                                 elif criteria['type'] == 'comparison':
                                     # Comparison match (for dates, numbers, etc.)
@@ -614,18 +622,22 @@ class VASTDatabaseManager:
                                         if operator == '>':
                                             if not (record_date > compare_date):
                                                 matches = False
+                                                criteria_loop_break = True
                                                 break
                                         elif operator == '<':
                                             if not (record_date < compare_date):
                                                 matches = False
+                                                criteria_loop_break = True
                                                 break
                                         elif operator == '>=':
                                             if not (record_date >= compare_date):
                                                 matches = False
+                                                criteria_loop_break = True
                                                 break
                                         elif operator == '<=':
                                             if not (record_date <= compare_date):
                                                 matches = False
+                                                criteria_loop_break = True
                                                 break
                                     except (ValueError, TypeError):
                                         # Not a date, try numeric comparison
@@ -636,36 +648,44 @@ class VASTDatabaseManager:
                                             if operator == '>':
                                                 if not (record_num > compare_num):
                                                     matches = False
+                                                    criteria_loop_break = True
                                                     break
                                             elif operator == '<':
                                                 if not (record_num < compare_num):
                                                     matches = False
+                                                    criteria_loop_break = True
                                                     break
                                             elif operator == '>=':
                                                 if not (record_num >= compare_num):
                                                     matches = False
+                                                    criteria_loop_break = True
                                                     break
                                             elif operator == '<=':
                                                 if not (record_num <= compare_num):
                                                     matches = False
+                                                    criteria_loop_break = True
                                                     break
                                         except (ValueError, TypeError):
                                                 # Not numeric either, do string comparison
                                                 if operator == '>':
                                                     if not (record_value > compare_value):
                                                         matches = False
+                                                        criteria_loop_break = True
                                                         break
                                                 elif operator == '<':
                                                     if not (record_value < compare_value):
                                                         matches = False
+                                                        criteria_loop_break = True
                                                         break
                                                 elif operator == '>=':
                                                     if not (record_value >= compare_value):
                                                         matches = False
+                                                        criteria_loop_break = True
                                                         break
                                                 elif operator == '<=':
                                                     if not (record_value <= compare_value):
                                                         matches = False
+                                                        criteria_loop_break = True
                                                         break
                                 
                                 if total_records_processed <= 3:
