@@ -9,6 +9,7 @@ import sys
 import logging
 import tempfile
 from pathlib import Path
+import urllib3
 from typing import Dict, List, Any
 
 # Add parent directory to path for imports
@@ -21,7 +22,7 @@ from lab2.swift_metadata_extractor import SwiftMetadataExtractor
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
@@ -111,6 +112,9 @@ class MetadataProcessor:
             access_key = self.config.get_secret('s3_access_key')
             secret_key = self.config.get_secret('s3_secret_key')
             region_name = self.config.get('s3.region', 'us-east-1')
+            # Standardized SSL verify setting (support legacy key)
+            ssl_verify = self.config.get('s3.ssl_verify', self.config.get('s3.verify_ssl', True))
+            path_style = self.config.get('s3.compatibility.path_style_addressing', True)
             
             if not endpoint_url or not access_key or not secret_key:
                 logger.error("❌ Missing S3 configuration for dataset discovery")
@@ -120,12 +124,20 @@ class MetadataProcessor:
             view_path = self.config.get('lab2.raw_data.view_path', '/lab2-raw-data')
             bucket_name = view_path.lstrip('/').replace('/', '-')
             
+            # Suppress SSL warnings if verification is disabled by config
+            if not ssl_verify:
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
             s3_client = boto3.client(
                 's3',
                 endpoint_url=endpoint_url,
                 aws_access_key_id=access_key,
                 aws_secret_access_key=secret_key,
-                region_name=region_name
+                region_name=region_name,
+                verify=ssl_verify,
+                config=boto3.session.Config(
+                    s3={'addressing_style': 'path' if path_style else 'auto'}
+                )
             )
             
             logger.info(f"🔍 Scanning S3 bucket: s3://{bucket_name}")
@@ -178,6 +190,8 @@ class MetadataProcessor:
             access_key = self.config.get_secret('s3_access_key')
             secret_key = self.config.get_secret('s3_secret_key')
             region_name = self.config.get('s3.region', 'us-east-1')
+            ssl_verify = self.config.get('s3.ssl_verify', self.config.get('s3.verify_ssl', True))
+            path_style = self.config.get('s3.compatibility.path_style_addressing', True)
             
             if not endpoint_url or not access_key or not secret_key:
                 logger.error("❌ Missing S3 configuration for metadata processing")
@@ -187,12 +201,20 @@ class MetadataProcessor:
             view_path = self.config.get('lab2.raw_data.view_path', '/lab2-raw-data')
             bucket_name = view_path.lstrip('/').replace('/', '-')
             
+            # Suppress SSL warnings if verification is disabled by config
+            if not ssl_verify:
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
             s3_client = boto3.client(
                 's3',
                 endpoint_url=endpoint_url,
                 aws_access_key_id=access_key,
                 aws_secret_access_key=secret_key,
-                region_name=region_name
+                region_name=region_name,
+                verify=ssl_verify,
+                config=boto3.session.Config(
+                    s3={'addressing_style': 'path' if path_style else 'auto'}
+                )
             )
             
             logger.info(f"📊 Processing dataset from S3: {dataset_name}")
@@ -225,8 +247,9 @@ class MetadataProcessor:
             failed = 0
             
             for i, file_info in enumerate(files, 1):
-                if i % 10 == 0 or i == len(files):
-                    logger.info(f"🔧 Processing file {i}/{len(files)}: {file_info['key'].split('/')[-1]}")
+                filename = file_info['key'].split('/')[-1]
+                if i % 100 == 0 or i == len(files):
+                    logger.info(f"Processing file {i}/{len(files)}: {filename}")
                 
                 try:
                     # Download file temporarily for processing
@@ -238,11 +261,19 @@ class MetadataProcessor:
                     
                     if metadata:
                         # Insert metadata into database
+                        logger.info(f"Attempting to insert metadata for {filename}")
                         if self.db_manager.insert_metadata(metadata):
                             inserted += 1
+                            logger.info(f"Successfully inserted {filename}")
                         else:
+                            logger.warning(f"Failed to insert metadata for {filename}")
                             skipped += 1
                     else:
+                        # Log why file was skipped
+                        if "tmp" in filename.lower():
+                            logger.debug(f"Skipped tmp file: {filename}")
+                        else:
+                            logger.debug(f"Skipped file (no metadata): {filename}")
                         skipped += 1
                     
                     processed += 1
@@ -255,6 +286,7 @@ class MetadataProcessor:
                     failed += 1
                     processed += 1
             
+            logger.info(f"Processing complete: {inserted} inserted, {skipped} skipped, {failed} failed")
             return {
                 'processed': processed,
                 'inserted': inserted,
@@ -273,7 +305,8 @@ class MetadataProcessor:
             dataset_name = s3_key.split('/')[0] if '/' in s3_key else 'unknown'
             
             # Extract metadata using the Swift metadata extractor
-            metadata = self.extractor.extract_metadata_from_file(file_path, dataset_name)
+            original_filename = s3_key.split('/')[-1]  # Get the original filename from S3 key
+            metadata = self.extractor.extract_metadata_from_file(file_path, dataset_name, original_filename)
             
             if not metadata:
                 return None
@@ -299,31 +332,33 @@ def main():
     parser.add_argument('--secrets', default=None, help='Secrets file path (default: ../secrets.yaml)')
     parser.add_argument('--dataset', help='Process specific dataset only')
     parser.add_argument('--dry-run', action='store_true', help='Dry run mode (no changes)')
+    parser.add_argument('--skip-db-check', action='store_true', help='Skip DB connectivity check in dry-run (setup already verified)')
     
     args = parser.parse_args()
     
     processor = MetadataProcessor(args.config, args.secrets)
     
     if args.dry_run:
-        logger.info("⚠️  DRY RUN MODE: No actual changes will be made")
-        logger.info("🔍 Testing connections and checking available datasets...")
+        logger.info("DRY RUN MODE: No actual changes will be made")
+        logger.info("Testing connections and checking available datasets...")
         
-        # Test database connection
-        try:
-            logger.info("🔧 Testing VAST Database connection...")
-            if processor.db_manager.connect():
-                logger.info("✅ VAST Database connection successful")
-                processor.db_manager.close()
-            else:
-                logger.error("❌ VAST Database connection failed")
+        # Test database connection (unless explicitly skipped)
+        if not args.skip_db_check:
+            try:
+                logger.info("Testing VAST Database connection...")
+                if processor.db_manager.connect():
+                    logger.info("✅ VAST Database connection successful")
+                    processor.db_manager.close()
+                else:
+                    logger.error("❌ VAST Database connection failed")
+                    return False
+            except Exception as e:
+                logger.error(f"❌ VAST Database connection failed: {e}")
                 return False
-        except Exception as e:
-            logger.error(f"❌ VAST Database connection failed: {e}")
-            return False
         
         # Test S3 connection and list available datasets
         try:
-            logger.info("🔧 Testing S3 connection and scanning for datasets...")
+            logger.info("Testing S3 connection and scanning for datasets...")
             datasets = processor.get_available_datasets_from_s3()
             logger.info(f"✅ Found {len(datasets)} datasets in S3")
             

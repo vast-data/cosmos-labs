@@ -10,6 +10,7 @@ import logging
 import json
 from pathlib import Path
 from typing import Dict, List, Any
+from datetime import datetime
 
 # Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
@@ -17,10 +18,17 @@ sys.path.append(str(Path(__file__).parent.parent))
 from config_loader import ConfigLoader
 from lab2.vast_database_manager import VASTDatabaseManager
 
+class DateTimeEncoder(json.JSONEncoder):
+    """Custom JSON encoder to handle datetime objects"""
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
@@ -118,7 +126,40 @@ class MetadataSearcher:
             print(f"   Satellite: {result.get('satellite_name', 'N/A')}")
             print(f"   Instrument: {result.get('instrument_type', 'N/A')}")
             print(f"   Target: {result.get('target_object', 'N/A')}")
-            print(f"   Observation Date: {result.get('observation_timestamp', 'N/A')}")
+            
+            # Show observation date if available
+            obs_date = result.get('observation_timestamp', 'N/A')
+            if obs_date and obs_date != 'N/A' and obs_date != 'unknown':
+                print(f"   Observation Date: {obs_date}")
+            else:
+                print(f"   Observation Date: None")
+            
+            # Show additional Swift metadata if available
+            if result.get('ra_deg') is not None and result.get('dec_deg') is not None:
+                print(f"   RA: {result.get('ra_deg', 'N/A')}°")
+                print(f"   Dec: {result.get('dec_deg', 'N/A')}°")
+            
+            if result.get('observation_end') and result.get('observation_end') != 'N/A' and result.get('observation_end') != 'unknown':
+                print(f"   Observation End: {result.get('observation_end')}")
+            
+            if result.get('energy_min_kev') is not None and result.get('energy_max_kev') is not None:
+                print(f"   Energy Range: {result.get('energy_min_kev', 'N/A')} - {result.get('energy_max_kev', 'N/A')} keV")
+            
+            if result.get('on_target_time_s') is not None:
+                print(f"   On-target Time: {result.get('on_target_time_s', 'N/A')} seconds")
+            
+            if result.get('catalog_number') is not None:
+                print(f"   Catalog Number: {result.get('catalog_number', 'N/A')}")
+            
+            if result.get('catalog_name') and result.get('catalog_name') != 'N/A' and result.get('catalog_name') != 'unknown':
+                print(f"   Catalog Name: {result.get('catalog_name')}")
+            
+            if result.get('lightcurve_type') and result.get('lightcurve_type') != 'N/A' and result.get('lightcurve_type') != 'unknown':
+                print(f"   Lightcurve Type: {result.get('lightcurve_type')}")
+            
+            if result.get('background_applied') is not None:
+                print(f"   Background Applied: {result.get('background_applied', 'N/A')}")
+            
             print(f"   File Format: {result.get('file_format', 'N/A')}")
             print(f"   Size: {result.get('file_size_bytes', 'N/A')} bytes")
             print(f"   Dataset: {result.get('dataset_name', 'N/A')}")
@@ -158,9 +199,9 @@ def main():
     parser = argparse.ArgumentParser(description='Search metadata in VAST Database')
     parser.add_argument('--config', default=None, help='Config file path (default: ../config.yaml)')
     parser.add_argument('--secrets', default=None, help='Secrets file path (default: ../secrets.yaml)')
-    parser.add_argument('--pattern', help='Search by file pattern')
-    parser.add_argument('--obs-id', help='Search by observation ID')
+    parser.add_argument('--pattern', help='Search by file pattern (e.g., swbj1421* for observation ID 1421)')
     parser.add_argument('--file-type', help='Search by file type')
+    parser.add_argument('--target', help='Search by target object')
     parser.add_argument('--recent', type=int, help='Show recent N files')
     parser.add_argument('--stats', action='store_true', help='Show statistics')
     parser.add_argument('--json', action='store_true', help='Output results as JSON')
@@ -170,18 +211,22 @@ def main():
     searcher = MetadataSearcher(args.config, args.secrets)
     
     
+    # Show stats first if requested
     if args.stats:
         stats = searcher.get_metadata_stats()
         if args.json:
-            print(json.dumps(stats, indent=2))
+            print(json.dumps(stats, indent=2, cls=DateTimeEncoder))
         else:
             searcher.display_stats(stats)
-        return
+        
+        # If only stats requested, return here
+        if not any([args.pattern, args.file_type, args.target, args.recent]):
+            return
     
     if args.recent:
         results = searcher.get_recent_metadata(args.recent)
         if args.json:
-            print(json.dumps(results, indent=2))
+            print(json.dumps(results, indent=2, cls=DateTimeEncoder))
         else:
             searcher.display_results(results)
         return
@@ -192,11 +237,11 @@ def main():
     if args.pattern:
         criteria['file_name'] = {'type': 'wildcard', 'pattern': args.pattern}
     
-    if args.obs_id:
-        criteria['observation_id'] = {'type': 'exact', 'value': args.obs_id}
-    
     if args.file_type:
-        criteria['file_type'] = {'type': 'exact', 'value': args.file_type}
+        criteria['file_format'] = {'type': 'exact', 'value': args.file_type}
+    
+    if args.target:
+        criteria['target_object'] = {'type': 'wildcard', 'pattern': args.target}
     
     if not criteria:
         print("❌ No search criteria provided. Use --help for options.")
@@ -205,7 +250,7 @@ def main():
     results = searcher.search_metadata(criteria)
     
     if args.json:
-        print(json.dumps(results, indent=2))
+        print(json.dumps(results, indent=2, cls=DateTimeEncoder))
     else:
         searcher.display_results(results)
 

@@ -24,7 +24,7 @@ class SwiftMetadataExtractor:
         self.config = config
         self.supported_formats = ['.fits', '.gz', '.txt', '.json', '.lc']
         
-    def extract_metadata_from_file(self, file_path: str, dataset_name: str = None) -> Optional[Dict[str, Any]]:
+    def extract_metadata_from_file(self, file_path: str, dataset_name: str = None, original_filename: str = None) -> Optional[Dict[str, Any]]:
         """Extract metadata from a Swift data file"""
         try:
             file_path = Path(file_path)
@@ -33,22 +33,31 @@ class SwiftMetadataExtractor:
                 logger.error(f"❌ File not found: {file_path}")
                 return None
             
+            # Skip temporary files - check the original filename if provided, otherwise check the temp file name
+            filename_to_check = original_filename if original_filename else file_path.name
+            if "tmp" in filename_to_check.lower():
+                logger.debug(f"Skipping temporary file: {filename_to_check}")
+                return None
+            
             # Get basic file information
             file_stat = file_path.stat()
             file_size = file_stat.st_size
             
             # Skip empty files to avoid processing errors
             if file_size == 0:
-                logger.debug(f"⚠️  Skipping empty file: {file_path.name}")
+                logger.debug(f"Skipping empty file: {file_path.name}")
                 return None
             
             file_format = self._get_file_format(file_path)
             
 
             # Basic metadata that all files have
+            # Use original filename if provided, otherwise use temp file name
+            display_filename = original_filename if original_filename else file_path.name
+            
             metadata = {
                 'file_path': str(file_path),
-                'file_name': file_path.name,
+                'file_name': display_filename,
                 'file_size_bytes': file_size,
                 'file_format': file_format,
                 'dataset_name': dataset_name or self._extract_dataset_name(file_path),
@@ -58,9 +67,9 @@ class SwiftMetadataExtractor:
             }
             
             # Extract format-specific metadata
-            if file_format == '.gz':
+            if file_path.suffix == '.gz':
                 # Compressed files - use Swift lightcurve metadata extraction
-                metadata.update(self._extract_swift_lightcurve_metadata(file_path))
+                metadata.update(self._extract_swift_lightcurve_metadata(file_path, original_filename))
             elif file_format in ['.fits', '.lc']:
                 # Uncompressed FITS files
                 metadata.update(self._extract_fits_metadata(file_path))
@@ -134,14 +143,12 @@ class SwiftMetadataExtractor:
             logger.warning("⚠️  astropy not available, using basic FITS parsing")
             return self._extract_basic_fits_metadata(file_path)
         except Exception as e:
-            # Check if it's a common issue that we can handle gracefully
+            # Handle common FITS file issues gracefully
             error_msg = str(e).lower()
             if 'empty' in error_msg or 'corrupt' in error_msg or 'not a fits file' in error_msg:
-                # These are common issues with some files - use debug level
-                logger.debug(f"⚠️  FITS file issue ({file_path.name}): {e}")
+                logger.debug(f"FITS file issue ({file_path.name}): {e}")
             else:
-                # Unexpected errors - use warning level
-                logger.warning(f"⚠️  FITS metadata extraction failed ({file_path.name}): {e}")
+                logger.warning(f"FITS metadata extraction failed ({file_path.name}): {e}")
             return self._get_default_metadata()
     
     def _extract_basic_fits_metadata(self, file_path: Path) -> Dict[str, Any]:
@@ -177,30 +184,22 @@ class SwiftMetadataExtractor:
                 return metadata
                 
         except Exception as e:
-            # Basic FITS parsing failures are common - use debug level
-            logger.debug(f"⚠️  Basic FITS parsing failed ({file_path.name}): {e}")
+            logger.debug(f"Basic FITS parsing failed ({file_path.name}): {e}")
             return self._get_default_metadata()
     
-    def _extract_swift_lightcurve_metadata(self, file_path: Path) -> Dict[str, Any]:
-        """Extract metadata from Swift lightcurve files"""
+    def _extract_swift_lightcurve_metadata(self, file_path: Path, original_filename: str = None) -> Dict[str, Any]:
+        """Extract metadata from Swift lightcurve files (FITS format)"""
         try:
-            # Try to read the file content
-            if file_path.suffix == '.gz':
-                with gzip.open(file_path, 'rt', encoding='utf-8', errors='ignore') as f:
-                    content = f.read(1000)  # Read first 1000 characters
-            else:
-                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    content = f.read(1000)
-            
             metadata = self._get_default_metadata()
             
             # Extract Swift-specific information from filename
-            filename = file_path.name
+            # Use original filename if available, otherwise use temp file name
+            filename = original_filename if original_filename else file_path.name
             
             # Parse Swift BAT filename pattern
             # Example: swbj0001_0m9012_c_s157.lc.gz
             # Format: swbjXXXX_XXXXXXX_XXXX_XXXX.extension
-            pattern = r'swbj(\d{4})_([a-z0-9]+)_([a-z0-9]+)_([a-z0-9]+)\.([a-z0-9]+)'
+            pattern = r'swbj(\d{4})_([a-z0-9]+)_([a-z0-9]+)_([a-z0-9]+)\.([a-z0-9.]+)'
             match = re.match(pattern, filename)
             
             if match:
@@ -212,16 +211,101 @@ class SwiftMetadataExtractor:
                     'processing_status': 'raw'
                 })
                 
-                # Try to extract timestamp from content
-                timestamp_match = re.search(r'(\d{4}-\d{2}-\d{2})', content)
-                if timestamp_match:
-                    metadata['observation_timestamp'] = timestamp_match.group(1)
+                # Try to extract FITS header information
+                try:
+                    import astropy.io.fits as fits
+                    
+                    # Open the FITS file (handle gzipped files)
+                    with fits.open(file_path) as hdul:
+                        # Get the primary header
+                        header = hdul[0].header
+                        
+                        # Extract observation date (use DATE-OBS from primary header)
+                        if 'DATE-OBS' in header:
+                            date_obs = header['DATE-OBS']
+                            # Convert to ISO format if needed
+                            if 'T' in str(date_obs):
+                                metadata['observation_timestamp'] = str(date_obs).split('T')[0]  # Just the date part
+                            else:
+                                metadata['observation_timestamp'] = str(date_obs)
+                        
+                        # Extract object name if available
+                        if 'OBJECT' in header and metadata.get('target_object') == f"BAT_{match.group(1)}":
+                            object_name = header['OBJECT']
+                            if object_name and object_name.strip() != '':
+                                metadata['target_object'] = str(object_name).strip()
+                        
+                        # Extract additional metadata from primary header
+                        if 'TELESCOP' in header:
+                            metadata['mission_id'] = str(header['TELESCOP']).strip()
+                        if 'INSTRUME' in header:
+                            metadata['instrument_type'] = str(header['INSTRUME']).strip()
+                        
+                        # Extract coordinates if available
+                        if 'RA_OBJ' in header:
+                            metadata['ra_deg'] = float(header['RA_OBJ'])
+                        if 'DEC_OBJ' in header:
+                            metadata['dec_deg'] = float(header['DEC_OBJ'])
+                        
+                        # Look for additional metadata in extension headers
+                        for i, hdu in enumerate(hdul):
+                            if i > 0:  # Skip primary header
+                                ext_header = hdu.header
+                                
+                                # Extract time range information
+                                if 'DATE-OBS' in ext_header and 'observation_timestamp' not in metadata:
+                                    date_obs = ext_header['DATE-OBS']
+                                    if 'T' in str(date_obs):
+                                        metadata['observation_timestamp'] = str(date_obs).split('T')[0]
+                                    else:
+                                        metadata['observation_timestamp'] = str(date_obs)
+                                
+                                if 'DATE-END' in ext_header:
+                                    date_end = ext_header['DATE-END']
+                                    if 'T' in str(date_end):
+                                        metadata['observation_end'] = str(date_end).split('T')[0]
+                                    else:
+                                        metadata['observation_end'] = str(date_end)
+                                
+                                # Extract energy range
+                                if 'E_MIN' in ext_header:
+                                    metadata['energy_min_kev'] = float(ext_header['E_MIN'])
+                                if 'E_MAX' in ext_header:
+                                    metadata['energy_max_kev'] = float(ext_header['E_MAX'])
+                                
+                                # Extract observation duration
+                                if 'ONTIME' in ext_header:
+                                    metadata['on_target_time_s'] = float(ext_header['ONTIME'])
+                                if 'TELAPSE' in ext_header:
+                                    metadata['elapsed_time_s'] = float(ext_header['TELAPSE'])
+                                
+                                # Extract catalog information
+                                if 'CATNUM' in ext_header:
+                                    metadata['catalog_number'] = int(ext_header['CATNUM'])
+                                if 'CAT_NAME' in ext_header:
+                                    metadata['catalog_name'] = str(ext_header['CAT_NAME']).strip()
+                                
+                                # Extract lightcurve type
+                                if 'LCTYPE' in ext_header:
+                                    metadata['lightcurve_type'] = str(ext_header['LCTYPE']).strip()
+                                
+                                # Extract data quality flags
+                                if 'BACKAPP' in ext_header:
+                                    metadata['background_applied'] = bool(ext_header['BACKAPP'])
+                                
+                                # Break after first extension (usually contains the main data)
+                                break
+                            
+                            
+                except ImportError:
+                    logger.warning("astropy not available, using filename-based extraction only")
+                except Exception as e:
+                    logger.warning(f"FITS header extraction failed ({filename}): {e}")
             
             return metadata
             
         except Exception as e:
-            # Swift lightcurve parsing failures are common - use debug level
-            logger.debug(f"⚠️  Swift lightcurve parsing failed ({file_path.name}): {e}")
+            logger.debug(f"Swift lightcurve parsing failed ({file_path.name}): {e}")
             return self._get_default_metadata()
     
     def _extract_json_metadata(self, file_path: Path) -> Dict[str, Any]:

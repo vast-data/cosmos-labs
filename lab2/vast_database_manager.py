@@ -48,9 +48,9 @@ class VASTDatabaseManager:
         }
         
         # Debug: log what we're trying to connect with
-        logger.info(f"🔧 VAST DB config - access: {'***' if self.db_config['access'] else 'None'}, "
-                   f"secret: {'***' if self.db_config['secret'] else 'None'}, "
-                   f"endpoint: {self.db_config['endpoint']}")
+        logger.debug(f"VAST DB config - access: {'***' if self.db_config['access'] else 'None'}, "
+                    f"secret: {'***' if self.db_config['secret'] else 'None'}, "
+                    f"endpoint: {self.db_config['endpoint']}")
         
         self.connection = None
         self.database = None
@@ -168,7 +168,19 @@ class VASTDatabaseManager:
                     ('checksum', pa.utf8()),
                     ('metadata_version', pa.utf8()),
                     ('created_at', pa.timestamp('us')),
-                    ('updated_at', pa.timestamp('us'))
+                    ('updated_at', pa.timestamp('us')),
+                    # New Swift-specific metadata fields
+                    ('ra_deg', pa.float64()),
+                    ('dec_deg', pa.float64()),
+                    ('observation_end', pa.timestamp('us')),
+                    ('energy_min_kev', pa.float64()),
+                    ('energy_max_kev', pa.float64()),
+                    ('on_target_time_s', pa.float64()),
+                    ('elapsed_time_s', pa.float64()),
+                    ('catalog_number', pa.int64()),
+                    ('catalog_name', pa.utf8()),
+                    ('lightcurve_type', pa.utf8()),
+                    ('background_applied', pa.bool_())
                 ])
                 
                 # Log API call
@@ -251,22 +263,17 @@ class VASTDatabaseManager:
             if not self.connection:
                 if not self.connect():
                     return False
-            
-            cursor = self.connection.cursor()
-            cursor.execute("""
-                SELECT 1 FROM information_schema.schemata 
-                WHERE schema_name = %s
-            """, (self.schema_name,))
-            
-            exists = cursor.fetchone() is not None
-            cursor.close()
-            
-            if exists:
-                logger.info(f"✅ Schema '{self.schema_name}' exists")
-            else:
-                logger.info(f"ℹ️  Schema '{self.schema_name}' does not exist")
-            
-            return exists
+
+            # Use vastdb transaction API to check schema existence
+            with self.connection.transaction() as tx:
+                bucket = tx.bucket(self.bucket_name)
+                try:
+                    _ = bucket.schema(self.schema_name)
+                    logger.info(f"✅ Schema '{self.schema_name}' exists")
+                    return True
+                except Exception:
+                    logger.info(f"ℹ️  Schema '{self.schema_name}' does not exist")
+                    return False
             
         except Exception as e:
             logger.error(f"❌ Error checking schema existence: {e}")
@@ -278,13 +285,20 @@ class VASTDatabaseManager:
             if self.schema_exists():
                 logger.info(f"ℹ️  Schema '{self.schema_name}' already exists")
                 return True
-            
-            cursor = self.connection.cursor()
-            cursor.execute(f"CREATE SCHEMA {self.schema_name}")
-            cursor.close()
-            
-            logger.info(f"✅ Created schema '{self.schema_name}'")
-            return True
+
+            # Create schema using vastdb API
+            with self.connection.transaction() as tx:
+                bucket = tx.bucket(self.bucket_name)
+                try:
+                    bucket.create_schema(self.schema_name)
+                    logger.info(f"✅ Created schema '{self.schema_name}'")
+                    return True
+                except vastdb.errors.SchemaExists:
+                    logger.info(f"✅ Schema '{self.schema_name}' already exists")
+                    return True
+                except Exception as e:
+                    logger.error(f"❌ Failed to create schema '{self.schema_name}': {e}")
+                    return False
             
         except Exception as e:
             logger.error(f"❌ Failed to create schema: {e}")
@@ -293,16 +307,17 @@ class VASTDatabaseManager:
     def table_exists(self, table_name: str) -> bool:
         """Check if a specific table exists"""
         try:
-            cursor = self.connection.cursor()
-            cursor.execute("""
-                SELECT 1 FROM information_schema.tables 
-                WHERE table_schema = %s AND table_name = %s
-            """, (self.schema_name, table_name))
-            
-            exists = cursor.fetchone() is not None
-            cursor.close()
-            
-            return exists
+            if not self.connection:
+                if not self.connect():
+                    return False
+            with self.connection.transaction() as tx:
+                bucket = tx.bucket(self.bucket_name)
+                try:
+                    schema = bucket.schema(self.schema_name)
+                    _ = schema.table(table_name)
+                    return True
+                except Exception:
+                    return False
             
         except Exception as e:
             logger.error(f"❌ Error checking table existence: {e}")
@@ -316,59 +331,61 @@ class VASTDatabaseManager:
             if self.table_exists(table_name):
                 logger.info(f"ℹ️  Table '{table_name}' already exists")
                 return True
-            
-            cursor = self.connection.cursor()
-            
-            # Create metadata table with comprehensive schema
-            create_table_sql = f"""
-            CREATE TABLE {self.schema_name}.{table_name} (
-                id SERIAL PRIMARY KEY,
-                file_path VARCHAR(500) NOT NULL,
-                file_name VARCHAR(255) NOT NULL,
-                file_size_bytes BIGINT,
-                file_format VARCHAR(50),
-                dataset_name VARCHAR(100),
+
+            # Create table using vastdb API
+            with self.connection.transaction() as tx:
+                bucket = tx.bucket(self.bucket_name)
+                schema = bucket.schema(self.schema_name)
                 
-                -- Swift-specific metadata
-                mission_id VARCHAR(100),
-                satellite_name VARCHAR(100),
-                instrument_type VARCHAR(100),
-                observation_timestamp TIMESTAMP,
-                target_object VARCHAR(100),
-                processing_status VARCHAR(50),
+                import pyarrow as pa
+                columns = pa.schema([
+                    ('file_path', pa.utf8()),
+                    ('file_name', pa.utf8()),
+                    ('file_size_bytes', pa.int64()),
+                    ('file_format', pa.utf8()),
+                    ('dataset_name', pa.utf8()),
+                    ('mission_id', pa.utf8()),
+                    ('satellite_name', pa.utf8()),
+                    ('instrument_type', pa.utf8()),
+                    ('observation_timestamp', pa.timestamp('us')),
+                    ('target_object', pa.utf8()),
+                    ('processing_status', pa.utf8()),
+                    ('ingestion_timestamp', pa.timestamp('us')),
+                    ('last_modified', pa.timestamp('us')),
+                    ('checksum', pa.utf8()),
+                    ('metadata_version', pa.utf8()),
+                    ('created_at', pa.timestamp('us')),
+                    ('updated_at', pa.timestamp('us')),
+                    # New Swift-specific metadata fields
+                    ('ra_deg', pa.float64()),
+                    ('dec_deg', pa.float64()),
+                    ('observation_end', pa.timestamp('us')),
+                    ('energy_min_kev', pa.float64()),
+                    ('energy_max_kev', pa.float64()),
+                    ('on_target_time_s', pa.float64()),
+                    ('elapsed_time_s', pa.float64()),
+                    ('catalog_number', pa.int64()),
+                    ('catalog_name', pa.utf8()),
+                    ('lightcurve_type', pa.utf8()),
+                    ('background_applied', pa.bool_())
+                ])
                 
-                -- File metadata
-                ingestion_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                last_modified TIMESTAMP,
-                checksum VARCHAR(64),
-                metadata_version VARCHAR(20),
+                # Log API call
+                self._log_api_call(
+                    "schema.create_table()",
+                    f"schema={self.schema_name}, table=swift_metadata, columns={len(columns)}"
+                )
                 
-                -- Search optimization
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-            """
-            
-            cursor.execute(create_table_sql)
-            
-            # Create indexes for better search performance
-            cursor.execute(f"""
-                CREATE INDEX idx_{table_name}_mission_id ON {self.schema_name}.{table_name} (mission_id)
-            """)
-            cursor.execute(f"""
-                CREATE INDEX idx_{table_name}_target_object ON {self.schema_name}.{table_name} (target_object)
-            """)
-            cursor.execute(f"""
-                CREATE INDEX idx_{table_name}_observation_timestamp ON {self.schema_name}.{table_name} (observation_timestamp)
-            """)
-            cursor.execute(f"""
-                CREATE INDEX idx_{table_name}_file_path ON {self.schema_name}.{table_name} (file_path)
-            """)
-            
-            cursor.close()
-            
-            logger.info(f"✅ Created metadata table '{table_name}' with indexes")
-            return True
+                try:
+                    schema.create_table(table_name, columns)
+                    logger.info(f"✅ Created metadata table '{table_name}'")
+                    return True
+                except vastdb.errors.TableExists:
+                    logger.info(f"✅ Table '{table_name}' already exists")
+                    return True
+                except Exception as e:
+                    logger.error(f"❌ Failed to create metadata table '{table_name}': {e}")
+                    return False
             
         except Exception as e:
             logger.error(f"❌ Failed to create metadata table: {e}")
@@ -421,7 +438,7 @@ class VASTDatabaseManager:
             
         try:
             if not self.connection:
-                logger.info("🔧 No database connection, attempting to connect...")
+                logger.debug("No database connection, attempting to connect...")
                 if not self.connect():
                     logger.error("❌ Failed to connect to database")
                     return False
@@ -469,7 +486,19 @@ class VASTDatabaseManager:
                     'checksum': [metadata.get('checksum', '')],
                     'metadata_version': [metadata.get('metadata_version', '1.0')],
                     'created_at': [datetime.now()],
-                    'updated_at': [datetime.now()]
+                    'updated_at': [datetime.now()],
+                    # New Swift-specific metadata fields
+                    'ra_deg': [metadata.get('ra_deg', None)],
+                    'dec_deg': [metadata.get('dec_deg', None)],
+                    'observation_end': [parse_timestamp(metadata.get('observation_end'))],
+                    'energy_min_kev': [metadata.get('energy_min_kev', None)],
+                    'energy_max_kev': [metadata.get('energy_max_kev', None)],
+                    'on_target_time_s': [metadata.get('on_target_time_s', None)],
+                    'elapsed_time_s': [metadata.get('elapsed_time_s', None)],
+                    'catalog_number': [metadata.get('catalog_number', None)],
+                    'catalog_name': [metadata.get('catalog_name', '')],
+                    'lightcurve_type': [metadata.get('lightcurve_type', '')],
+                    'background_applied': [metadata.get('background_applied', None)]
                 }
                 
                 # Validate schema and data match
@@ -477,29 +506,24 @@ class VASTDatabaseManager:
                 data_columns = len(data)
                 schema_columns = len(schema)
                 
-                # Schema validation (debug level to reduce noise)
-                logger.debug(f"🔧 Table schema has {schema_columns} columns: {[col.name for col in schema]}")
-                logger.debug(f"🔧 Data dictionary has {data_columns} columns")
-                
+                # Schema validation
                 if data_columns != schema_columns:
-                    error_msg = f"❌ SCHEMA MISMATCH: Data has {data_columns} columns but table schema expects {schema_columns} columns"
+                    error_msg = f"Schema mismatch: Data has {data_columns} columns but table schema expects {schema_columns} columns"
                     logger.error(error_msg)
-                    logger.error(f"❌ Table columns: {[col.name for col in schema]}")
-                    logger.error(f"❌ Data columns: {list(data.keys())}")
-                    logger.error("❌ Stopping processing to prevent data corruption. Please fix schema mismatch.")
                     raise ValueError(error_msg)
                 
                 # Create PyArrow table and insert
                 arrow_table = pa.table(data=data, schema=table.columns())
                 
                 # Log API call
-                self._log_api_call(
-                    "table.insert()",
-                    f"table=swift_metadata, file_name={metadata.get('file_name', 'Unknown')}"
-                )
+                if self.config.get('debug.api_calls', False):
+                    self._log_api_call(
+                        "table.insert()",
+                        f"table=swift_metadata, file_name={metadata.get('file_name', 'Unknown')}"
+                    )
                 
                 table.insert(arrow_table)
-                # Success - no need to log every single insertion
+                logger.debug(f"Successfully inserted metadata for {metadata.get('file_name', 'Unknown')}")
                 
                 return True
                 
@@ -532,11 +556,16 @@ class VASTDatabaseManager:
                         "table.select()",
                         f"table=swift_metadata, python_filtering=True, conditions={len(search_criteria)}"
                     )
+                    logger.info(f"Search criteria: {search_criteria}")
                     reader = table.select()
                     results = []
                     
+                    batch_count = 0
+                    total_records_processed = 0
                     for batch in reader:
+                        batch_count += 1
                         for i in range(len(batch)):
+                            total_records_processed += 1
                             record = {}
                             # Convert PyArrow record to Python dict
                             for col_name in batch.column_names:
@@ -548,48 +577,59 @@ class VASTDatabaseManager:
                             
                             # Apply search criteria with wildcard support (Python filtering)
                             matches = True
+                            criteria_loop_break = False
                             for key, criteria in search_criteria.items():
                                 if key not in record:
                                     matches = False
+                                    criteria_loop_break = True
                                     break
                                 
-                                record_value = str(record[key]).lower()
+                                record_value = str(record[key]).lower() if record[key] is not None else ""
                                 
                                 if criteria['type'] == 'exact':
                                     # Exact match
                                     if record_value != str(criteria['value']).lower():
                                         matches = False
+                                        criteria_loop_break = True
                                         break
                                 elif criteria['type'] == 'wildcard':
                                     # Wildcard match
                                     pattern = criteria['pattern'].lower()
                                     
                                     if pattern == '*':
-                                        # Match everything
-                                        continue
-                                    elif pattern.startswith('*') and pattern.endswith('*'):
-                                        # Contains pattern: *value*
-                                        search_value = pattern[1:-1]
-                                        if search_value not in record_value:
-                                            matches = False
-                                            break
-                                    elif pattern.startswith('*'):
-                                        # Ends with pattern: *value
-                                        search_value = pattern[1:]
-                                        if not record_value.endswith(search_value):
-                                            matches = False
-                                            break
-                                    elif pattern.endswith('*'):
-                                        # Starts with pattern: value*
-                                        search_value = pattern[:-1]
-                                        if not record_value.startswith(search_value):
-                                            matches = False
-                                            break
+                                        # Match everything - set matches to True and break out of criteria loop
+                                        matches = True
+                                        criteria_loop_break = True
+                                        break
                                     else:
-                                        # No wildcards, treat as exact match
-                                        if record_value != pattern:
-                                            matches = False
-                                            break
+                                        # Other wildcard patterns
+                                        if pattern.startswith('*') and pattern.endswith('*'):
+                                            # Contains pattern: *value*
+                                            search_value = pattern[1:-1]
+                                            if search_value not in record_value:
+                                                matches = False
+                                                criteria_loop_break = True
+                                                break
+                                        elif pattern.startswith('*'):
+                                            # Ends with pattern: *value
+                                            search_value = pattern[1:]
+                                            if not record_value.endswith(search_value):
+                                                matches = False
+                                                criteria_loop_break = True
+                                                break
+                                        elif pattern.endswith('*'):
+                                            # Starts with pattern: value*
+                                            search_value = pattern[:-1]
+                                            if not record_value.startswith(search_value):
+                                                matches = False
+                                                criteria_loop_break = True
+                                                break
+                                        else:
+                                            # No wildcards, treat as exact match
+                                            if record_value != pattern:
+                                                matches = False
+                                                criteria_loop_break = True
+                                                break
                                 elif criteria['type'] == 'comparison':
                                     # Comparison match (for dates, numbers, etc.)
                                     operator = criteria['operator']
@@ -604,18 +644,22 @@ class VASTDatabaseManager:
                                         if operator == '>':
                                             if not (record_date > compare_date):
                                                 matches = False
+                                                criteria_loop_break = True
                                                 break
                                         elif operator == '<':
                                             if not (record_date < compare_date):
                                                 matches = False
+                                                criteria_loop_break = True
                                                 break
                                         elif operator == '>=':
                                             if not (record_date >= compare_date):
                                                 matches = False
+                                                criteria_loop_break = True
                                                 break
                                         elif operator == '<=':
                                             if not (record_date <= compare_date):
                                                 matches = False
+                                                criteria_loop_break = True
                                                 break
                                     except (ValueError, TypeError):
                                         # Not a date, try numeric comparison
@@ -626,40 +670,53 @@ class VASTDatabaseManager:
                                             if operator == '>':
                                                 if not (record_num > compare_num):
                                                     matches = False
+                                                    criteria_loop_break = True
                                                     break
                                             elif operator == '<':
                                                 if not (record_num < compare_num):
                                                     matches = False
+                                                    criteria_loop_break = True
                                                     break
                                             elif operator == '>=':
                                                 if not (record_num >= compare_num):
                                                     matches = False
+                                                    criteria_loop_break = True
                                                     break
                                             elif operator == '<=':
                                                 if not (record_num <= compare_num):
                                                     matches = False
+                                                    criteria_loop_break = True
                                                     break
                                         except (ValueError, TypeError):
                                                 # Not numeric either, do string comparison
                                                 if operator == '>':
                                                     if not (record_value > compare_value):
                                                         matches = False
+                                                        criteria_loop_break = True
                                                         break
                                                 elif operator == '<':
                                                     if not (record_value < compare_value):
                                                         matches = False
+                                                        criteria_loop_break = True
                                                         break
                                                 elif operator == '>=':
                                                     if not (record_value >= compare_value):
                                                         matches = False
+                                                        criteria_loop_break = True
                                                         break
                                                 elif operator == '<=':
                                                     if not (record_value <= compare_value):
                                                         matches = False
+                                                        criteria_loop_break = True
                                                         break
                                 
-                                if matches:
-                                    results.append(record)
+                                # Check if we should continue to the next record
+                                if criteria_loop_break:
+                                    break
+                            
+                            # Check if record matches after processing all criteria
+                            if matches:
+                                results.append(record)
                     
                     logger.info(f"🔍 Found {len(results)} metadata records")
                     return results
@@ -1052,31 +1109,81 @@ class VASTDatabaseManager:
             return {}
     
     def clear_all_tables(self) -> bool:
-        """Clear all data from metadata tables while preserving structure"""
+        """Clear all data from metadata tables while preserving structure using VAST DB"""
         try:
             if not VASTDB_AVAILABLE:
                 logger.warning("⚠️  vastdb not available - mock table clearing")
                 return True
             
-            cursor = self.connection.cursor()
+            if not self.connection:
+                if not self.connect():
+                    return False
             
-            # Clear the main metadata table
-            cursor.execute(f"DELETE FROM {self.schema_name}.swift_metadata")
-            deleted_count = cursor.rowcount
-            
-            # Reset sequence if it exists
-            cursor.execute(f"ALTER SEQUENCE {self.schema_name}.swift_metadata_id_seq RESTART WITH 1")
-            
-            self.connection.commit()
-            cursor.close()
-            
-            logger.info(f"✅ Cleared {deleted_count} records from metadata tables")
-            return True
+            # Use VAST DB transaction to clear metadata
+            with self.connection.transaction() as tx:
+                bucket = tx.bucket(self.bucket_name)
+                
+                # Check if schema and table exist
+                try:
+                    schema = bucket.schema(self.schema_name)
+                    table = schema.table("swift_metadata")
+                    
+                    # Get count of records before clearing
+                    reader = table.select()
+                    total_count = 0
+                    for batch in reader:
+                        total_count += len(batch)
+                    
+                    # Drop and recreate the table to clear all data
+                    table.drop()
+                    
+                    # Recreate the table with the same schema
+                    import pyarrow as pa
+                    columns = pa.schema([
+                        ('file_path', pa.utf8()),
+                        ('file_name', pa.utf8()),
+                        ('file_size_bytes', pa.int64()),
+                        ('file_format', pa.utf8()),
+                        ('dataset_name', pa.utf8()),
+                        ('mission_id', pa.utf8()),
+                        ('satellite_name', pa.utf8()),
+                        ('instrument_type', pa.utf8()),
+                        ('observation_timestamp', pa.timestamp('us')),
+                        ('target_object', pa.utf8()),
+                        ('processing_status', pa.utf8()),
+                        ('ingestion_timestamp', pa.timestamp('us')),
+                        ('last_modified', pa.timestamp('us')),
+                        ('checksum', pa.utf8()),
+                        ('metadata_version', pa.utf8()),
+                        ('created_at', pa.timestamp('us')),
+                        ('updated_at', pa.timestamp('us')),
+                        # New Swift-specific metadata fields
+                        ('ra_deg', pa.float64()),
+                        ('dec_deg', pa.float64()),
+                        ('observation_end', pa.timestamp('us')),
+                        ('energy_min_kev', pa.float64()),
+                        ('energy_max_kev', pa.float64()),
+                        ('on_target_time_s', pa.float64()),
+                        ('elapsed_time_s', pa.float64()),
+                        ('catalog_number', pa.int64()),
+                        ('catalog_name', pa.utf8()),
+                        ('lightcurve_type', pa.utf8()),
+                        ('background_applied', pa.bool_())
+                    ])
+                    
+                    # Create empty table with same schema
+                    schema.create_table("swift_metadata", columns)
+                    
+                    logger.info(f"✅ Cleared {total_count} records from metadata tables")
+                    return True
+                    
+                except Exception as e:
+                    # Schema or table doesn't exist yet
+                    logger.info(f"ℹ️  Schema '{self.schema_name}' or table 'swift_metadata' doesn't exist yet - nothing to clear")
+                    return True
             
         except Exception as e:
             logger.error(f"❌ Failed to clear tables: {e}")
-            if self.connection and VASTDB_AVAILABLE:
-                self.connection.rollback()
             return False
     
     def remove_database(self) -> bool:

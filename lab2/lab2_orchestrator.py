@@ -13,7 +13,7 @@ from pathlib import Path
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
@@ -85,20 +85,52 @@ class Lab2Orchestrator:
         
         return self.run_command("upload_datasets.py", args)
     
-    def process_metadata(self, dry_run: bool = False, dataset: str = None) -> bool:
+    def process_metadata(self, dry_run: bool = False, dataset: str = None, skip_db_check: bool = False) -> bool:
         """Process metadata from S3 datasets"""
         logger.info("🔍 Processing metadata from S3...")
         
         args = ["--config", self.config_path, "--secrets", self.secrets_path]
         if dry_run:
             args.append("--dry-run")
+        if skip_db_check:
+            args.append("--skip-db-check")
         if dataset:
             args.extend(["--dataset", dataset])
         
         return self.run_command("process_metadata.py", args)
     
-    def search_metadata(self, pattern: str = None, obs_id: str = None, file_type: str = None, 
-                       recent: int = None, stats: bool = False) -> bool:
+    def clear_metadata(self, dry_run: bool = False) -> bool:
+        """Clear all metadata from the database"""
+        logger.info("🗑️  Clearing metadata from database...")
+        
+        if dry_run:
+            logger.info("🔍 DRY RUN: Would clear all metadata tables")
+            return True
+        
+        try:
+            # Add parent directory to path for imports
+            sys.path.append(str(Path(__file__).parent.parent))
+            
+            from config_loader import ConfigLoader
+            from lab2.vast_database_manager import VASTDatabaseManager
+            
+            config = ConfigLoader(self.config_path, self.secrets_path)
+            db_manager = VASTDatabaseManager(config)
+            
+            if db_manager.connect():
+                success = db_manager.clear_all_tables()
+                db_manager.close()
+                return success
+            else:
+                logger.error("❌ Failed to connect to database")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to clear metadata: {e}")
+            return False
+    
+    def search_metadata(self, pattern: str = None, file_type: str = None, 
+                       target: str = None, recent: int = None, stats: bool = False, json: bool = False) -> bool:
         """Search metadata in VAST Database"""
         logger.info("🔍 Searching metadata...")
         
@@ -106,14 +138,16 @@ class Lab2Orchestrator:
         
         if pattern:
             args.extend(["--pattern", pattern])
-        if obs_id:
-            args.extend(["--obs-id", obs_id])
         if file_type:
             args.extend(["--file-type", file_type])
+        if target:
+            args.extend(["--target", target])
         if recent:
             args.extend(["--recent", str(recent)])
         if stats:
             args.append("--stats")
+        if json:
+            args.append("--json")
         
         return self.run_command("search_metadata.py", args)
     
@@ -131,8 +165,8 @@ class Lab2Orchestrator:
             logger.error("❌ Dataset upload failed")
             return False
         
-        # Step 3: Process metadata
-        if not self.process_metadata(dry_run):
+        # Step 3: Process metadata (skip DB check in dry-run since setup already verified it)
+        if not self.process_metadata(dry_run, skip_db_check=dry_run):
             logger.error("❌ Metadata processing failed")
             return False
         
@@ -158,14 +192,16 @@ def main():
     parser.add_argument('--upload-only', action='store_true', help='Upload datasets only')
     parser.add_argument('--process-only', action='store_true', help='Process metadata only')
     parser.add_argument('--search-only', action='store_true', help='Search metadata only')
+    parser.add_argument('--clear-only', action='store_true', help='Clear metadata tables only')
     parser.add_argument('--complete', action='store_true', help='Run complete workflow')
     
     # Search options
-    parser.add_argument('--pattern', help='Search by file pattern')
-    parser.add_argument('--obs-id', help='Search by observation ID')
+    parser.add_argument('--pattern', help='Search by file pattern (e.g., swbj1421* for observation ID 1421)')
     parser.add_argument('--file-type', help='Search by file type')
+    parser.add_argument('--target', help='Search by target object')
     parser.add_argument('--recent', type=int, help='Show recent N files')
     parser.add_argument('--stats', action='store_true', help='Show statistics')
+    parser.add_argument('--json', action='store_true', help='Output results as JSON')
     
     # Dataset options
     parser.add_argument('--dataset', help='Process specific dataset')
@@ -200,10 +236,12 @@ def main():
         success = orchestrator.process_metadata(dry_run, args.dataset)
     elif args.search_only:
         success = orchestrator.search_metadata(
-            args.pattern, args.obs_id, args.file_type, 
-            args.recent, args.stats
+            args.pattern, args.file_type, 
+            args.target, args.recent, args.stats, args.json
         )
-    elif args.complete or (not any([args.setup_only, args.upload_only, args.process_only, args.search_only, args.list_datasets])):
+    elif args.clear_only:
+        success = orchestrator.clear_metadata(dry_run)
+    elif args.complete or (not any([args.setup_only, args.upload_only, args.process_only, args.search_only, args.clear_only, args.list_datasets])):
         success = orchestrator.run_complete_workflow(dry_run)
     else:
         parser.print_help()

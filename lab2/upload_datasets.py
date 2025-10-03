@@ -8,6 +8,7 @@ import os
 import sys
 import logging
 from pathlib import Path
+import urllib3
 
 # Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
@@ -17,7 +18,7 @@ from config_loader import ConfigLoader
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ class DatasetUploader:
             endpoint_url = self.config.get('s3.endpoint_url')
             region_name = self.config.get('s3.region', 'us-east-1')
             path_style = self.config.get('s3.compatibility.path_style_addressing', True)
-            ssl_verify = self.config.get('s3.verify_ssl', True)
+            ssl_verify = self.config.get('s3.ssl_verify', self.config.get('s3.verify_ssl', True))
             access_key = self.config.get_secret('s3_access_key')
             secret_key = self.config.get_secret('s3_secret_key')
             
@@ -55,13 +56,20 @@ class DatasetUploader:
                 logger.error("❌ Missing S3 configuration (endpoint_url/access/secret)")
                 return False
             
+            # Suppress SSL warnings if verification is disabled by config
+            if not ssl_verify:
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
             s3_client = boto3.client(
                 's3',
                 endpoint_url=endpoint_url,
                 aws_access_key_id=access_key,
                 aws_secret_access_key=secret_key,
                 region_name=region_name,
-                use_ssl=ssl_verify
+                verify=ssl_verify,
+                config=boto3.session.Config(
+                    s3={'addressing_style': 'path' if path_style else 'auto'}
+                )
             )
             
             if not self.swift_datasets_dir.exists():
@@ -71,6 +79,7 @@ class DatasetUploader:
             logger.info(f"📤 Uploading datasets from {self.swift_datasets_dir} to s3://{bucket_name}")
             
             uploaded_count = 0
+            skipped_count = 0
             failed_count = 0
             
             for dataset_dir in self.swift_datasets_dir.iterdir():
@@ -84,21 +93,56 @@ class DatasetUploader:
                             key = str(relative_path).replace('\\', '/')  # Ensure forward slashes
                             
                             try:
+                                # Check if file already exists and is up-to-date
+                                if self._should_skip_file(s3_client, bucket_name, key, file_path):
+                                    skipped_count += 1
+                                    continue
+                                
                                 s3_client.upload_file(str(file_path), bucket_name, key)
                                 uploaded_count += 1
                                 
-                                if uploaded_count % 100 == 0:
-                                    logger.info(f"📤 Uploaded {uploaded_count} files so far…")
+                                if (uploaded_count + skipped_count) % 100 == 0:
+                                    logger.info(f"📤 Uploaded={uploaded_count}, Skipped={skipped_count} files so far…")
                                     
                             except Exception as e:
                                 logger.error(f"❌ Failed to upload {file_path} -> s3://{bucket_name}/{key}: {e}")
                                 failed_count += 1
             
-            logger.info(f"✅ Upload complete. Uploaded={uploaded_count}, Failed={failed_count}")
+            logger.info(f"✅ Upload complete. Uploaded={uploaded_count}, Skipped={skipped_count}, Failed={failed_count}")
             return failed_count == 0
             
         except Exception as e:
             logger.error(f"❌ Upload failed: {e}")
+            return False
+    
+    def _should_skip_file(self, s3_client, bucket_name: str, key: str, file_path: Path) -> bool:
+        """Check if file should be skipped (already exists and is up-to-date)"""
+        try:
+            # Get local file stats
+            local_size = file_path.stat().st_size
+            local_mtime = file_path.stat().st_mtime
+            
+            # Check if file exists in S3
+            try:
+                response = s3_client.head_object(Bucket=bucket_name, Key=key)
+                s3_size = response['ContentLength']
+                s3_mtime = response['LastModified'].timestamp()
+                
+                # Skip if sizes match and S3 file is newer or same age
+                if local_size == s3_size and s3_mtime >= local_mtime:
+                    return True
+                    
+            except s3_client.exceptions.NoSuchKey:
+                # File doesn't exist in S3, should upload
+                pass
+            except Exception as e:
+                # Other S3 errors, proceed with upload
+                logger.debug(f"Could not check S3 file {key}: {e}")
+                
+            return False
+            
+        except Exception as e:
+            logger.debug(f"Could not check local file {file_path}: {e}")
             return False
     
     def list_uploaded_datasets(self) -> list:
@@ -120,15 +164,25 @@ class DatasetUploader:
             view_path = self.config.get('lab2.raw_data.view_path', '/lab2-raw-data')
             bucket_name = view_path.lstrip('/').replace('/', '-')
             
+            ssl_verify_list = self.config.get('s3.ssl_verify', self.config.get('s3.verify_ssl', True))
+
+            # Suppress SSL warnings if verification is disabled by config
+            if not ssl_verify_list:
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
             s3_client = boto3.client(
                 's3',
                 endpoint_url=endpoint_url,
                 aws_access_key_id=access_key,
                 aws_secret_access_key=secret_key,
-                region_name=region_name
+                region_name=region_name,
+                verify=ssl_verify_list,
+                config=boto3.session.Config(
+                    s3={'addressing_style': 'path' if self.config.get('s3.compatibility.path_style_addressing', True) else 'auto'}
+                )
             )
             
-            # List datasets (top-level prefixes)
+            # List datasets (top-level prefixes) and count files
             datasets = []
             paginator = s3_client.get_paginator('list_objects_v2')
             
@@ -137,9 +191,23 @@ class DatasetUploader:
                     for prefix in page['CommonPrefixes']:
                         dataset_name = prefix['Prefix'].rstrip('/')
                         if dataset_name:
-                            datasets.append(dataset_name)
+                            # Count files and calculate total size in this dataset
+                            file_count = 0
+                            total_size = 0
+                            for file_page in paginator.paginate(Bucket=bucket_name, Prefix=f"{dataset_name}/"):
+                                if 'Contents' in file_page:
+                                    for obj in file_page['Contents']:
+                                        if not obj['Key'].endswith('/'):
+                                            file_count += 1
+                                            total_size += obj['Size']
+                            
+                            datasets.append({
+                                'name': dataset_name,
+                                'file_count': file_count,
+                                'total_size_bytes': total_size
+                            })
             
-            return sorted(datasets)
+            return sorted(datasets, key=lambda x: x['name'])
             
         except Exception as e:
             logger.error(f"❌ Failed to list datasets: {e}")
@@ -163,8 +231,17 @@ def main():
         datasets = uploader.list_uploaded_datasets()
         if datasets:
             logger.info(f"📁 Found {len(datasets)} uploaded datasets:")
+            total_files = 0
+            total_size = 0
             for dataset in datasets:
-                logger.info(f"  - {dataset}")
+                size_gb = dataset['total_size_bytes'] / (1024**3)
+                logger.info(f"  - {dataset['name']}: {dataset['file_count']} files ({size_gb:.2f} GB)")
+                total_files += dataset['file_count']
+                total_size += dataset['total_size_bytes']
+            
+            total_size_gb = total_size / (1024**3)
+            logger.info(f"📊 Total files in S3: {total_files}")
+            logger.info(f"📊 Total size in S3: {total_size_gb:.2f} GB")
         else:
             logger.info("📁 No datasets found in S3")
         return

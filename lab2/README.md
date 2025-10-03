@@ -201,25 +201,79 @@ lab2:
 ### Available Search Options
 - **`--stats`** - Show comprehensive statistics
 - **`--recent N`** - Show recent N files
-- **`--pattern PATTERN`** - Search by file pattern
-- **`--obs-id ID`** - Search by observation ID
-- **`--file-type TYPE`** - Search by file type
+- **`--pattern PATTERN`** - Search by file pattern (supports wildcards)
+- **`--target TARGET`** - Search by target object (supports wildcards)
+- **`--mission MISSION`** - Search by mission name
+- **`--instrument INSTRUMENT`** - Search by instrument type
+- **`--dataset DATASET`** - Search by dataset name
+- **`--format FORMAT`** - Search by file format
+- **`--json`** - Output results in JSON format
 
 ### Sample Search Results
 ```
-📊 Found 10 results:
+📊 Found 3 results:
 --------------------------------------------------------------------------------
 
-1. File: swbj0042_6p5203_a_s157.lc.gz
+1. File: swbj0007_0p7303_d2507.lc.gz
    Mission: SWIFT
    Satellite: SWIFT
    Instrument: BAT
-   Target: SWIFT J0042.6+5203
-   Observation Date: 2004-12-23 12:58:52
-   File Format: .lc
-   Size: 8478 bytes
-   Dataset: batsources_survey_north
+   Target: PSR J0007+7303
+   Observation Date: 2005-02-15
+   Observation End: 2025-07-31
+   RA: 1.756°
+   Dec: 73.052°
+   Energy Range: 15.0 - 50.0 keV
+   On-target Time: 7471 seconds
+   Catalog Number: 33730
+   Catalog Name: SWIFT J0007.0+7303
+   Lightcurve Type: DAILYMON
+   Background Applied: True
+   File Format: .gz
+   Size: 75107520 bytes
+   Dataset: batsources_monitoring_north
    Processing Status: raw
+
+2. File: swbj0005_3m7443_c_s157.lc.gz
+   Mission: SWIFT
+   Satellite: SWIFT
+   Instrument: BAT
+   Target: 2MASX J00004876-0709117
+   Observation Date: 2004-12-23
+   Observation End: 2018-01-16
+   RA: 0.220°
+   Dec: -7.140°
+   Energy Range: 15.0 - 50.0 keV
+   On-target Time: 17960117 seconds
+   Catalog Number: 3180
+   Catalog Name: SWIFT J0001.0-0708
+   Lightcurve Type: SURCRABWEIG
+   Background Applied: True
+   File Format: .gz
+   Size: 40320 bytes
+   Dataset: batsources_survey_south
+   Processing Status: raw
+```
+
+### Example Searches
+```bash
+# Search by target object
+python lab2_solution.py --search-only --target "PSR J0007+7303"
+
+# Search by observation ID pattern
+python lab2_solution.py --search-only --pattern "swbj0007_*"
+
+# Search by dataset
+python lab2_solution.py --search-only --dataset "batsources_monitoring_north"
+
+# Search by mission
+python lab2_solution.py --search-only --mission "SWIFT"
+
+# Search with JSON output for analysis
+python lab2_solution.py --search-only --target "PSR*" --json
+
+# Search for files with energy > 20 keV (using JSON output)
+python lab2_solution.py --search-only --pattern "*" --json | grep -A 5 "energy_max_kev.*[2-9][0-9]"
 ```
 
 ## 🛡️ Safety Features
@@ -231,11 +285,38 @@ lab2:
 
 ## 📊 Metadata Schema
 
-The system extracts and stores:
-- **File Information**: Name, path, size, format, checksum
-- **Mission Data**: Mission ID, satellite name, instrument type
-- **Observation Data**: Timestamp, target object, processing status
-- **System Data**: Dataset name, ingestion timestamp, metadata version
+The system extracts and stores comprehensive metadata from Swift FITS files:
+
+### **Core File Information**
+- **File Details**: Name, path, size, format, checksum
+- **Dataset Info**: Dataset name, ingestion timestamp, metadata version
+
+### **Mission & Instrument Data**
+- **Mission Info**: Mission ID, satellite name, instrument type
+- **Energy Range**: Minimum and maximum energy in keV
+- **Data Quality**: Background applied flag, lightcurve type
+
+### **Astronomical Data**
+- **Target Object**: Object name, catalog name, catalog number
+- **Coordinates**: Right Ascension (RA) and Declination (Dec) in degrees
+- **Observation Times**: Start date, end date, on-target time, elapsed time
+
+### **Processing Information**
+- **Status**: Processing status, file format, last modified
+- **System Data**: Creation timestamp, update timestamp
+
+### **Example Metadata Fields**
+```
+File: swbj0007_0p7303_d2507.lc.gz
+├── Basic Info: file_name, file_size_bytes, file_format, dataset_name
+├── Mission: mission_id, satellite_name, instrument_type
+├── Target: target_object, catalog_name, catalog_number
+├── Coordinates: ra_deg, dec_deg
+├── Time: observation_timestamp, observation_end, on_target_time_s
+├── Energy: energy_min_kev, energy_max_kev
+├── Quality: background_applied, lightcurve_type
+└── System: processing_status, checksum, metadata_version
+```
 
 ## 🧪 Testing
 
