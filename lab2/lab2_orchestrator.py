@@ -99,6 +99,30 @@ class Lab2Orchestrator:
         
         return self.run_command("process_metadata.py", args)
     
+    def clear_metadata(self, dry_run: bool = False) -> bool:
+        """Clear all metadata from the database"""
+        logger.info("🗑️  Clearing metadata from database...")
+        
+        if dry_run:
+            logger.info("🔍 DRY RUN: Would clear all metadata tables")
+            return True
+        
+        try:
+            from lab2.vast_database_manager import VASTDatabaseManager
+            db_manager = VASTDatabaseManager(self.config)
+            
+            if db_manager.connect():
+                success = db_manager.clear_all_tables()
+                db_manager.close()
+                return success
+            else:
+                logger.error("❌ Failed to connect to database")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to clear metadata: {e}")
+            return False
+    
     def search_metadata(self, pattern: str = None, file_type: str = None, 
                        target: str = None, recent: int = None, stats: bool = False) -> bool:
         """Search metadata in VAST Database"""
@@ -160,6 +184,7 @@ def main():
     parser.add_argument('--upload-only', action='store_true', help='Upload datasets only')
     parser.add_argument('--process-only', action='store_true', help='Process metadata only')
     parser.add_argument('--search-only', action='store_true', help='Search metadata only')
+    parser.add_argument('--clear-only', action='store_true', help='Clear metadata tables only')
     parser.add_argument('--complete', action='store_true', help='Run complete workflow')
     
     # Search options
@@ -205,7 +230,9 @@ def main():
             args.pattern, args.file_type, 
             args.target, args.recent, args.stats
         )
-    elif args.complete or (not any([args.setup_only, args.upload_only, args.process_only, args.search_only, args.list_datasets])):
+    elif args.clear_only:
+        success = orchestrator.clear_metadata(dry_run)
+    elif args.complete or (not any([args.setup_only, args.upload_only, args.process_only, args.search_only, args.clear_only, args.list_datasets])):
         success = orchestrator.run_complete_workflow(dry_run)
     else:
         parser.print_help()
