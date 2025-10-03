@@ -529,8 +529,13 @@ class VASTDatabaseManager:
                     reader = table.select()
                     results = []
                     
+                    batch_count = 0
+                    total_records_processed = 0
                     for batch in reader:
+                        batch_count += 1
+                        logger.info(f"Processing batch {batch_count} with {len(batch)} records")
                         for i in range(len(batch)):
+                            total_records_processed += 1
                             record = {}
                             # Convert PyArrow record to Python dict
                             for col_name in batch.column_names:
@@ -544,7 +549,7 @@ class VASTDatabaseManager:
                             matches = True
                             for key, criteria in search_criteria.items():
                                 if key not in record:
-                                    logger.debug(f"Key '{key}' not found in record. Available keys: {list(record.keys())}")
+                                    logger.info(f"Key '{key}' not found in record. Available keys: {list(record.keys())}")
                                     matches = False
                                     break
                                 
