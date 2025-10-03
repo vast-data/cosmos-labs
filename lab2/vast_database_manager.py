@@ -568,10 +568,11 @@ class VASTDatabaseManager:
                                     pattern = criteria['pattern'].lower()
                                     
                                     if pattern == '*':
-                                        # Match everything
+                                        # Match everything - set matches to True and break out of criteria loop
                                         if total_records_processed <= 3:
-                                            logger.info(f"Wildcard '*' match - continuing")
-                                        continue
+                                            logger.info(f"Wildcard '*' match - setting matches=True")
+                                        matches = True
+                                        break
                                     elif pattern.startswith('*') and pattern.endswith('*'):
                                         # Contains pattern: *value*
                                         search_value = pattern[1:-1]
