@@ -555,6 +555,9 @@ class VASTDatabaseManager:
                                 
                                 record_value = str(record[key]).lower() if record[key] is not None else ""
                                 
+                                if total_records_processed <= 3:  # Debug first few records
+                                    logger.info(f"Record {total_records_processed}: {key}='{record_value}' (criteria: {criteria})")
+                                
                                 if criteria['type'] == 'exact':
                                     # Exact match
                                     if record_value != str(criteria['value']).lower():
