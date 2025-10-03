@@ -573,29 +573,31 @@ class VASTDatabaseManager:
                                             logger.info(f"Wildcard '*' match - setting matches=True")
                                         matches = True
                                         break
-                                    elif pattern.startswith('*') and pattern.endswith('*'):
-                                        # Contains pattern: *value*
-                                        search_value = pattern[1:-1]
-                                        if search_value not in record_value:
-                                            matches = False
-                                            break
-                                    elif pattern.startswith('*'):
-                                        # Ends with pattern: *value
-                                        search_value = pattern[1:]
-                                        if not record_value.endswith(search_value):
-                                            matches = False
-                                            break
-                                    elif pattern.endswith('*'):
-                                        # Starts with pattern: value*
-                                        search_value = pattern[:-1]
-                                        if not record_value.startswith(search_value):
-                                            matches = False
-                                            break
                                     else:
-                                        # No wildcards, treat as exact match
-                                        if record_value != pattern:
-                                            matches = False
-                                            break
+                                        # Other wildcard patterns
+                                        if pattern.startswith('*') and pattern.endswith('*'):
+                                            # Contains pattern: *value*
+                                            search_value = pattern[1:-1]
+                                            if search_value not in record_value:
+                                                matches = False
+                                                break
+                                        elif pattern.startswith('*'):
+                                            # Ends with pattern: *value
+                                            search_value = pattern[1:]
+                                            if not record_value.endswith(search_value):
+                                                matches = False
+                                                break
+                                        elif pattern.endswith('*'):
+                                            # Starts with pattern: value*
+                                            search_value = pattern[:-1]
+                                            if not record_value.startswith(search_value):
+                                                matches = False
+                                                break
+                                        else:
+                                            # No wildcards, treat as exact match
+                                            if record_value != pattern:
+                                                matches = False
+                                                break
                                 elif criteria['type'] == 'comparison':
                                     # Comparison match (for dates, numbers, etc.)
                                     operator = criteria['operator']
