@@ -1156,7 +1156,19 @@ class VASTDatabaseManager:
                         ('checksum', pa.utf8()),
                         ('metadata_version', pa.utf8()),
                         ('created_at', pa.timestamp('us')),
-                        ('updated_at', pa.timestamp('us'))
+                        ('updated_at', pa.timestamp('us')),
+                        # New Swift-specific metadata fields
+                        ('ra_deg', pa.float64()),
+                        ('dec_deg', pa.float64()),
+                        ('observation_end', pa.timestamp('us')),
+                        ('energy_min_kev', pa.float64()),
+                        ('energy_max_kev', pa.float64()),
+                        ('on_target_time_s', pa.float64()),
+                        ('elapsed_time_s', pa.float64()),
+                        ('catalog_number', pa.int64()),
+                        ('catalog_name', pa.utf8()),
+                        ('lightcurve_type', pa.utf8()),
+                        ('background_applied', pa.bool_())
                     ])
                     
                     # Create empty table with same schema
