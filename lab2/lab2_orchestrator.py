@@ -109,7 +109,10 @@ class Lab2Orchestrator:
         
         try:
             from vast_database_manager import VASTDatabaseManager
-            db_manager = VASTDatabaseManager(self.config)
+            from config_loader import ConfigLoader
+            
+            config = ConfigLoader(self.config_path, self.secrets_path)
+            db_manager = VASTDatabaseManager(config)
             
             if db_manager.connect():
                 success = db_manager.clear_all_tables()
