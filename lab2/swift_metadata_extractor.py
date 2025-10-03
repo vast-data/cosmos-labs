@@ -36,10 +36,8 @@ class SwiftMetadataExtractor:
             # Skip temporary files - check the original filename if provided, otherwise check the temp file name
             filename_to_check = original_filename if original_filename else file_path.name
             if "tmp" in filename_to_check.lower():
-                logger.info(f"Skipping temporary file: {filename_to_check}")
+                logger.debug(f"Skipping temporary file: {filename_to_check}")
                 return None
-            
-            logger.info(f"Extracting metadata from: {file_path.name}")
             
             # Get basic file information
             file_stat = file_path.stat()
@@ -54,9 +52,12 @@ class SwiftMetadataExtractor:
             
 
             # Basic metadata that all files have
+            # Use original filename if provided, otherwise use temp file name
+            display_filename = original_filename if original_filename else file_path.name
+            
             metadata = {
                 'file_path': str(file_path),
-                'file_name': file_path.name,
+                'file_name': display_filename,
                 'file_size_bytes': file_size,
                 'file_format': file_format,
                 'dataset_name': dataset_name or self._extract_dataset_name(file_path),
@@ -66,42 +67,27 @@ class SwiftMetadataExtractor:
             }
             
             # Extract format-specific metadata
-            logger.info(f"File format: {file_format}, suffix: {file_path.suffix}")
-            
             if file_path.suffix == '.gz':
                 # Compressed files - use Swift lightcurve metadata extraction
-                logger.info(f"Processing as Swift lightcurve file: {file_path.name}")
-                swift_metadata = self._extract_swift_lightcurve_metadata(file_path)
-                logger.info(f"Swift metadata result: {swift_metadata}")
-                metadata.update(swift_metadata)
+                metadata.update(self._extract_swift_lightcurve_metadata(file_path, original_filename))
             elif file_format in ['.fits', '.lc']:
                 # Uncompressed FITS files
-                logger.info(f"Processing as FITS file: {file_path.name}")
-                fits_metadata = self._extract_fits_metadata(file_path)
-                metadata.update(fits_metadata)
+                metadata.update(self._extract_fits_metadata(file_path))
             elif file_format == '.json':
-                logger.info(f"Processing as JSON file: {file_path.name}")
-                json_metadata = self._extract_json_metadata(file_path)
-                metadata.update(json_metadata)
+                metadata.update(self._extract_json_metadata(file_path))
             else:
                 # For other formats, use basic filename parsing
-                logger.info(f"Processing as basic file: {file_path.name}")
-                basic_metadata = self._extract_basic_metadata(file_path)
-                metadata.update(basic_metadata)
+                metadata.update(self._extract_basic_metadata(file_path))
             
             # Add checksum
-            logger.info(f"Calculating checksum for: {file_path.name}")
             metadata['checksum'] = self._calculate_checksum(file_path)
             
-            logger.info(f"Successfully extracted metadata for: {file_path.name}")
             return metadata
             
         except Exception as e:
             # Only log errors for files that should have worked
             if file_path.suffix in ['.fits', '.lc', '.gz']:
                 logger.warning(f"⚠️  Could not extract metadata from {file_path.name}: {e}")
-            else:
-                logger.info(f"Could not extract metadata from {file_path.name}: {e}")
             return None
     
     def _get_file_format(self, file_path: Path) -> str:
@@ -201,25 +187,28 @@ class SwiftMetadataExtractor:
             logger.debug(f"Basic FITS parsing failed ({file_path.name}): {e}")
             return self._get_default_metadata()
     
-    def _extract_swift_lightcurve_metadata(self, file_path: Path) -> Dict[str, Any]:
+    def _extract_swift_lightcurve_metadata(self, file_path: Path, original_filename: str = None) -> Dict[str, Any]:
         """Extract metadata from Swift lightcurve files"""
         try:
-            logger.info(f"Processing Swift lightcurve file: {file_path.name}")
-            
             # Try to read the file content
+            content = ""
             if file_path.suffix == '.gz':
-                with gzip.open(file_path, 'rt', encoding='utf-8', errors='ignore') as f:
-                    content = f.read(1000)  # Read first 1000 characters
+                try:
+                    with gzip.open(file_path, 'rt', encoding='utf-8', errors='ignore') as f:
+                        content = f.read(1000)  # Read first 1000 characters
+                except (gzip.BadGzipFile, OSError):
+                    # If gzip fails, try reading as regular text file
+                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        content = f.read(1000)
             else:
                 with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                     content = f.read(1000)
             
-            logger.info(f"Read {len(content)} characters from {file_path.name}")
-            
             metadata = self._get_default_metadata()
             
             # Extract Swift-specific information from filename
-            filename = file_path.name
+            # Use original filename if available, otherwise use temp file name
+            filename = original_filename if original_filename else file_path.name
             
             # Parse Swift BAT filename pattern
             # Example: swbj0001_0m9012_c_s157.lc.gz
@@ -228,7 +217,6 @@ class SwiftMetadataExtractor:
             match = re.match(pattern, filename)
             
             if match:
-                logger.info(f"Filename pattern matched for {filename}: {match.groups()}")
                 metadata.update({
                     'mission_id': 'SWIFT',
                     'satellite_name': 'SWIFT',
@@ -241,17 +229,11 @@ class SwiftMetadataExtractor:
                 timestamp_match = re.search(r'(\d{4}-\d{2}-\d{2})', content)
                 if timestamp_match:
                     metadata['observation_timestamp'] = timestamp_match.group(1)
-                    logger.info(f"Found timestamp in content: {timestamp_match.group(1)}")
-                else:
-                    logger.info(f"No timestamp found in content for {filename}")
-            else:
-                logger.info(f"Filename pattern did not match for {filename}")
             
-            logger.info(f"Swift lightcurve metadata for {filename}: {metadata}")
             return metadata
             
         except Exception as e:
-            logger.warning(f"Swift lightcurve parsing failed ({file_path.name}): {e}")
+            logger.debug(f"Swift lightcurve parsing failed ({file_path.name}): {e}")
             return self._get_default_metadata()
     
     def _extract_json_metadata(self, file_path: Path) -> Dict[str, Any]:
