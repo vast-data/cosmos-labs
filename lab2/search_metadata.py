@@ -200,7 +200,7 @@ def main():
         criteria['observation_id'] = {'type': 'exact', 'value': args.obs_id}
     
     if args.file_type:
-        criteria['file_type'] = {'type': 'exact', 'value': args.file_type}
+        criteria['file_format'] = {'type': 'exact', 'value': args.file_type}
     
     if not criteria:
         print("❌ No search criteria provided. Use --help for options.")
