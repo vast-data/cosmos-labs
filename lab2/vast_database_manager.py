@@ -569,6 +569,8 @@ class VASTDatabaseManager:
                                     
                                     if pattern == '*':
                                         # Match everything
+                                        if total_records_processed <= 3:
+                                            logger.info(f"Wildcard '*' match - continuing")
                                         continue
                                     elif pattern.startswith('*') and pattern.endswith('*'):
                                         # Contains pattern: *value*
@@ -663,6 +665,8 @@ class VASTDatabaseManager:
                                 
                                 if matches:
                                     results.append(record)
+                                    if len(results) <= 3:
+                                        logger.info(f"Added record {len(results)} to results: {record.get('file_name', 'N/A')}")
                     
                     logger.info(f"🔍 Found {len(results)} metadata records")
                     return results
