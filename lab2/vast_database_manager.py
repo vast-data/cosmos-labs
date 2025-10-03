@@ -664,6 +664,9 @@ class VASTDatabaseManager:
                                                         matches = False
                                                         break
                                 
+                                if total_records_processed <= 3:
+                                    logger.info(f"Record {total_records_processed}: matches={matches}")
+                                
                                 if matches:
                                     results.append(record)
                                     if len(results) <= 3:
