@@ -9,6 +9,7 @@ import sys
 import logging
 import tempfile
 from pathlib import Path
+import urllib3
 from typing import Dict, List, Any
 
 # Add parent directory to path for imports
@@ -123,6 +124,10 @@ class MetadataProcessor:
             view_path = self.config.get('lab2.raw_data.view_path', '/lab2-raw-data')
             bucket_name = view_path.lstrip('/').replace('/', '-')
             
+            # Suppress SSL warnings if verification is disabled by config
+            if not ssl_verify:
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
             s3_client = boto3.client(
                 's3',
                 endpoint_url=endpoint_url,
@@ -196,6 +201,10 @@ class MetadataProcessor:
             view_path = self.config.get('lab2.raw_data.view_path', '/lab2-raw-data')
             bucket_name = view_path.lstrip('/').replace('/', '-')
             
+            # Suppress SSL warnings if verification is disabled by config
+            if not ssl_verify:
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
             s3_client = boto3.client(
                 's3',
                 endpoint_url=endpoint_url,

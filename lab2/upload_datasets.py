@@ -8,6 +8,7 @@ import os
 import sys
 import logging
 from pathlib import Path
+import urllib3
 
 # Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
@@ -55,6 +56,10 @@ class DatasetUploader:
                 logger.error("❌ Missing S3 configuration (endpoint_url/access/secret)")
                 return False
             
+            # Suppress SSL warnings if verification is disabled by config
+            if not ssl_verify:
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
             s3_client = boto3.client(
                 's3',
                 endpoint_url=endpoint_url,
@@ -123,13 +128,19 @@ class DatasetUploader:
             view_path = self.config.get('lab2.raw_data.view_path', '/lab2-raw-data')
             bucket_name = view_path.lstrip('/').replace('/', '-')
             
+            ssl_verify_list = self.config.get('s3.ssl_verify', self.config.get('s3.verify_ssl', True))
+
+            # Suppress SSL warnings if verification is disabled by config
+            if not ssl_verify_list:
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
             s3_client = boto3.client(
                 's3',
                 endpoint_url=endpoint_url,
                 aws_access_key_id=access_key,
                 aws_secret_access_key=secret_key,
                 region_name=region_name,
-                verify=self.config.get('s3.ssl_verify', self.config.get('s3.verify_ssl', True)),
+                verify=ssl_verify_list,
                 config=boto3.session.Config(
                     s3={'addressing_style': 'path' if self.config.get('s3.compatibility.path_style_addressing', True) else 'auto'}
                 )
