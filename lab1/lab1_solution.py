@@ -483,7 +483,7 @@ class OrbitalDynamicsStorageManager:
                     # Set quota
                     quota_bytes = quota_gb * 1024 * 1024 * 1024
                     quota_data = {
-                        'name': f"{view_name}-quota",
+                        'name': f"{bucket_name}-quota",
                         'path': view_path,
                         'hard_limit': quota_bytes,
                         'soft_limit': int(quota_bytes * 0.8)  # 80% soft limit
