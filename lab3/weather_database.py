@@ -18,8 +18,11 @@ class WeatherVASTDB:
     """Minimal VAST DB manager for weather analytics (safe, lab-style)."""
     def __init__(self, config):
         self.config = config
-        # Bucket is lab3-specific; endpoint and connection live under base 'vastdb.*'
-        self.bucket = config.get('lab3.database.name', 'weather_analytics')
+        # Derive bucket from configured view_path (or explicit bucket_name),
+        # falling back to the legacy database name for compatibility.
+        view_path_cfg = config.get('lab3.database.view_path', f"/{config.get('lab3.database.name', 'weather_analytics')}")
+        derived_bucket = view_path_cfg.lstrip('/').replace('/', '-')
+        self.bucket = config.get('lab3.database.bucket_name', derived_bucket)
         self.schema = config.get('lab3.database.schema', 'weather_analytics')
         self.endpoint = config.get('vastdb.endpoint', 'https://your-vms-hostname')
         self.creds = {
