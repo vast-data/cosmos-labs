@@ -226,10 +226,9 @@ def main():
                 db = WeatherVASTDB(config)
                 
                 # Setup infrastructure if needed
-                if not db.setup_infrastructure(dry_run=True):
-                    logger.warning("⚠️ VAST DB not available, skipping ingestion")
+                if not db.setup_infrastructure(dry_run=False):
+                    logger.warning("⚠️ VAST DB setup failed, skipping ingestion")
                 else:
-                    db.setup_infrastructure(dry_run=False)
                     loc_dir = output_dir / label
                     if loc_dir.exists():
                         logger.info(f"📊 Ingesting {label} data to VAST DB...")
