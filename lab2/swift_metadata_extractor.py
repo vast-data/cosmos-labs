@@ -66,6 +66,17 @@ class SwiftMetadataExtractor:
                 'last_modified': datetime.fromtimestamp(file_stat.st_mtime).isoformat()
             }
             
+            # If we have an original filename, construct the original file path
+            if original_filename and original_filename != file_path.name:
+                # For S3-based processing, construct the original path from dataset and filename
+                if dataset_name and dataset_name != 'unknown':
+                    # Construct path like: swift_datasets/dataset_name/original_filename
+                    original_file_path = f"swift_datasets/{dataset_name}/{original_filename}"
+                else:
+                    # Fallback: use the original filename in the same directory as temp file
+                    original_file_path = str(file_path.parent / original_filename)
+                metadata['file_path'] = original_file_path
+            
             # Extract format-specific metadata
             if file_path.suffix == '.gz':
                 # Compressed files - use Swift lightcurve metadata extraction
