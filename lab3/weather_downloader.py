@@ -220,21 +220,20 @@ def main():
             else:
                 logger.info(f"⏭️ Skipping download for {label} (--no-download)")
             
-            # Ingest to VAST DB if not skipping
-            if not args.no_download:
-                from lab3.weather_database import WeatherVASTDB
-                db = WeatherVASTDB(config)
-                
-                # Setup infrastructure if needed
-                if not db.setup_infrastructure(dry_run=False):
-                    logger.warning("⚠️ VAST DB setup failed, skipping ingestion")
+            # Ingest to VAST DB (always try to ingest existing data)
+            from lab3.weather_database import WeatherVASTDB
+            db = WeatherVASTDB(config)
+            
+            # Setup infrastructure if needed
+            if not db.setup_infrastructure(dry_run=False):
+                logger.warning("⚠️ VAST DB setup failed, skipping ingestion")
+            else:
+                loc_dir = output_dir / label
+                if loc_dir.exists():
+                    logger.info(f"📊 Ingesting {label} data to VAST DB...")
+                    db.ingest_location_csvs(loc_dir, label)
                 else:
-                    loc_dir = output_dir / label
-                    if loc_dir.exists():
-                        logger.info(f"📊 Ingesting {label} data to VAST DB...")
-                        db.ingest_location_csvs(loc_dir, label)
-                    else:
-                        logger.warning(f"⚠️ No data directory found for {label}")
+                    logger.warning(f"⚠️ No data directory found for {label}")
         
         except Exception as e:
             logger.error(f"❌ Failed to process {location}: {e}")
