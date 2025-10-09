@@ -356,11 +356,15 @@ class WeatherVASTDB:
                     logger.info(f"🔧 Using policy '{policy_name}' (ID: {policy_id})")
                     
                     # Create view if it doesn't exist (following Lab 2 pattern)
+                    # Derive bucket name from view path for S3
+                    bucket_name = view_path.lstrip('/').replace('/', '-')
+                    
                     view_kwargs = {
                         'path': view_path,
                         'policy_id': policy_id,
                         'protocols': ['S3', 'DATABASE'],
-                        'create_dir': True
+                        'create_dir': True,
+                        'bucket': bucket_name
                     }
                     
                     # Add bucket_owner if provided
