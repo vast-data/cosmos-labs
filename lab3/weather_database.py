@@ -282,13 +282,15 @@ class WeatherVASTDB:
             for batch in reader:
                 df = batch.to_pandas()
                 location_data = df[df['location'] == location_label]
-                existing_times.update(location_data['time'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist())
+                # Convert to UTC and normalize format for comparison
+                existing_times.update(location_data['time'].dt.strftime('%Y-%m-%dT%H:%M:%S').tolist())
             
             # Filter out duplicates
             new_data = {col: [] for col in data.keys()}
             new_times = []
             for i, time_val in enumerate(times):
-                time_str = time_val.strftime('%Y-%m-%d %H:%M:%S')
+                # Use same format as stored timestamps
+                time_str = time_val.strftime('%Y-%m-%dT%H:%M:%S')
                 if time_str not in existing_times:
                     for col in data.keys():
                         new_data[col].append(data[col][i])
