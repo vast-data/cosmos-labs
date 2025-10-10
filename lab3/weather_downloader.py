@@ -128,7 +128,7 @@ def save_weather_csvs(base_dir: Path, label: str, weather: Dict, air: Dict):
     
     # Save weather data
     if weather.get("hourly"):
-        weather_header = ["time"] + list(weather["hourly_units"].keys())
+        weather_header = ["time"] + [key for key in weather["hourly_units"].keys() if key != "time"]
         weather_rows = []
         for i, time_val in enumerate(weather["hourly"]["time"]):
             row = [time_val]
@@ -141,7 +141,7 @@ def save_weather_csvs(base_dir: Path, label: str, weather: Dict, air: Dict):
     
     # Save air quality data
     if air.get("hourly"):
-        air_header = ["time"] + list(air["hourly_units"].keys())
+        air_header = ["time"] + [key for key in air["hourly_units"].keys() if key != "time"]
         air_rows = []
         for i, time_val in enumerate(air["hourly"]["time"]):
             row = [time_val]
