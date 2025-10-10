@@ -7,7 +7,11 @@ Command-line tool for managing VAST Database operations for weather data
 import sys
 import argparse
 import logging
+import urllib3
 from pathlib import Path
+
+# Suppress insecure HTTPS warnings
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Use centralized config files at repo root
 sys.path.append(str(Path(__file__).parent.parent))
