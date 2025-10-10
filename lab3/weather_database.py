@@ -197,6 +197,7 @@ class WeatherVASTDB:
         if table_name == 'hourly_weather':
             col_map = {
                 'time': 'time',
+                'location': 'location',
                 'temperature_2m': 'temperature_2m',
                 'relative_humidity_2m': 'relative_humidity_2m',
                 'surface_pressure': 'surface_pressure',
@@ -207,6 +208,7 @@ class WeatherVASTDB:
         else:
             col_map = {
                 'time': 'time',
+                'location': 'location',
                 'pm10': 'pm10',
                 'pm2_5': 'pm2_5',
                 'nitrogen_dioxide': 'nitrogen_dioxide',
