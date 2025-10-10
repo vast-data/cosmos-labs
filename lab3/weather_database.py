@@ -282,22 +282,18 @@ class WeatherVASTDB:
         try:
             # Pre-query existing data to check for duplicates
             logger.info(f"🔍 Checking existing data for {location_label}...")
-            reader = table.select(columns=['time', 'location'], where=f"location = '{location_label}'")
+            reader = table.select(columns=['time', 'location'])
             existing_times = set()
             total_rows = 0
-            all_locations = set()
             for batch in reader:
                 df = batch.to_pandas()
                 total_rows += len(df)
-                logger.info(f"🔍 Query returned batch with {len(df)} rows")
-                if len(df) > 0:
-                    logger.info(f"🔍 Sample locations in batch: {df['location'].unique()[:5].tolist()}")
-                    all_locations.update(df['location'].unique())
-                # Since we're filtering by location in the query, all rows should match
-                existing_times.update(df['time'].tolist())
+                # Filter by location in pandas (more efficient than processing all rows)
+                location_data = df[df['location'] == location_label]
+                if len(location_data) > 0:
+                    existing_times.update(location_data['time'].tolist())
             
-            logger.info(f"🔍 Total query returned {total_rows} rows, found {len(existing_times)} existing timestamps for {location_label}")
-            logger.info(f"🔍 All locations in database: {sorted(all_locations)}")
+            logger.info(f"🔍 Query returned {total_rows} total rows, found {len(existing_times)} existing timestamps for {location_label}")
             
             # Filter out duplicates
             new_data = {col: [] for col in data.keys()}
