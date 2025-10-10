@@ -197,6 +197,7 @@ class WeatherVASTDB:
         if table_name == 'hourly_weather':
             col_map = {
                 'time': 'time',
+                'location': 'location',
                 'temperature_2m': 'temperature_2m',
                 'relative_humidity_2m': 'relative_humidity_2m',
                 'surface_pressure': 'surface_pressure',
@@ -207,6 +208,7 @@ class WeatherVASTDB:
         else:
             col_map = {
                 'time': 'time',
+                'location': 'location',
                 'pm10': 'pm10',
                 'pm2_5': 'pm2_5',
                 'nitrogen_dioxide': 'nitrogen_dioxide',
@@ -282,13 +284,16 @@ class WeatherVASTDB:
             logger.info(f"🔍 Checking existing data for {location_label}...")
             reader = table.select(columns=['time', 'location'])
             existing_times = set()
+            total_rows = 0
             for batch in reader:
                 df = batch.to_pandas()
+                total_rows += len(df)
+                # Filter by location in pandas (more efficient than processing all rows)
                 location_data = df[df['location'] == location_label]
-                # Use raw timestamp values for comparison
-                existing_times.update(location_data['time'].tolist())
+                if len(location_data) > 0:
+                    existing_times.update(location_data['time'].tolist())
             
-            logger.info(f"🔍 Found {len(existing_times)} existing timestamps for {location_label}")
+            logger.info(f"🔍 Query returned {total_rows} total rows, found {len(existing_times)} existing timestamps for {location_label}")
             
             # Filter out duplicates
             new_data = {col: [] for col in data.keys()}
