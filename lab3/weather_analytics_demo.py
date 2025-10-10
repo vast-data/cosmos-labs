@@ -299,9 +299,9 @@ def analyze_daily_patterns(conn, config, locations, debug=False, trends=False):
                         print(f"      🌫️  Avg PM10: No valid data")
                     
                     # Additional air quality parameters
-                    valid_no2 = [a['nitrogen_dioxide'] for a in air_quality_data if not pd.isna(a['nitrogen_dioxide'])]
-                    valid_so2 = [a['sulphur_dioxide'] for a in air_quality_data if not pd.isna(a['sulphur_dioxide'])]
-                    valid_ozone = [a['ozone'] for a in air_quality_data if not pd.isna(a['ozone'])]
+                    valid_no2 = [a['nitrogen_dioxide'] for a in air_quality_data if 'nitrogen_dioxide' in a and not pd.isna(a['nitrogen_dioxide'])]
+                    valid_so2 = [a['sulphur_dioxide'] for a in air_quality_data if 'sulphur_dioxide' in a and not pd.isna(a['sulphur_dioxide'])]
+                    valid_ozone = [a['ozone'] for a in air_quality_data if 'ozone' in a and not pd.isna(a['ozone'])]
                     
                     if valid_no2:
                         avg_no2 = sum(valid_no2) / len(valid_no2)
@@ -437,18 +437,25 @@ def analyze_correlations(conn, config, locations, debug=False, trends=False):
                         for w in weather_data[:50]:  # Limit to 50 points for correlation
                             for a in air_quality_data[:50]:
                                 if w['time'] == a['time']:
-                                    sample_data.append({
+                                    sample_row = {
                                         'location': location,
                                         'temp': w['temp'],
                                         'humidity': w['humidity'],
                                         'wind_speed': w['wind_speed'],
                                         'precipitation': w['precipitation'],
                                         'pm2_5': a['pm2_5'],
-                                        'pm10': a['pm10'],
-                                        'ozone': a['ozone'],
-                                        'nitrogen_dioxide': a['nitrogen_dioxide'],
-                                        'sulphur_dioxide': a['sulphur_dioxide']
-                                    })
+                                        'pm10': a['pm10']
+                                    }
+                                    
+                                    # Add optional air quality columns if they exist
+                                    if 'ozone' in a and not pd.isna(a['ozone']):
+                                        sample_row['ozone'] = a['ozone']
+                                    if 'nitrogen_dioxide' in a and not pd.isna(a['nitrogen_dioxide']):
+                                        sample_row['nitrogen_dioxide'] = a['nitrogen_dioxide']
+                                    if 'sulphur_dioxide' in a and not pd.isna(a['sulphur_dioxide']):
+                                        sample_row['sulphur_dioxide'] = a['sulphur_dioxide']
+                                    
+                                    sample_data.append(sample_row)
                                     break
             
                 if sample_data:
