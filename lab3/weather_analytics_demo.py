@@ -469,32 +469,34 @@ def analyze_correlations(conn, config, locations, debug=False, trends=False):
                         loc_data = df[df['location'] == location]
                         
                         if len(loc_data) > 10:  # Need enough data for correlation
-                            # Temperature vs PM2.5
+                            # Basic correlations (always available)
                             temp_pm25_corr = loc_data['temp'].corr(loc_data['pm2_5'])
-                            # Humidity vs PM2.5
                             humidity_pm25_corr = loc_data['humidity'].corr(loc_data['pm2_5'])
-                            # Wind speed vs PM2.5
                             wind_pm25_corr = loc_data['wind_speed'].corr(loc_data['pm2_5'])
-                            # Temperature vs Ozone
-                            temp_ozone_corr = loc_data['temp'].corr(loc_data['ozone'])
-                            # Temperature vs NO2 (traffic emissions increase with heat)
-                            temp_no2_corr = loc_data['temp'].corr(loc_data['nitrogen_dioxide'])
-                            # Wind speed vs NO2 (dispersion effect)
-                            wind_no2_corr = loc_data['wind_speed'].corr(loc_data['nitrogen_dioxide'])
-                            # Wind speed vs SO2 (industrial dispersion)
-                            wind_so2_corr = loc_data['wind_speed'].corr(loc_data['sulphur_dioxide'])
-                            # Humidity vs PM2.5 (particle growth)
-                            humidity_pm25_corr = loc_data['humidity'].corr(loc_data['pm2_5'])
+                            
+                            # Optional correlations (only if columns exist)
+                            temp_ozone_corr = None
+                            temp_no2_corr = None
+                            wind_no2_corr = None
+                            wind_so2_corr = None
+                            
+                            if 'ozone' in loc_data.columns:
+                                temp_ozone_corr = loc_data['temp'].corr(loc_data['ozone'])
+                            if 'nitrogen_dioxide' in loc_data.columns:
+                                temp_no2_corr = loc_data['temp'].corr(loc_data['nitrogen_dioxide'])
+                                wind_no2_corr = loc_data['wind_speed'].corr(loc_data['nitrogen_dioxide'])
+                            if 'sulphur_dioxide' in loc_data.columns:
+                                wind_so2_corr = loc_data['wind_speed'].corr(loc_data['sulphur_dioxide'])
                             
                             correlations.append({
                                 'Location': location,
                                 'Temp vs PM2.5': f"{temp_pm25_corr:.3f}",
                                 'Humidity vs PM2.5': f"{humidity_pm25_corr:.3f}",
                                 'Wind vs PM2.5': f"{wind_pm25_corr:.3f}",
-                                'Temp vs Ozone': f"{temp_ozone_corr:.3f}",
-                                'Temp vs NO2': f"{temp_no2_corr:.3f}",
-                                'Wind vs NO2': f"{wind_no2_corr:.3f}",
-                                'Wind vs SO2': f"{wind_so2_corr:.3f}"
+                                'Temp vs Ozone': f"{temp_ozone_corr:.3f}" if temp_ozone_corr is not None else "N/A",
+                                'Temp vs NO2': f"{temp_no2_corr:.3f}" if temp_no2_corr is not None else "N/A",
+                                'Wind vs NO2': f"{wind_no2_corr:.3f}" if wind_no2_corr is not None else "N/A",
+                                'Wind vs SO2': f"{wind_so2_corr:.3f}" if wind_so2_corr is not None else "N/A"
                             })
                     
                     if correlations:

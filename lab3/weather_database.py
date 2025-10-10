@@ -221,6 +221,9 @@ class WeatherVASTDB:
             logger.warning(f"⚠️ No valid data parsed from {csv_path}")
             return
         
+        logger.info(f"🔍 Parsed data columns: {list(data.keys())}")
+        logger.info(f"🔍 Sample data: {[(k, len(v)) for k, v in data.items()]}")
+        
         # Insert with duplicate filtering
         self._insert_with_duplicate_filtering(table, data, times, location_label)
 
