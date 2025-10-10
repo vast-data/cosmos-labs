@@ -43,7 +43,6 @@ def main():
     if args.drop:
         logger.info("🗑️ Dropping weather and air quality tables...")
         if db.drop_tables():
-            logger.info("✅ Successfully dropped tables")
             return 0
         else:
             logger.error("❌ Failed to drop tables")

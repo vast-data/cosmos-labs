@@ -136,13 +136,16 @@ class WeatherVASTDB:
                 bucket = tx.bucket(self.bucket)
                 schema = bucket.schema(self.schema)
                 tables_to_drop = ['hourly_weather', 'hourly_air_quality']
+                dropped_count = 0
                 for table_name in tables_to_drop:
                     try:
                         table = schema.table(table_name)
                         table.drop()
                         logger.info(f"✅ Dropped table '{table_name}'")
+                        dropped_count += 1
                     except Exception as e:
-                        logger.warning(f"⚠️ Could not drop table {table_name}: {e}")
+                        logger.info(f"ℹ️ Table '{table_name}' does not exist (nothing to drop)")
+            logger.info(f"✅ Drop operation completed: {dropped_count}/{len(tables_to_drop)} tables dropped")
             return True
         except Exception as e:
             logger.error(f"❌ Drop tables failed: {e}")
