@@ -250,10 +250,11 @@ The system automatically checks against WHO health guidelines:
 - **Pre-query existing data** before insertion
 - **Skip duplicate records** automatically
 - **Maintain data integrity** across multiple runs
+- **Efficient processing** - no unnecessary delays when using `--no-download`
 
 ### Error Handling
 
-- **Retry logic** for API rate limits
+- **Retry logic** for API rate limits with exponential backoff (60s, 120s, 240s)
 - **Transaction error handling** for database operations
 - **Graceful degradation** when services are unavailable
 
@@ -288,11 +289,21 @@ python weather_analytics_demo.py
 # Set up database infrastructure
 python vastdb_manager.py --setup
 
-# Drop all weather tables
+# Drop all weather tables (shows exactly what was dropped)
 python vastdb_manager.py --drop
 
 # Preview setup without changes
 python vastdb_manager.py --setup --dry-run
+```
+
+### Efficient Data Processing
+
+```bash
+# Skip downloads and only process existing CSV files (no rate limiting delays)
+python weather_downloader.py --preset test --start 2025-09-01 --end 2025-09-30 --no-download
+
+# Download new data with proper rate limiting (60s between cities)
+python weather_downloader.py --preset global --start 2025-09-01 --end 2025-09-30
 ```
 
 ## 🔍 Troubleshooting
