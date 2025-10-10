@@ -282,13 +282,22 @@ class WeatherVASTDB:
             logger.info(f"🔍 Checking existing data for {location_label}...")
             reader = table.select(columns=['time', 'location'])
             existing_times = set()
+            total_rows = 0
+            all_locations = set()
             for batch in reader:
                 df = batch.to_pandas()
+                total_rows += len(df)
+                logger.info(f"🔍 Query returned batch with {len(df)} rows")
+                if len(df) > 0:
+                    logger.info(f"🔍 Sample locations in batch: {df['location'].unique()[:5].tolist()}")
+                    all_locations.update(df['location'].unique())
                 location_data = df[df['location'] == location_label]
+                logger.info(f"🔍 Found {len(location_data)} rows for location '{location_label}'")
                 # Use raw timestamp values for comparison
                 existing_times.update(location_data['time'].tolist())
             
-            logger.info(f"🔍 Found {len(existing_times)} existing timestamps for {location_label}")
+            logger.info(f"🔍 Total query returned {total_rows} rows, found {len(existing_times)} existing timestamps for {location_label}")
+            logger.info(f"🔍 All locations in database: {sorted(all_locations)}")
             
             # Filter out duplicates
             new_data = {col: [] for col in data.keys()}
