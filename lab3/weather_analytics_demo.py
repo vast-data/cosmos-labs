@@ -10,6 +10,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 import pandas as pd
 import time
+import urllib3
+
+# Suppress insecure HTTPS warnings
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Add parent directory to path for centralized config
 sys.path.append(str(Path(__file__).parent.parent))
@@ -124,7 +128,9 @@ def get_data_summary(conn, config, trends=False):
     
     try:
         # Get bucket and schema names from config
-        bucket_name = config.get('lab3.database.name', 'weather_analytics')
+        # Use same bucket derivation logic as weather_database.py
+        view_path_cfg = config.get('lab3.database.view_path', f"/{config.get('lab3.database.name', 'weather_analytics')}")
+        bucket_name = config.get('lab3.database.bucket_name', view_path_cfg.lstrip('/').replace('/', '-'))
         schema_name = config.get('lab3.database.schema', 'weather_analytics')
         
         # Use transaction to access tables with retry logic
@@ -189,7 +195,9 @@ def analyze_daily_patterns(conn, config, locations, debug=False, trends=False):
     
     try:
         # Get bucket and schema names from config
-        bucket_name = config.get('lab3.database.name', 'weather_analytics')
+        # Use same bucket derivation logic as weather_database.py
+        view_path_cfg = config.get('lab3.database.view_path', f"/{config.get('lab3.database.name', 'weather_analytics')}")
+        bucket_name = config.get('lab3.database.bucket_name', view_path_cfg.lstrip('/').replace('/', '-'))
         schema_name = config.get('lab3.database.schema', 'weather_analytics')
         
         # Use transaction to access tables
@@ -242,8 +250,10 @@ def analyze_daily_patterns(conn, config, locations, debug=False, trends=False):
                 air_quality_reader = air_quality_table.select(columns=['time', 'location', 'pm2_5', 'pm10', 'ozone', 'nitrogen_dioxide', 'sulphur_dioxide'])
                 for batch in air_quality_reader:
                     df = batch.to_pandas()
+                    print(f"🔍 Air quality batch columns: {list(df.columns)}")
                     if 'location' in df.columns:
                         location_data = df[df['location'] == location]
+                        print(f"🔍 Found {len(location_data)} rows for {location}")
                         for _, row in location_data.iterrows():
                             row_time = pd.to_datetime(row['time'])
                             # Filter to our 6-month date range
@@ -291,9 +301,9 @@ def analyze_daily_patterns(conn, config, locations, debug=False, trends=False):
                         print(f"      🌫️  Avg PM10: No valid data")
                     
                     # Additional air quality parameters
-                    valid_no2 = [a['nitrogen_dioxide'] for a in air_quality_data if not pd.isna(a['nitrogen_dioxide'])]
-                    valid_so2 = [a['sulphur_dioxide'] for a in air_quality_data if not pd.isna(a['sulphur_dioxide'])]
-                    valid_ozone = [a['ozone'] for a in air_quality_data if not pd.isna(a['ozone'])]
+                    valid_no2 = [a['nitrogen_dioxide'] for a in air_quality_data if 'nitrogen_dioxide' in a and not pd.isna(a['nitrogen_dioxide'])]
+                    valid_so2 = [a['sulphur_dioxide'] for a in air_quality_data if 'sulphur_dioxide' in a and not pd.isna(a['sulphur_dioxide'])]
+                    valid_ozone = [a['ozone'] for a in air_quality_data if 'ozone' in a and not pd.isna(a['ozone'])]
                     
                     if valid_no2:
                         avg_no2 = sum(valid_no2) / len(valid_no2)
@@ -342,7 +352,9 @@ def analyze_correlations(conn, config, locations, debug=False, trends=False):
     
     try:
         # Get bucket and schema names from config
-        bucket_name = config.get('lab3.database.name', 'weather_analytics')
+        # Use same bucket derivation logic as weather_database.py
+        view_path_cfg = config.get('lab3.database.view_path', f"/{config.get('lab3.database.name', 'weather_analytics')}")
+        bucket_name = config.get('lab3.database.bucket_name', view_path_cfg.lstrip('/').replace('/', '-'))
         schema_name = config.get('lab3.database.schema', 'weather_analytics')
         
         # Use transaction to access tables with timeout handling
@@ -427,18 +439,25 @@ def analyze_correlations(conn, config, locations, debug=False, trends=False):
                         for w in weather_data[:50]:  # Limit to 50 points for correlation
                             for a in air_quality_data[:50]:
                                 if w['time'] == a['time']:
-                                    sample_data.append({
+                                    sample_row = {
                                         'location': location,
                                         'temp': w['temp'],
                                         'humidity': w['humidity'],
                                         'wind_speed': w['wind_speed'],
                                         'precipitation': w['precipitation'],
                                         'pm2_5': a['pm2_5'],
-                                        'pm10': a['pm10'],
-                                        'ozone': a['ozone'],
-                                        'nitrogen_dioxide': a['nitrogen_dioxide'],
-                                        'sulphur_dioxide': a['sulphur_dioxide']
-                                    })
+                                        'pm10': a['pm10']
+                                    }
+                                    
+                                    # Add optional air quality columns if they exist
+                                    if 'ozone' in a and not pd.isna(a['ozone']):
+                                        sample_row['ozone'] = a['ozone']
+                                    if 'nitrogen_dioxide' in a and not pd.isna(a['nitrogen_dioxide']):
+                                        sample_row['nitrogen_dioxide'] = a['nitrogen_dioxide']
+                                    if 'sulphur_dioxide' in a and not pd.isna(a['sulphur_dioxide']):
+                                        sample_row['sulphur_dioxide'] = a['sulphur_dioxide']
+                                    
+                                    sample_data.append(sample_row)
                                     break
             
                 if sample_data:
@@ -452,32 +471,34 @@ def analyze_correlations(conn, config, locations, debug=False, trends=False):
                         loc_data = df[df['location'] == location]
                         
                         if len(loc_data) > 10:  # Need enough data for correlation
-                            # Temperature vs PM2.5
+                            # Basic correlations (always available)
                             temp_pm25_corr = loc_data['temp'].corr(loc_data['pm2_5'])
-                            # Humidity vs PM2.5
                             humidity_pm25_corr = loc_data['humidity'].corr(loc_data['pm2_5'])
-                            # Wind speed vs PM2.5
                             wind_pm25_corr = loc_data['wind_speed'].corr(loc_data['pm2_5'])
-                            # Temperature vs Ozone
-                            temp_ozone_corr = loc_data['temp'].corr(loc_data['ozone'])
-                            # Temperature vs NO2 (traffic emissions increase with heat)
-                            temp_no2_corr = loc_data['temp'].corr(loc_data['nitrogen_dioxide'])
-                            # Wind speed vs NO2 (dispersion effect)
-                            wind_no2_corr = loc_data['wind_speed'].corr(loc_data['nitrogen_dioxide'])
-                            # Wind speed vs SO2 (industrial dispersion)
-                            wind_so2_corr = loc_data['wind_speed'].corr(loc_data['sulphur_dioxide'])
-                            # Humidity vs PM2.5 (particle growth)
-                            humidity_pm25_corr = loc_data['humidity'].corr(loc_data['pm2_5'])
+                            
+                            # Optional correlations (only if columns exist)
+                            temp_ozone_corr = None
+                            temp_no2_corr = None
+                            wind_no2_corr = None
+                            wind_so2_corr = None
+                            
+                            if 'ozone' in loc_data.columns:
+                                temp_ozone_corr = loc_data['temp'].corr(loc_data['ozone'])
+                            if 'nitrogen_dioxide' in loc_data.columns:
+                                temp_no2_corr = loc_data['temp'].corr(loc_data['nitrogen_dioxide'])
+                                wind_no2_corr = loc_data['wind_speed'].corr(loc_data['nitrogen_dioxide'])
+                            if 'sulphur_dioxide' in loc_data.columns:
+                                wind_so2_corr = loc_data['wind_speed'].corr(loc_data['sulphur_dioxide'])
                             
                             correlations.append({
                                 'Location': location,
                                 'Temp vs PM2.5': f"{temp_pm25_corr:.3f}",
                                 'Humidity vs PM2.5': f"{humidity_pm25_corr:.3f}",
                                 'Wind vs PM2.5': f"{wind_pm25_corr:.3f}",
-                                'Temp vs Ozone': f"{temp_ozone_corr:.3f}",
-                                'Temp vs NO2': f"{temp_no2_corr:.3f}",
-                                'Wind vs NO2': f"{wind_no2_corr:.3f}",
-                                'Wind vs SO2': f"{wind_so2_corr:.3f}"
+                                'Temp vs Ozone': f"{temp_ozone_corr:.3f}" if temp_ozone_corr is not None else "N/A",
+                                'Temp vs NO2': f"{temp_no2_corr:.3f}" if temp_no2_corr is not None else "N/A",
+                                'Wind vs NO2': f"{wind_no2_corr:.3f}" if wind_no2_corr is not None else "N/A",
+                                'Wind vs SO2': f"{wind_so2_corr:.3f}" if wind_so2_corr is not None else "N/A"
                             })
                     
                     if correlations:
@@ -522,7 +543,9 @@ def analyze_pollution_episodes(conn, config, locations, debug=False, trends=Fals
     
     try:
         # Get bucket and schema names from config
-        bucket_name = config.get('lab3.database.name', 'weather_analytics')
+        # Use same bucket derivation logic as weather_database.py
+        view_path_cfg = config.get('lab3.database.view_path', f"/{config.get('lab3.database.name', 'weather_analytics')}")
+        bucket_name = config.get('lab3.database.bucket_name', view_path_cfg.lstrip('/').replace('/', '-'))
         schema_name = config.get('lab3.database.schema', 'weather_analytics')
         
         # Use transaction to access tables with error handling
