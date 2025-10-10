@@ -10,6 +10,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 import pandas as pd
 import time
+import urllib3
+
+# Suppress insecure HTTPS warnings
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Add parent directory to path for centralized config
 sys.path.append(str(Path(__file__).parent.parent))
@@ -124,7 +128,9 @@ def get_data_summary(conn, config, trends=False):
     
     try:
         # Get bucket and schema names from config
-        bucket_name = config.get('lab3.database.name', 'weather_analytics')
+        # Use same bucket derivation logic as weather_database.py
+        view_path_cfg = config.get('lab3.database.view_path', f"/{config.get('lab3.database.name', 'weather_analytics')}")
+        bucket_name = config.get('lab3.database.bucket_name', view_path_cfg.lstrip('/').replace('/', '-'))
         schema_name = config.get('lab3.database.schema', 'weather_analytics')
         
         # Use transaction to access tables with retry logic
@@ -189,7 +195,9 @@ def analyze_daily_patterns(conn, config, locations, debug=False, trends=False):
     
     try:
         # Get bucket and schema names from config
-        bucket_name = config.get('lab3.database.name', 'weather_analytics')
+        # Use same bucket derivation logic as weather_database.py
+        view_path_cfg = config.get('lab3.database.view_path', f"/{config.get('lab3.database.name', 'weather_analytics')}")
+        bucket_name = config.get('lab3.database.bucket_name', view_path_cfg.lstrip('/').replace('/', '-'))
         schema_name = config.get('lab3.database.schema', 'weather_analytics')
         
         # Use transaction to access tables
@@ -342,7 +350,9 @@ def analyze_correlations(conn, config, locations, debug=False, trends=False):
     
     try:
         # Get bucket and schema names from config
-        bucket_name = config.get('lab3.database.name', 'weather_analytics')
+        # Use same bucket derivation logic as weather_database.py
+        view_path_cfg = config.get('lab3.database.view_path', f"/{config.get('lab3.database.name', 'weather_analytics')}")
+        bucket_name = config.get('lab3.database.bucket_name', view_path_cfg.lstrip('/').replace('/', '-'))
         schema_name = config.get('lab3.database.schema', 'weather_analytics')
         
         # Use transaction to access tables with timeout handling
@@ -522,7 +532,9 @@ def analyze_pollution_episodes(conn, config, locations, debug=False, trends=Fals
     
     try:
         # Get bucket and schema names from config
-        bucket_name = config.get('lab3.database.name', 'weather_analytics')
+        # Use same bucket derivation logic as weather_database.py
+        view_path_cfg = config.get('lab3.database.view_path', f"/{config.get('lab3.database.name', 'weather_analytics')}")
+        bucket_name = config.get('lab3.database.bucket_name', view_path_cfg.lstrip('/').replace('/', '-'))
         schema_name = config.get('lab3.database.schema', 'weather_analytics')
         
         # Use transaction to access tables with error handling
