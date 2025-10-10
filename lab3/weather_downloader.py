@@ -216,6 +216,11 @@ def main():
                 
                 # Save to CSV files
                 save_weather_csvs(output_dir, label, weather, air)
+                
+                # Rate limiting between cities (only after API calls)
+                if i < len(locations):
+                    logger.info("⏳ Waiting 60s before next city (respecting 600 calls/min limit)...")
+                    time.sleep(60)
             else:
                 logger.info(f"⏭️ Skipping download for {label} (--no-download)")
             
@@ -233,11 +238,6 @@ def main():
                     db.ingest_location_csvs(loc_dir, label)
                 else:
                     logger.warning(f"⚠️ No data directory found for {label}")
-            
-            # Rate limiting between cities (after ingestion, before next API call)
-            if i < len(locations):
-                logger.info("⏳ Waiting 60s before next city (respecting 600 calls/min limit)...")
-                time.sleep(60)
         
         except Exception as e:
             logger.error(f"❌ Failed to process {location}: {e}")
