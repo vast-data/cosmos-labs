@@ -250,8 +250,10 @@ def analyze_daily_patterns(conn, config, locations, debug=False, trends=False):
                 air_quality_reader = air_quality_table.select(columns=['time', 'location', 'pm2_5', 'pm10', 'ozone', 'nitrogen_dioxide', 'sulphur_dioxide'])
                 for batch in air_quality_reader:
                     df = batch.to_pandas()
+                    print(f"🔍 Air quality batch columns: {list(df.columns)}")
                     if 'location' in df.columns:
                         location_data = df[df['location'] == location]
+                        print(f"🔍 Found {len(location_data)} rows for {location}")
                         for _, row in location_data.iterrows():
                             row_time = pd.to_datetime(row['time'])
                             # Filter to our 6-month date range
