@@ -139,7 +139,8 @@ class Lab4Solution:
         if self.dry_run:
             self.logger.info(f"Would create {len(protected_paths)} protected paths:")
             for path in protected_paths:
-                self.logger.info(f"  - {path['name']} -> {path['source_dir']} (policy ID: {path['policy_id']})")
+                tenant_info = f", tenant: {path['tenant_id']}" if 'tenant_id' in path else ""
+                self.logger.info(f"  - {path['name']} -> {path['source_dir']} (policy ID: {path['policy_id']}{tenant_info})")
         else:
             self.logger.info(f"Created {len(protected_paths)} protected paths")
         

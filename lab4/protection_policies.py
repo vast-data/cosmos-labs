@@ -248,6 +248,35 @@ class ProtectionPoliciesManager:
             self.logger.error(f"Failed to get policy by name '{policy_name}': {e}")
             return None
     
+    def get_tenant_id_from_views(self) -> int:
+        """
+        Get the tenant ID from existing views.
+        
+        Returns:
+            Tenant ID (defaults to 1 if not found)
+        """
+        try:
+            # Get views to extract tenant_id
+            url = f"{self.base_url}/views/"
+            
+            self.logger.debug(f"Getting tenant ID from views endpoint: {url}")
+            response = self.session.get(url, verify=self.vast_config['ssl_verify'])
+            response.raise_for_status()
+            
+            views = response.json()
+            if views and len(views) > 0:
+                # Get tenant_id from the first view
+                tenant_id = views[0].get('tenant_id', 1)
+                self.logger.info(f"Using tenant ID: {tenant_id} from views")
+                return tenant_id
+            else:
+                self.logger.warning("No views found, using default tenant ID: 1")
+                return 1
+                
+        except Exception as e:
+            self.logger.warning(f"Could not get tenant ID from views: {e}, using default: 1")
+            return 1
+    
     def get_protection_policy(self, policy_id: int) -> Dict[str, Any]:
         """
         Get a specific protection policy by ID.
@@ -615,6 +644,9 @@ class ProtectionPoliciesManager:
         # Get views configuration
         views_config = self.config.get_lab_config().get('views', {})
         
+        # Get tenant ID from existing views
+        tenant_id = self.get_tenant_id_from_views()
+        
         protected_paths = []
         
         self.logger.info(f"Setting up protected paths for views (dry_run={dry_run})")
@@ -637,11 +669,12 @@ class ProtectionPoliciesManager:
             policy_id = int(policy['id'])  # Ensure it's an integer
             
             if dry_run:
-                self.logger.info(f"Would create protected path: {view_name} -> {source_dir} (policy: {policy_name}, ID: {policy_id})")
+                self.logger.info(f"Would create protected path: {view_name} -> {source_dir} (policy: {policy_name}, ID: {policy_id}, tenant: {tenant_id})")
                 protected_paths.append({
                     'name': view_name,
                     'source_dir': source_dir,
                     'policy_id': policy_id,
+                    'tenant_id': tenant_id,
                     'dry_run': True
                 })
             else:
@@ -650,7 +683,7 @@ class ProtectionPoliciesManager:
                         name=view_name,
                         source_dir=source_dir,
                         policy_id=policy_id,
-                        tenant_id=0,  # Default tenant
+                        tenant_id=tenant_id,  # Use actual tenant ID from API
                         enabled=True
                     )
                     protected_paths.append(protected_path)
