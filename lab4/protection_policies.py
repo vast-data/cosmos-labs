@@ -187,10 +187,13 @@ class ProtectionPoliciesManager:
                     self.logger.error(f"API Error Response: {e.response.text}")
             raise
     
-    def list_protection_policies(self) -> List[Dict[str, Any]]:
+    def list_protection_policies(self, name_filter: str = None) -> List[Dict[str, Any]]:
         """
         List all protection policies.
         
+        Args:
+            name_filter: Optional filter by protection policy name
+            
         Returns:
             List of protection policy dictionaries
             
@@ -199,10 +202,15 @@ class ProtectionPoliciesManager:
         """
         url = f"{self.base_url}/protectionpolicies/"
         
-        self.logger.info("Listing protection policies")
+        # Add query parameters if filtering by name
+        params = {}
+        if name_filter:
+            params['name'] = name_filter
+        
+        self.logger.info(f"Listing protection policies{' (filtered by name: ' + name_filter + ')' if name_filter else ''}")
         
         try:
-            response = self.session.get(url, verify=self.vast_config['ssl_verify'])
+            response = self.session.get(url, params=params, verify=self.vast_config['ssl_verify'])
             response.raise_for_status()
             
             policies = response.json()
@@ -213,6 +221,32 @@ class ProtectionPoliciesManager:
         except requests.RequestException as e:
             self.logger.error(f"Failed to list protection policies: {str(e)}")
             raise
+    
+    def get_policy_by_name(self, policy_name: str) -> Optional[Dict[str, Any]]:
+        """
+        Get a protection policy by name using the API.
+        
+        Args:
+            policy_name: Name of the protection policy to find
+            
+        Returns:
+            Policy dictionary if found, None otherwise
+        """
+        try:
+            policies = self.list_protection_policies(name_filter=policy_name)
+            
+            # Find exact match
+            for policy in policies:
+                if policy.get('name') == policy_name:
+                    self.logger.info(f"Found policy '{policy_name}' with ID: {policy.get('id')}")
+                    return policy
+            
+            self.logger.warning(f"Policy '{policy_name}' not found")
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get policy by name '{policy_name}': {e}")
+            return None
     
     def get_protection_policy(self, policy_id: int) -> Dict[str, Any]:
         """
@@ -410,6 +444,221 @@ class ProtectionPoliciesManager:
             self.logger.info("Policies created. Next step would be to apply them to views.")
         
         return policies
+    
+    def create_protected_path(self, 
+                             name: str, 
+                             source_dir: str, 
+                             policy_id: int,
+                             tenant_id: int = 0,
+                             enabled: bool = True,
+                             target_exported_dir: str = None,
+                             capabilities: str = None) -> Dict[str, Any]:
+        """
+        Create a protected path for a view.
+        
+        Args:
+            name: Name for the protected path (typically view name)
+            source_dir: Path on the local cluster to protect
+            policy_id: ID of the protection policy to use
+            tenant_id: Tenant ID (default: 0)
+            enabled: Whether the protected path is enabled
+            target_exported_dir: Remote replication path (optional)
+            capabilities: Protection capabilities (optional)
+            
+        Returns:
+            Dict containing the created protected path data
+        """
+        url = f"{self.base_url}/protectedpaths/"
+        
+        payload = {
+            "name": name,
+            "source_dir": source_dir,
+            "policy_id": policy_id,
+            "enabled": enabled,
+            "protection_policy_id": policy_id,
+            "tenant_id": tenant_id
+        }
+        
+        # Add optional parameters
+        if target_exported_dir:
+            payload["target_exported_dir"] = target_exported_dir
+        if capabilities:
+            payload["capabilities"] = capabilities
+        
+        ssl_verify = self.vast_config['ssl_verify']
+        self.logger.info(f"Creating protected path: {name} -> {source_dir}")
+        self.logger.debug(f"Payload: {json.dumps(payload, indent=2)}")
+        
+        try:
+            response = self.session.post(url, json=payload, verify=ssl_verify)
+            response.raise_for_status()
+            
+            protected_path_data = response.json()
+            self.logger.info(f"✅ Created protected path: {name} (ID: {protected_path_data.get('id')})")
+            return protected_path_data
+            
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"❌ Failed to create protected path {name}: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_details = e.response.json()
+                    self.logger.error(f"API Error Details: {error_details}")
+                except:
+                    self.logger.error(f"API Error Response: {e.response.text}")
+            raise
+    
+    def list_protected_paths(self) -> List[Dict[str, Any]]:
+        """
+        List all protected paths.
+        
+        Returns:
+            List of protected path dictionaries
+        """
+        url = f"{self.base_url}/protectedpaths/"
+        
+        ssl_verify = self.vast_config['ssl_verify']
+        self.logger.info("Listing protected paths...")
+        
+        try:
+            response = self.session.get(url, verify=ssl_verify)
+            response.raise_for_status()
+            
+            protected_paths = response.json()
+            self.logger.info(f"Found {len(protected_paths)} protected paths")
+            return protected_paths
+            
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"❌ Failed to list protected paths: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_details = e.response.json()
+                    self.logger.error(f"API Error Details: {error_details}")
+                except:
+                    self.logger.error(f"API Error Response: {e.response.text}")
+            raise
+    
+    def get_protected_path(self, path_id: int) -> Dict[str, Any]:
+        """
+        Get a specific protected path by ID.
+        
+        Args:
+            path_id: ID of the protected path
+            
+        Returns:
+            Dict containing the protected path data
+        """
+        url = f"{self.base_url}/protectedpaths/{path_id}/"
+        
+        ssl_verify = self.vast_config['ssl_verify']
+        self.logger.info(f"Getting protected path ID: {path_id}")
+        
+        try:
+            response = self.session.get(url, verify=ssl_verify)
+            response.raise_for_status()
+            
+            protected_path_data = response.json()
+            self.logger.info(f"✅ Retrieved protected path: {protected_path_data.get('name')}")
+            return protected_path_data
+            
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"❌ Failed to get protected path {path_id}: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_details = e.response.json()
+                    self.logger.error(f"API Error Details: {error_details}")
+                except:
+                    self.logger.error(f"API Error Response: {e.response.text}")
+            raise
+    
+    def delete_protected_path(self, path_id: int) -> bool:
+        """
+        Delete a protected path.
+        
+        Args:
+            path_id: ID of the protected path to delete
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        url = f"{self.base_url}/protectedpaths/{path_id}/"
+        
+        ssl_verify = self.vast_config['ssl_verify']
+        self.logger.info(f"Deleting protected path ID: {path_id}")
+        
+        try:
+            response = self.session.delete(url, verify=ssl_verify)
+            response.raise_for_status()
+            
+            self.logger.info(f"✅ Deleted protected path ID: {path_id}")
+            return True
+            
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"❌ Failed to delete protected path {path_id}: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_details = e.response.json()
+                    self.logger.error(f"API Error Details: {error_details}")
+                except:
+                    self.logger.error(f"API Error Response: {e.response.text}")
+            return False
+    
+    def setup_protected_paths_for_views(self, dry_run: bool = False) -> List[Dict[str, Any]]:
+        """
+        Create protected paths for all configured views.
+        
+        Args:
+            dry_run: If True, only show what would be created
+            
+        Returns:
+            List of created protected path data
+        """
+        # Get views configuration
+        views_config = self.config.get_lab_config().get('views', {})
+        
+        protected_paths = []
+        
+        self.logger.info(f"Setting up protected paths for views (dry_run={dry_run})")
+        
+        for view_name, view_config in views_config.items():
+            if not isinstance(view_config, dict) or 'path' not in view_config:
+                self.logger.warning(f"Skipping invalid view config: {view_name}")
+                continue
+            
+            source_dir = view_config['path']
+            
+            # Find matching policy for this view type using API
+            policy_name = f"lab4-{view_name}-policy"
+            policy = self.get_policy_by_name(policy_name)
+            
+            if not policy:
+                self.logger.warning(f"No policy found for view {view_name} (policy: {policy_name}), skipping")
+                continue
+            
+            policy_id = int(policy['id'])  # Ensure it's an integer
+            
+            if dry_run:
+                self.logger.info(f"Would create protected path: {view_name} -> {source_dir} (policy: {policy_name}, ID: {policy_id})")
+                protected_paths.append({
+                    'name': view_name,
+                    'source_dir': source_dir,
+                    'policy_id': policy_id,
+                    'dry_run': True
+                })
+            else:
+                try:
+                    protected_path = self.create_protected_path(
+                        name=view_name,
+                        source_dir=source_dir,
+                        policy_id=policy_id,
+                        tenant_id=0,  # Default tenant
+                        enabled=True
+                    )
+                    protected_paths.append(protected_path)
+                    self.logger.info(f"✅ Created protected path: {view_name}")
+                except Exception as e:
+                    self.logger.error(f"❌ Failed to create protected path for {view_name}: {e}")
+        
+        return protected_paths
     
     def apply_policy_to_view(self, policy_id: int, view_path: str) -> bool:
         """

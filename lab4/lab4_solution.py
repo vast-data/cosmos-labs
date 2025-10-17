@@ -125,6 +125,26 @@ class Lab4Solution:
         
         return policies
 
+    def setup_protected_paths(self) -> List[Dict[str, Any]]:
+        """
+        Set up protected paths for all configured views.
+        
+        Returns:
+            List of created or would-be-created protected paths
+        """
+        self.logger.info("Setting up protected paths...")
+        
+        protected_paths = self.protection_policies.setup_protected_paths_for_views(dry_run=self.dry_run)
+        
+        if self.dry_run:
+            self.logger.info(f"Would create {len(protected_paths)} protected paths:")
+            for path in protected_paths:
+                self.logger.info(f"  - {path['name']} -> {path['source_dir']} (policy ID: {path['policy_id']})")
+        else:
+            self.logger.info(f"Created {len(protected_paths)} protected paths")
+        
+        return protected_paths
+
     def ensure_views_exist(self) -> bool:
         """
         Ensure the views referenced by Lab 4 exist; create them using standardized view definitions.
@@ -436,6 +456,7 @@ class Lab4Solution:
         
         results = {
             'protection_policies': [],
+            'protected_paths': [],
             'snapshots': [],
             'timestamp': datetime.now().isoformat(),
             'dry_run': self.dry_run
@@ -447,8 +468,13 @@ class Lab4Solution:
             policies = self.setup_protection_policies()
             results['protection_policies'] = policies
             
-            # Step 2: Create initial snapshots
-            self.logger.info("Step 2: Creating initial snapshots")
+            # Step 2: Set up protected paths
+            self.logger.info("Step 2: Setting up protected paths")
+            protected_paths = self.setup_protected_paths()
+            results['protected_paths'] = protected_paths
+            
+            # Step 3: Create initial snapshots
+            self.logger.info("Step 3: Creating initial snapshots")
             views = self.config.get_views_config()
             for view_path in views:
                 snapshot = self.create_named_snapshot(
@@ -458,8 +484,8 @@ class Lab4Solution:
                 )
                 results['snapshots'].append(snapshot)
             
-            # Step 3: List policies and snapshots
-            self.logger.info("Step 3: Listing created policies")
+            # Step 4: List policies, protected paths, and snapshots
+            self.logger.info("Step 4: Listing created resources")
             self.list_protection_policies()
             
             self.logger.info("✅ Complete workflow finished successfully")
@@ -484,6 +510,12 @@ Examples:
   # Production - actually create policies
   python lab4_solution.py --setup-policies --pushtoprod
   
+  # Set up protected paths for all views
+  python lab4_solution.py --setup-protected-paths --pushtoprod
+  
+  # List protected paths
+  python lab4_solution.py --list-protected-paths
+  
   # Create named snapshot
   python lab4_solution.py --create-snapshot "pre-calibration-change" --view "/cosmos7/processed"
   
@@ -493,7 +525,7 @@ Examples:
   # Restore from snapshot (dry run)
   python lab4_solution.py --restore-snapshot "pre-calibration-change" --view "/cosmos7/processed"
   
-  # Complete workflow
+  # Complete workflow (includes policies, protected paths, and snapshots)
   python lab4_solution.py --complete --pushtoprod
         """
     )
@@ -501,8 +533,12 @@ Examples:
     # Main operation flags
     parser.add_argument('--setup-policies', action='store_true',
                        help='Set up protection policies based on configuration')
+    parser.add_argument('--setup-protected-paths', action='store_true',
+                       help='Set up protected paths for all configured views')
     parser.add_argument('--list-policies', action='store_true',
                        help='List all protection policies')
+    parser.add_argument('--list-protected-paths', action='store_true',
+                       help='List all protected paths')
     parser.add_argument('--create-snapshot', type=str, metavar='NAME',
                        help='Create a named snapshot')
     parser.add_argument('--list-snapshots', action='store_true',
@@ -567,8 +603,14 @@ Examples:
         if args.setup_policies:
             solution.setup_protection_policies()
         
+        elif args.setup_protected_paths:
+            solution.setup_protected_paths()
+        
         elif args.list_policies:
             solution.list_protection_policies()
+        
+        elif args.list_protected_paths:
+            solution.protection_policies.list_protected_paths()
         
         elif args.create_snapshot:
             if not args.view:
