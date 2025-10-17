@@ -19,6 +19,8 @@ import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import gc
+import psutil
 
 # Initialize Faker for realistic data generation
 fake = Faker()
@@ -71,6 +73,47 @@ class TestDataGenerator:
         """Get current progress counters."""
         with self._lock:
             return self._files_generated, self._files_uploaded
+    
+    def _get_memory_usage(self):
+        """Get current memory usage in MB."""
+        try:
+            process = psutil.Process()
+            return process.memory_info().rss / 1024 / 1024  # Convert to MB
+        except:
+            return 0
+    
+    def _force_cleanup(self):
+        """Force garbage collection and memory cleanup."""
+        # Force garbage collection
+        collected = gc.collect()
+        
+        # Get memory usage after cleanup
+        memory_mb = self._get_memory_usage()
+        
+        return collected, memory_mb
+    
+    def _check_memory_pressure(self, file_size_mb: int, thread_count: int) -> bool:
+        """
+        Check if we have enough memory for the operation.
+        
+        Args:
+            file_size_mb: Size of each file in MB
+            thread_count: Number of concurrent threads
+            
+        Returns:
+            True if memory pressure is too high
+        """
+        try:
+            # Calculate estimated memory needed
+            estimated_memory = file_size_mb * thread_count * 1.5  # 1.5x for overhead
+            
+            # Get available memory
+            available_memory = psutil.virtual_memory().available / 1024 / 1024  # MB
+            
+            # Check if we need more than 80% of available memory
+            return estimated_memory > (available_memory * 0.8)
+        except:
+            return False
     
     def _load_lab_config(self) -> dict:
         """
@@ -321,7 +364,7 @@ class TestDataGenerator:
     
     def _generate_single_file(self, file_type: str, index: int, size_mb: int = None) -> str:
         """
-        Generate a single file and upload to S3 (thread-safe).
+        Generate a single file and upload to S3 (thread-safe with memory cleanup).
         
         Args:
             file_type: Type of file ('raw', 'processed', 'analysis', 'published')
@@ -331,6 +374,7 @@ class TestDataGenerator:
         Returns:
             Filename if successful, None if failed
         """
+        data = None
         try:
             # Generate unique filename with timestamp and random suffix
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -384,11 +428,18 @@ class TestDataGenerator:
             print(f"  ❌ Error generating {file_type} file {index}: {e}")
             return None
         finally:
+            # CRITICAL: Explicit memory cleanup
+            if data is not None:
+                del data  # Explicitly delete the large data object
+            
+            # Force garbage collection for this thread
+            gc.collect()
+            
             self._increment_generated()
 
     def generate_large_files(self, count: int = 10, size_mb: int = 100) -> list:
         """
-        Generate large binary files directly to S3 using threading.
+        Generate large binary files directly to S3 using threading with memory management.
         
         Args:
             count: Number of files to generate
@@ -397,7 +448,13 @@ class TestDataGenerator:
         Returns:
             List of generated file names (for tracking)
         """
+        # Check memory pressure before starting
+        if self._check_memory_pressure(size_mb, self.max_workers):
+            print(f"⚠️  High memory pressure detected! Consider reducing --max-workers or file size.")
+            print(f"💾 Current memory usage: {self._get_memory_usage():.1f}MB")
+        
         print(f"🚀 Generating {count} raw files ({size_mb}MB each) using {self.max_workers} threads...")
+        print(f"💾 Starting memory usage: {self._get_memory_usage():.1f}MB")
         
         files = []
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
@@ -413,13 +470,18 @@ class TestDataGenerator:
                 if result:
                     files.append(result)
                     generated, uploaded = self._get_progress()
-                    print(f"  ✅ Progress: {uploaded}/{generated} files uploaded")
+                    current_memory = self._get_memory_usage()
+                    print(f"  ✅ Progress: {uploaded}/{generated} files uploaded (Memory: {current_memory:.1f}MB)")
+        
+        # Force cleanup after all files are processed
+        collected, final_memory = self._force_cleanup()
+        print(f"🧹 Cleanup: {collected} objects collected, Memory: {final_memory:.1f}MB")
         
         return files
     
     def generate_processed_data(self, count: int = 20, size_mb: int = 50) -> list:
         """
-        Generate processed data files directly to S3 using threading.
+        Generate processed data files directly to S3 using threading with memory management.
         
         Args:
             count: Number of files to generate
@@ -428,7 +490,13 @@ class TestDataGenerator:
         Returns:
             List of generated file names (for tracking)
         """
+        # Check memory pressure before starting
+        if self._check_memory_pressure(size_mb, self.max_workers):
+            print(f"⚠️  High memory pressure detected! Consider reducing --max-workers or file size.")
+            print(f"💾 Current memory usage: {self._get_memory_usage():.1f}MB")
+        
         print(f"🚀 Generating {count} processed files ({size_mb}MB each) using {self.max_workers} threads...")
+        print(f"💾 Starting memory usage: {self._get_memory_usage():.1f}MB")
         
         files = []
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
@@ -444,13 +512,18 @@ class TestDataGenerator:
                 if result:
                     files.append(result)
                     generated, uploaded = self._get_progress()
-                    print(f"  ✅ Progress: {uploaded}/{generated} files uploaded")
+                    current_memory = self._get_memory_usage()
+                    print(f"  ✅ Progress: {uploaded}/{generated} files uploaded (Memory: {current_memory:.1f}MB)")
+        
+        # Force cleanup after all files are processed
+        collected, final_memory = self._force_cleanup()
+        print(f"🧹 Cleanup: {collected} objects collected, Memory: {final_memory:.1f}MB")
         
         return files
     
     def generate_analysis_results(self, count: int = 30) -> list:
         """
-        Generate analysis result files directly to S3 using threading.
+        Generate analysis result files directly to S3 using threading with memory management.
         
         Args:
             count: Number of files to generate
@@ -459,6 +532,7 @@ class TestDataGenerator:
             List of generated file names (for tracking)
         """
         print(f"🚀 Generating {count} analysis files using {self.max_workers} threads...")
+        print(f"💾 Starting memory usage: {self._get_memory_usage():.1f}MB")
         
         files = []
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
@@ -474,13 +548,18 @@ class TestDataGenerator:
                 if result:
                     files.append(result)
                     generated, uploaded = self._get_progress()
-                    print(f"  ✅ Progress: {uploaded}/{generated} files uploaded")
+                    current_memory = self._get_memory_usage()
+                    print(f"  ✅ Progress: {uploaded}/{generated} files uploaded (Memory: {current_memory:.1f}MB)")
+        
+        # Force cleanup after all files are processed
+        collected, final_memory = self._force_cleanup()
+        print(f"🧹 Cleanup: {collected} objects collected, Memory: {final_memory:.1f}MB")
         
         return files
     
     def generate_published_datasets(self, count: int = 15) -> list:
         """
-        Generate published dataset files directly to S3 using threading.
+        Generate published dataset files directly to S3 using threading with memory management.
         
         Args:
             count: Number of files to generate
@@ -489,6 +568,7 @@ class TestDataGenerator:
             List of generated file names (for tracking)
         """
         print(f"🚀 Generating {count} published files using {self.max_workers} threads...")
+        print(f"💾 Starting memory usage: {self._get_memory_usage():.1f}MB")
         
         files = []
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
@@ -504,7 +584,12 @@ class TestDataGenerator:
                 if result:
                     files.append(result)
                     generated, uploaded = self._get_progress()
-                    print(f"  ✅ Progress: {uploaded}/{generated} files uploaded")
+                    current_memory = self._get_memory_usage()
+                    print(f"  ✅ Progress: {uploaded}/{generated} files uploaded (Memory: {current_memory:.1f}MB)")
+        
+        # Force cleanup after all files are processed
+        collected, final_memory = self._force_cleanup()
+        print(f"🧹 Cleanup: {collected} objects collected, Memory: {final_memory:.1f}MB")
         
         return files
     
