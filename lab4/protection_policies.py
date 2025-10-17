@@ -187,6 +187,41 @@ class ProtectionPoliciesManager:
                     self.logger.error(f"API Error Response: {e.response.text}")
             raise
     
+    def list_replication_policies(self, name_filter: str = None) -> List[Dict[str, Any]]:
+        """
+        List all replication policies.
+        
+        Args:
+            name_filter: Optional filter by replication policy name
+            
+        Returns:
+            List of replication policy dictionaries
+            
+        Raises:
+            requests.RequestException: If API request fails
+        """
+        url = f"{self.base_url}/replicationpolicies/"
+        
+        # Add query parameters if filtering by name
+        params = {}
+        if name_filter:
+            params['name'] = name_filter
+        
+        self.logger.info(f"Listing replication policies{' (filtered by name: ' + name_filter + ')' if name_filter else ''}")
+        
+        try:
+            response = self.session.get(url, params=params, verify=self.vast_config['ssl_verify'])
+            response.raise_for_status()
+            
+            policies = response.json()
+            self.logger.info(f"Found {len(policies)} replication policies")
+            
+            return policies
+            
+        except requests.RequestException as e:
+            self.logger.error(f"Failed to list replication policies: {str(e)}")
+            raise
+
     def list_protection_policies(self, name_filter: str = None) -> List[Dict[str, Any]]:
         """
         List all protection policies.
@@ -246,6 +281,32 @@ class ProtectionPoliciesManager:
             
         except Exception as e:
             self.logger.error(f"Failed to get policy by name '{policy_name}': {e}")
+            return None
+    
+    def get_replication_policy_by_name(self, policy_name: str) -> Optional[Dict[str, Any]]:
+        """
+        Get a replication policy by name using the API.
+        
+        Args:
+            policy_name: Name of the replication policy to find
+            
+        Returns:
+            Policy dictionary if found, None otherwise
+        """
+        try:
+            policies = self.list_replication_policies(name_filter=policy_name)
+            
+            # Find exact match
+            for policy in policies:
+                if policy.get('name') == policy_name:
+                    self.logger.info(f"Found replication policy '{policy_name}' with ID: {policy.get('id')}")
+                    return policy
+            
+            self.logger.warning(f"Replication policy '{policy_name}' not found")
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get replication policy by name '{policy_name}': {e}")
             return None
     
     def get_tenant_id_from_views(self) -> int:
@@ -502,9 +563,8 @@ class ProtectionPoliciesManager:
         payload = {
             "name": name,
             "source_dir": source_dir,
-            "policy_id": policy_id,
+            "protection_policy_id": policy_id,  # Use protection_policy_id instead of policy_id
             "enabled": enabled,
-            "protection_policy_id": policy_id,
             "tenant_id": tenant_id
         }
         
