@@ -271,91 +271,113 @@ class TestDataGenerator:
         
         return success
     
+    def _upload_data_directly_to_s3(self, data: bytes, filename: str, data_type: str) -> bool:
+        """
+        Upload data directly to S3 without creating local files.
+        
+        Args:
+            data: Data bytes to upload
+            filename: Name for the S3 object
+            data_type: Type of data (raw, processed, analysis, published)
+            
+        Returns:
+            True if upload successful
+        """
+        bucket_mapping = self.get_bucket_mapping()
+        bucket_name = bucket_mapping.get(data_type)
+        
+        if not bucket_name:
+            print(f"  ⚠️  No bucket configured for {data_type} data")
+            return False
+        
+        s3_key = f"{data_type}/{filename}"
+        
+        try:
+            self.s3_client.put_object(
+                Bucket=bucket_name,
+                Key=s3_key,
+                Body=data
+            )
+            print(f"  ✅ Uploaded to s3://{bucket_name}/{s3_key}")
+            return True
+        except ClientError as e:
+            print(f"  ❌ Error uploading {filename} to s3://{bucket_name}/{s3_key}: {e}")
+            return False
+        except Exception as e:
+            print(f"  ❌ Error uploading {filename}: {e}")
+            return False
+    
     def generate_large_files(self, count: int = 10, size_mb: int = 100) -> list:
         """
-        Generate large binary files using dd or elbencho.
+        Generate large binary files directly to S3.
         
         Args:
             count: Number of files to generate
             size_mb: Size of each file in MB
             
         Returns:
-            List of generated file paths
+            List of generated file names (for tracking)
         """
         files = []
         
         for i in range(count):
             filename = f"telescope_data_{i:03d}.dat"
-            filepath = self.raw_dir / filename
             
-            # Try elbencho first, fall back to dd
-            try:
-                # Use elbencho for efficient large file generation
-                cmd = [
-                    "elbencho", "--create", "--size", f"{size_mb}M",
-                    "--file", str(filepath), "--threads", "1"
-                ]
-                subprocess.run(cmd, check=True, capture_output=True)
-            except (subprocess.CalledProcessError, FileNotFoundError):
-                # Fall back to dd if elbencho is not available
-                cmd = [
-                    "dd", "if=/dev/urandom", f"of={filepath}",
-                    "bs=1M", f"count={size_mb}", "status=none"
-                ]
-                subprocess.run(cmd, check=True)
+            # Generate random data directly in memory
+            data_size = size_mb * 1024 * 1024  # Convert to bytes
+            data = os.urandom(data_size)
             
-            files.append(filepath)
-            print(f"Generated large file: {filepath} ({size_mb}MB)")
+            print(f"Generated large file: {filename} ({size_mb}MB)")
             
-            # Upload to S3
-            self._upload_file_to_appropriate_bucket(filepath, 'raw')
+            # Upload directly to S3
+            success = self._upload_data_directly_to_s3(data, filename, 'raw')
+            if success:
+                files.append(filename)
         
         return files
     
     def generate_processed_data(self, count: int = 20, size_mb: int = 50) -> list:
         """
-        Generate processed data files (medium-sized files).
+        Generate processed data files directly to S3.
         
         Args:
             count: Number of files to generate
             size_mb: Size of each file in MB
             
         Returns:
-            List of generated file paths
+            List of generated file names (for tracking)
         """
         files = []
         
         for i in range(count):
             filename = f"processed_data_{i:03d}.dat"
-            filepath = self.processed_dir / filename
             
             # Generate file with some structure (header + random data)
-            with open(filepath, 'wb') as f:
-                # Write a simple header
-                header = f"PROCESSED_DATA_V1.0\nFile: {filename}\nTimestamp: {datetime.now().isoformat()}\n"
-                f.write(header.encode('utf-8'))
-                
-                # Fill rest with random data
-                remaining_size = (size_mb * 1024 * 1024) - len(header)
-                f.write(os.urandom(remaining_size))
+            header = f"PROCESSED_DATA_V1.0\nFile: {filename}\nTimestamp: {datetime.now().isoformat()}\n"
+            header_bytes = header.encode('utf-8')
             
-            files.append(filepath)
-            print(f"Generated processed file: {filepath} ({size_mb}MB)")
+            # Fill rest with random data
+            remaining_size = (size_mb * 1024 * 1024) - len(header_bytes)
+            data = header_bytes + os.urandom(remaining_size)
             
-            # Upload to S3
-            self._upload_file_to_appropriate_bucket(filepath, 'processed')
+            print(f"Generated processed file: {filename} ({size_mb}MB)")
+            
+            # Upload directly to S3
+            success = self._upload_data_directly_to_s3(data, filename, 'processed')
+            if success:
+                files.append(filename)
         
         return files
     
     def generate_analysis_results(self, count: int = 30) -> list:
         """
-        Generate analysis result files (small structured files).
+        Generate analysis result files directly to S3.
         
         Args:
             count: Number of files to generate
             
         Returns:
-            List of generated file paths
+            List of generated file names (for tracking)
         """
         files = []
         
@@ -364,20 +386,21 @@ class TestDataGenerator:
             file_types = ['json', 'csv', 'txt']
             file_type = random.choice(file_types)
             filename = f"analysis_result_{i:03d}.{file_type}"
-            filepath = self.analysis_dir / filename
             
+            # Generate data in memory
             if file_type == 'json':
-                self._generate_json_analysis(filepath)
+                data = self._generate_json_analysis_data()
             elif file_type == 'csv':
-                self._generate_csv_analysis(filepath)
+                data = self._generate_csv_analysis_data()
             else:
-                self._generate_text_analysis(filepath)
+                data = self._generate_text_analysis_data()
             
-            files.append(filepath)
-            print(f"Generated analysis file: {filepath}")
+            print(f"Generated analysis file: {filename}")
             
-            # Upload to S3
-            self._upload_file_to_appropriate_bucket(filepath, 'analysis')
+            # Upload directly to S3
+            success = self._upload_data_directly_to_s3(data, filename, 'analysis')
+            if success:
+                files.append(filename)
         
         return files
     
@@ -416,6 +439,64 @@ class TestDataGenerator:
             self._upload_file_to_appropriate_bucket(filepath, 'published')
         
         return files
+    
+    def _generate_json_analysis_data(self) -> bytes:
+        """Generate JSON analysis data in memory."""
+        data = {
+            "analysis_id": fake.uuid4(),
+            "timestamp": fake.date_time_between(start_date='-1y', end_date='now').isoformat(),
+            "telescope": fake.random_element(elements=('COSMOS-7', 'HUBBLE', 'JAMES_WEBB')),
+            "target": fake.random_element(elements=('M31', 'M87', 'NGC_1234', 'PSR_J0007+7303')),
+            "exposure_time": fake.random_int(min=100, max=3600),
+            "magnitude": round(fake.random.uniform(10.0, 25.0), 2),
+            "coordinates": {
+                "ra": round(fake.random.uniform(0, 360), 6),
+                "dec": round(fake.random.uniform(-90, 90), 6)
+            },
+            "data_quality": fake.random_element(elements=('EXCELLENT', 'GOOD', 'FAIR', 'POOR')),
+            "processing_version": f"v{fake.random_int(min=1, max=5)}.{fake.random_int(min=0, max=9)}",
+            "results": {
+                "detected_objects": fake.random_int(min=0, max=100),
+                "signal_to_noise": round(fake.random.uniform(1.0, 100.0), 2),
+                "background_level": round(fake.random.uniform(0.1, 10.0), 3)
+            }
+        }
+        return json.dumps(data, indent=2).encode('utf-8')
+    
+    def _generate_csv_analysis_data(self) -> bytes:
+        """Generate CSV analysis data in memory."""
+        import io
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['timestamp', 'object_id', 'magnitude', 'ra', 'dec', 'quality'])
+        
+        for _ in range(fake.random_int(min=10, max=100)):
+            writer.writerow([
+                fake.date_time_between(start_date='-1y', end_date='now').isoformat(),
+                fake.uuid4()[:8],
+                round(fake.random.uniform(10.0, 25.0), 2),
+                round(fake.random.uniform(0, 360), 6),
+                round(fake.random.uniform(-90, 90), 6),
+                fake.random_element(elements=('EXCELLENT', 'GOOD', 'FAIR', 'POOR'))
+            ])
+        
+        return output.getvalue().encode('utf-8')
+    
+    def _generate_text_analysis_data(self) -> bytes:
+        """Generate text analysis data in memory."""
+        content = f"Analysis Report\n"
+        content += f"Generated: {datetime.now().isoformat()}\n"
+        content += f"Analysis ID: {fake.uuid4()}\n"
+        content += f"Telescope: {fake.random_element(elements=('COSMOS-7', 'HUBBLE', 'JAMES_WEBB'))}\n"
+        content += f"Target: {fake.random_element(elements=('M31', 'M87', 'NGC_1234'))}\n\n"
+        content += f"Summary:\n"
+        content += f"{fake.paragraph(nb_sentences=5)}\n\n"
+        content += f"Results:\n"
+        content += f"- Detected objects: {fake.random_int(min=0, max=100)}\n"
+        content += f"- Signal to noise ratio: {round(fake.random.uniform(1.0, 100.0), 2)}\n"
+        content += f"- Data quality: {fake.random_element(elements=('EXCELLENT', 'GOOD', 'FAIR', 'POOR'))}\n"
+        
+        return content.encode('utf-8')
     
     def _generate_json_analysis(self, filepath: Path):
         """Generate JSON analysis file."""
