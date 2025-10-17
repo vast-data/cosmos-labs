@@ -194,7 +194,9 @@ class TestDataGenerator:
                 endpoint_url=s3_config.get('endpoint_url'),
                 aws_access_key_id=access_key_id,
                 aws_secret_access_key=secret_access_key,
-                region_name=s3_config.get('region', 'us-east-1')
+                region_name=s3_config.get('region', 'us-east-1'),
+                use_ssl=True,
+                verify=s3_config.get('ssl_verify', True)
             )
             
             # Test connection
