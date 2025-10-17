@@ -17,6 +17,8 @@ import json
 import csv
 import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Initialize Faker for realistic data generation
 fake = Faker()
@@ -33,20 +35,42 @@ class TestDataGenerator:
     - Published datasets (mixed content)
     """
     
-    def __init__(self, lab_type: str = "lab4"):
+    def __init__(self, lab_type: str = "lab4", max_workers: int = 8):
         """
         Initialize the data generator.
         
         Args:
             lab_type: Type of lab (lab1, lab4, etc.) to determine data structure
+            max_workers: Maximum number of threads for concurrent uploads
         """
         self.lab_type = lab_type
+        self.max_workers = max_workers
+        
+        # Thread-safe counters for progress tracking
+        self._lock = threading.Lock()
+        self._files_generated = 0
+        self._files_uploaded = 0
         
         # Load lab-specific configuration
         self.lab_config = self._load_lab_config()
         
         # Initialize S3 client for VAST uploads
         self.s3_client = self._init_s3_client()
+    
+    def _increment_generated(self):
+        """Thread-safe increment of generated files counter."""
+        with self._lock:
+            self._files_generated += 1
+    
+    def _increment_uploaded(self):
+        """Thread-safe increment of uploaded files counter."""
+        with self._lock:
+            self._files_uploaded += 1
+    
+    def _get_progress(self):
+        """Get current progress counters."""
+        with self._lock:
+            return self._files_generated, self._files_uploaded
     
     def _load_lab_config(self) -> dict:
         """
@@ -295,9 +319,76 @@ class TestDataGenerator:
             print(f"  ❌ Error uploading {filename}: {e}")
             return False
     
+    def _generate_single_file(self, file_type: str, index: int, size_mb: int = None) -> str:
+        """
+        Generate a single file and upload to S3 (thread-safe).
+        
+        Args:
+            file_type: Type of file ('raw', 'processed', 'analysis', 'published')
+            index: File index for naming
+            size_mb: Size in MB (for raw/processed files)
+            
+        Returns:
+            Filename if successful, None if failed
+        """
+        try:
+            # Generate unique filename with timestamp and random suffix
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            random_suffix = fake.random_int(min=1000, max=9999)
+            
+            if file_type == 'raw':
+                filename = f"telescope_data_{timestamp}_{random_suffix}_{index:03d}.dat"
+                data_size = size_mb * 1024 * 1024
+                data = os.urandom(data_size)
+            elif file_type == 'processed':
+                filename = f"processed_data_{timestamp}_{random_suffix}_{index:03d}.dat"
+                header = f"PROCESSED_DATA_V1.0\nFile: {filename}\nTimestamp: {datetime.now().isoformat()}\n"
+                header_bytes = header.encode('utf-8')
+                remaining_size = (size_mb * 1024 * 1024) - len(header_bytes)
+                data = header_bytes + os.urandom(remaining_size)
+            elif file_type == 'analysis':
+                file_types = ['json', 'csv', 'txt']
+                file_ext = random.choice(file_types)
+                filename = f"analysis_result_{timestamp}_{random_suffix}_{index:03d}.{file_ext}"
+                
+                if file_ext == 'json':
+                    data = self._generate_json_analysis_data()
+                elif file_ext == 'csv':
+                    data = self._generate_csv_analysis_data()
+                else:
+                    data = self._generate_text_analysis_data()
+            elif file_type == 'published':
+                file_types = ['pdf', 'txt', 'json', 'dat']
+                file_ext = random.choice(file_types)
+                filename = f"published_dataset_{timestamp}_{random_suffix}_{index:03d}.{file_ext}"
+                
+                if file_ext == 'pdf':
+                    data = self._generate_pdf_dataset_data()
+                elif file_ext == 'json':
+                    data = self._generate_json_dataset_data()
+                elif file_ext == 'dat':
+                    data = self._generate_binary_dataset_data()
+                else:
+                    data = self._generate_text_dataset_data()
+            else:
+                return None
+            
+            # Upload to S3
+            success = self._upload_data_directly_to_s3(data, filename, file_type)
+            if success:
+                self._increment_uploaded()
+                return filename
+            return None
+            
+        except Exception as e:
+            print(f"  ❌ Error generating {file_type} file {index}: {e}")
+            return None
+        finally:
+            self._increment_generated()
+
     def generate_large_files(self, count: int = 10, size_mb: int = 100) -> list:
         """
-        Generate large binary files directly to S3.
+        Generate large binary files directly to S3 using threading.
         
         Args:
             count: Number of files to generate
@@ -306,30 +397,29 @@ class TestDataGenerator:
         Returns:
             List of generated file names (for tracking)
         """
-        files = []
+        print(f"🚀 Generating {count} raw files ({size_mb}MB each) using {self.max_workers} threads...")
         
-        for i in range(count):
-            # Generate unique filename with timestamp and random suffix
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            random_suffix = fake.random_int(min=1000, max=9999)
-            filename = f"telescope_data_{timestamp}_{random_suffix}_{i:03d}.dat"
+        files = []
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            # Submit all file generation tasks
+            futures = [
+                executor.submit(self._generate_single_file, 'raw', i, size_mb)
+                for i in range(count)
+            ]
             
-            # Generate random data directly in memory
-            data_size = size_mb * 1024 * 1024  # Convert to bytes
-            data = os.urandom(data_size)
-            
-            print(f"Generated large file: {filename} ({size_mb}MB)")
-            
-            # Upload directly to S3
-            success = self._upload_data_directly_to_s3(data, filename, 'raw')
-            if success:
-                files.append(filename)
+            # Collect results as they complete
+            for future in as_completed(futures):
+                result = future.result()
+                if result:
+                    files.append(result)
+                    generated, uploaded = self._get_progress()
+                    print(f"  ✅ Progress: {uploaded}/{generated} files uploaded")
         
         return files
     
     def generate_processed_data(self, count: int = 20, size_mb: int = 50) -> list:
         """
-        Generate processed data files directly to S3.
+        Generate processed data files directly to S3 using threading.
         
         Args:
             count: Number of files to generate
@@ -338,34 +428,29 @@ class TestDataGenerator:
         Returns:
             List of generated file names (for tracking)
         """
-        files = []
+        print(f"🚀 Generating {count} processed files ({size_mb}MB each) using {self.max_workers} threads...")
         
-        for i in range(count):
-            # Generate unique filename with timestamp and random suffix
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            random_suffix = fake.random_int(min=1000, max=9999)
-            filename = f"processed_data_{timestamp}_{random_suffix}_{i:03d}.dat"
+        files = []
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            # Submit all file generation tasks
+            futures = [
+                executor.submit(self._generate_single_file, 'processed', i, size_mb)
+                for i in range(count)
+            ]
             
-            # Generate file with some structure (header + random data)
-            header = f"PROCESSED_DATA_V1.0\nFile: {filename}\nTimestamp: {datetime.now().isoformat()}\n"
-            header_bytes = header.encode('utf-8')
-            
-            # Fill rest with random data
-            remaining_size = (size_mb * 1024 * 1024) - len(header_bytes)
-            data = header_bytes + os.urandom(remaining_size)
-            
-            print(f"Generated processed file: {filename} ({size_mb}MB)")
-            
-            # Upload directly to S3
-            success = self._upload_data_directly_to_s3(data, filename, 'processed')
-            if success:
-                files.append(filename)
+            # Collect results as they complete
+            for future in as_completed(futures):
+                result = future.result()
+                if result:
+                    files.append(result)
+                    generated, uploaded = self._get_progress()
+                    print(f"  ✅ Progress: {uploaded}/{generated} files uploaded")
         
         return files
     
     def generate_analysis_results(self, count: int = 30) -> list:
         """
-        Generate analysis result files directly to S3.
+        Generate analysis result files directly to S3 using threading.
         
         Args:
             count: Number of files to generate
@@ -373,38 +458,29 @@ class TestDataGenerator:
         Returns:
             List of generated file names (for tracking)
         """
-        files = []
+        print(f"🚀 Generating {count} analysis files using {self.max_workers} threads...")
         
-        for i in range(count):
-            # Generate different types of analysis files
-            file_types = ['json', 'csv', 'txt']
-            file_type = random.choice(file_types)
+        files = []
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            # Submit all file generation tasks
+            futures = [
+                executor.submit(self._generate_single_file, 'analysis', i)
+                for i in range(count)
+            ]
             
-            # Generate unique filename with timestamp and random suffix
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            random_suffix = fake.random_int(min=1000, max=9999)
-            filename = f"analysis_result_{timestamp}_{random_suffix}_{i:03d}.{file_type}"
-            
-            # Generate data in memory
-            if file_type == 'json':
-                data = self._generate_json_analysis_data()
-            elif file_type == 'csv':
-                data = self._generate_csv_analysis_data()
-            else:
-                data = self._generate_text_analysis_data()
-            
-            print(f"Generated analysis file: {filename}")
-            
-            # Upload directly to S3
-            success = self._upload_data_directly_to_s3(data, filename, 'analysis')
-            if success:
-                files.append(filename)
+            # Collect results as they complete
+            for future in as_completed(futures):
+                result = future.result()
+                if result:
+                    files.append(result)
+                    generated, uploaded = self._get_progress()
+                    print(f"  ✅ Progress: {uploaded}/{generated} files uploaded")
         
         return files
     
     def generate_published_datasets(self, count: int = 15) -> list:
         """
-        Generate published dataset files directly to S3.
+        Generate published dataset files directly to S3 using threading.
         
         Args:
             count: Number of files to generate
@@ -412,34 +488,23 @@ class TestDataGenerator:
         Returns:
             List of generated file names (for tracking)
         """
-        files = []
+        print(f"🚀 Generating {count} published files using {self.max_workers} threads...")
         
-        for i in range(count):
-            # Generate different types of published data
-            file_types = ['pdf', 'txt', 'json', 'dat']
-            file_type = random.choice(file_types)
+        files = []
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            # Submit all file generation tasks
+            futures = [
+                executor.submit(self._generate_single_file, 'published', i)
+                for i in range(count)
+            ]
             
-            # Generate unique filename with timestamp and random suffix
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            random_suffix = fake.random_int(min=1000, max=9999)
-            filename = f"published_dataset_{timestamp}_{random_suffix}_{i:03d}.{file_type}"
-            
-            # Generate data in memory
-            if file_type == 'pdf':
-                data = self._generate_pdf_dataset_data()
-            elif file_type == 'json':
-                data = self._generate_json_dataset_data()
-            elif file_type == 'dat':
-                data = self._generate_binary_dataset_data()
-            else:
-                data = self._generate_text_dataset_data()
-            
-            print(f"Generated published file: {filename}")
-            
-            # Upload directly to S3
-            success = self._upload_data_directly_to_s3(data, filename, 'published')
-            if success:
-                files.append(filename)
+            # Collect results as they complete
+            for future in as_completed(futures):
+                result = future.result()
+                if result:
+                    files.append(result)
+                    generated, uploaded = self._get_progress()
+                    print(f"  ✅ Progress: {uploaded}/{generated} files uploaded")
         
         return files
     
@@ -613,6 +678,7 @@ class TestDataGenerator:
             processed_size_mb: Size of processed data files in MB
         """
         print("🚀 Starting test data generation...")
+        print(f"⚡ Using {self.max_workers} threads for concurrent uploads")
         
         # Generate different types of data
         raw_files_list = self.generate_large_files(raw_files, raw_size_mb)
@@ -642,14 +708,16 @@ def main():
     parser.add_argument("--published-files", type=int, default=15, help="Number of published files")
     parser.add_argument("--raw-size-mb", type=int, default=100, help="Size of raw files in MB")
     parser.add_argument("--processed-size-mb", type=int, default=50, help="Size of processed files in MB")
+    parser.add_argument("--max-workers", type=int, default=8, help="Maximum number of threads for concurrent uploads")
     
     args = parser.parse_args()
     
-    generator = TestDataGenerator(args.lab_type)
+    generator = TestDataGenerator(args.lab_type, args.max_workers)
     
     # Show lab-specific information
     lab_views = generator.get_lab_views()
     print(f"🎯 Generating test data for {args.lab_type.upper()}")
+    print(f"⚡ Threading: {args.max_workers} concurrent workers")
     print(f"🔗 Configured VAST views:")
     for view in lab_views:
         print(f"   - {view}")
