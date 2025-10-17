@@ -26,3 +26,4 @@ rich>=13.0.0
 # Test data generation
 faker>=37.11.0
 boto3>=1.26.0
+psutil>=5.9.0
