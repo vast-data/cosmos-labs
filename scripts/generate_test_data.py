@@ -188,6 +188,12 @@ class TestDataGenerator:
                 print("Required: s3_access_key and s3_secret_key")
                 raise SystemExit(1)
             
+            # Suppress SSL warnings if verification is disabled (like other labs)
+            ssl_verify = s3_config.get('ssl_verify', True)
+            if not ssl_verify:
+                import urllib3
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            
             # Initialize S3 client
             s3_client = boto3.client(
                 's3',
@@ -196,7 +202,7 @@ class TestDataGenerator:
                 aws_secret_access_key=secret_access_key,
                 region_name=s3_config.get('region', 'us-east-1'),
                 use_ssl=True,
-                verify=s3_config.get('ssl_verify', True)
+                verify=ssl_verify
             )
             
             # Test connection
