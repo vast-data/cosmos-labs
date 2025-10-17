@@ -321,7 +321,10 @@ class TestDataGenerator:
         files = []
         
         for i in range(count):
-            filename = f"telescope_data_{i:03d}.dat"
+            # Generate unique filename with timestamp and random suffix
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            random_suffix = fake.random_int(min=1000, max=9999)
+            filename = f"telescope_data_{timestamp}_{random_suffix}_{i:03d}.dat"
             
             # Generate random data directly in memory
             data_size = size_mb * 1024 * 1024  # Convert to bytes
@@ -350,7 +353,10 @@ class TestDataGenerator:
         files = []
         
         for i in range(count):
-            filename = f"processed_data_{i:03d}.dat"
+            # Generate unique filename with timestamp and random suffix
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            random_suffix = fake.random_int(min=1000, max=9999)
+            filename = f"processed_data_{timestamp}_{random_suffix}_{i:03d}.dat"
             
             # Generate file with some structure (header + random data)
             header = f"PROCESSED_DATA_V1.0\nFile: {filename}\nTimestamp: {datetime.now().isoformat()}\n"
@@ -385,7 +391,11 @@ class TestDataGenerator:
             # Generate different types of analysis files
             file_types = ['json', 'csv', 'txt']
             file_type = random.choice(file_types)
-            filename = f"analysis_result_{i:03d}.{file_type}"
+            
+            # Generate unique filename with timestamp and random suffix
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            random_suffix = fake.random_int(min=1000, max=9999)
+            filename = f"analysis_result_{timestamp}_{random_suffix}_{i:03d}.{file_type}"
             
             # Generate data in memory
             if file_type == 'json':
@@ -406,13 +416,13 @@ class TestDataGenerator:
     
     def generate_published_datasets(self, count: int = 15) -> list:
         """
-        Generate published dataset files (mixed content).
+        Generate published dataset files directly to S3.
         
         Args:
             count: Number of files to generate
             
         Returns:
-            List of generated file paths
+            List of generated file names (for tracking)
         """
         files = []
         
@@ -420,23 +430,28 @@ class TestDataGenerator:
             # Generate different types of published data
             file_types = ['pdf', 'txt', 'json', 'dat']
             file_type = random.choice(file_types)
-            filename = f"published_dataset_{i:03d}.{file_type}"
-            filepath = self.published_dir / filename
             
+            # Generate unique filename with timestamp and random suffix
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            random_suffix = fake.random_int(min=1000, max=9999)
+            filename = f"published_dataset_{timestamp}_{random_suffix}_{i:03d}.{file_type}"
+            
+            # Generate data in memory
             if file_type == 'pdf':
-                self._generate_pdf_dataset(filepath)
+                data = self._generate_pdf_dataset_data()
             elif file_type == 'json':
-                self._generate_json_dataset(filepath)
+                data = self._generate_json_dataset_data()
             elif file_type == 'dat':
-                self._generate_binary_dataset(filepath)
+                data = self._generate_binary_dataset_data()
             else:
-                self._generate_text_dataset(filepath)
+                data = self._generate_text_dataset_data()
             
-            files.append(filepath)
-            print(f"Generated published file: {filepath}")
+            print(f"Generated published file: {filename}")
             
-            # Upload to S3
-            self._upload_file_to_appropriate_bucket(filepath, 'published')
+            # Upload directly to S3
+            success = self._upload_data_directly_to_s3(data, filename, 'published')
+            if success:
+                files.append(filename)
         
         return files
     
@@ -495,6 +510,98 @@ class TestDataGenerator:
         content += f"- Detected objects: {fake.random_int(min=0, max=100)}\n"
         content += f"- Signal to noise ratio: {round(fake.random.uniform(1.0, 100.0), 2)}\n"
         content += f"- Data quality: {fake.random_element(elements=('EXCELLENT', 'GOOD', 'FAIR', 'POOR'))}\n"
+        
+        return content.encode('utf-8')
+    
+    def _generate_json_dataset_data(self) -> bytes:
+        """Generate JSON dataset data in memory."""
+        dataset = {
+            "dataset_id": fake.uuid4(),
+            "title": fake.sentence(nb_words=6),
+            "authors": [fake.name() for _ in range(fake.random_int(min=1, max=5))],
+            "publication_date": fake.date_between(start_date='-2y', end_date='now').isoformat(),
+            "telescope": fake.random_element(elements=('COSMOS-7', 'HUBBLE', 'JAMES_WEBB')),
+            "wavelength": fake.random_element(elements=('optical', 'infrared', 'radio', 'x-ray')),
+            "target_objects": [fake.random_element(elements=('M31', 'M87', 'NGC_1234', 'PSR_J0007+7303')) for _ in range(fake.random_int(min=1, max=10))],
+            "data_size_gb": round(fake.random.uniform(0.1, 100.0), 2),
+            "observations": fake.random_int(min=10, max=1000),
+            "keywords": [fake.word() for _ in range(fake.random_int(min=3, max=10))],
+            "license": fake.random_element(elements=('MIT', 'Apache-2.0', 'CC-BY-4.0', 'Proprietary')),
+            "doi": f"10.1000/{fake.random_int(min=100000, max=999999)}"
+        }
+        return json.dumps(dataset, indent=2).encode('utf-8')
+    
+    def _generate_pdf_dataset_data(self) -> bytes:
+        """Generate PDF-like dataset data in memory."""
+        content = f"%PDF-1.4\n"
+        content += f"1 0 obj\n"
+        content += f"<<\n"
+        content += f"/Type /Catalog\n"
+        content += f"/Pages 2 0 R\n"
+        content += f">>\n"
+        content += f"endobj\n\n"
+        content += f"2 0 obj\n"
+        content += f"<<\n"
+        content += f"/Type /Pages\n"
+        content += f"/Kids [3 0 R]\n"
+        content += f"/Count 1\n"
+        content += f">>\n"
+        content += f"endobj\n\n"
+        content += f"3 0 obj\n"
+        content += f"<<\n"
+        content += f"/Type /Page\n"
+        content += f"/Parent 2 0 R\n"
+        content += f"/MediaBox [0 0 612 792]\n"
+        content += f"/Contents 4 0 R\n"
+        content += f">>\n"
+        content += f"endobj\n\n"
+        content += f"4 0 obj\n"
+        content += f"<<\n"
+        content += f"/Length 44\n"
+        content += f">>\n"
+        content += f"stream\n"
+        content += f"BT\n"
+        content += f"/F1 12 Tf\n"
+        content += f"72 720 Td\n"
+        content += f"(Dataset: {fake.sentence(nb_words=4)}) Tj\n"
+        content += f"ET\n"
+        content += f"endstream\n"
+        content += f"endobj\n"
+        content += f"xref\n"
+        content += f"0 5\n"
+        content += f"0000000000 65535 f \n"
+        content += f"0000000009 00000 n \n"
+        content += f"0000000058 00000 n \n"
+        content += f"0000000115 00000 n \n"
+        content += f"0000000204 00000 n \n"
+        content += f"trailer\n"
+        content += f"<<\n"
+        content += f"/Size 5\n"
+        content += f"/Root 1 0 R\n"
+        content += f">>\n"
+        content += f"startxref\n"
+        content += f"298\n"
+        content += f"%%EOF\n"
+        return content.encode('utf-8')
+    
+    def _generate_binary_dataset_data(self) -> bytes:
+        """Generate binary dataset data in memory."""
+        size_mb = fake.random_int(min=1, max=10)
+        header = f"BINARY_DATASET_V1.0\nSize: {size_mb}MB\nTimestamp: {datetime.now().isoformat()}\n"
+        header_bytes = header.encode('utf-8')
+        
+        # Fill with random binary data
+        remaining_size = (size_mb * 1024 * 1024) - len(header_bytes)
+        return header_bytes + os.urandom(remaining_size)
+    
+    def _generate_text_dataset_data(self) -> bytes:
+        """Generate text dataset data in memory."""
+        content = f"Dataset: {fake.sentence(nb_words=4)}\n"
+        content += f"Generated: {datetime.now().isoformat()}\n"
+        content += f"Description: {fake.paragraph(nb_sentences=3)}\n\n"
+        content += f"Data Points:\n"
+        for i in range(fake.random_int(min=20, max=100)):
+            content += f"{i:03d}: {fake.random.uniform(0, 100):.6f}\n"
         
         return content.encode('utf-8')
     
