@@ -668,6 +668,10 @@ class ProtectionPoliciesManager:
             
             policy_id = int(policy['id'])  # Ensure it's an integer
             
+            # Debug: Log policy details
+            self.logger.info(f"Found policy: {policy_name} (ID: {policy_id}, Type: {policy.get('type', 'unknown')})")
+            self.logger.debug(f"Policy details: {json.dumps(policy, indent=2)}")
+            
             if dry_run:
                 self.logger.info(f"Would create protected path: {view_name} -> {source_dir} (policy: {policy_name}, ID: {policy_id}, tenant: {tenant_id})")
                 protected_paths.append({
