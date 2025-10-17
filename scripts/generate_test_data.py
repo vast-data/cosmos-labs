@@ -33,28 +33,16 @@ class TestDataGenerator:
     - Published datasets (mixed content)
     """
     
-    def __init__(self, output_dir: str = "test_data", lab_type: str = "lab4"):
+    def __init__(self, lab_type: str = "lab4"):
         """
         Initialize the data generator.
         
         Args:
-            output_dir: Directory to generate test data in
             lab_type: Type of lab (lab1, lab4, etc.) to determine data structure
         """
-        self.output_dir = Path(output_dir)
         self.lab_type = lab_type
-        self.output_dir.mkdir(exist_ok=True)
         
-        # Create subdirectories for different data types
-        self.raw_dir = self.output_dir / "raw"
-        self.processed_dir = self.output_dir / "processed"
-        self.analysis_dir = self.output_dir / "analysis"
-        self.published_dir = self.output_dir / "published"
-        
-        for dir_path in [self.raw_dir, self.processed_dir, self.analysis_dir, self.published_dir]:
-            dir_path.mkdir(exist_ok=True)
-        
-        # Load lab-specific configuration if available
+        # Load lab-specific configuration
         self.lab_config = self._load_lab_config()
         
         # Initialize S3 client for VAST uploads
@@ -605,156 +593,6 @@ class TestDataGenerator:
         
         return content.encode('utf-8')
     
-    def _generate_json_analysis(self, filepath: Path):
-        """Generate JSON analysis file."""
-        data = {
-            "analysis_id": fake.uuid4(),
-            "timestamp": fake.date_time_between(start_date='-1y', end_date='now').isoformat(),
-            "telescope": fake.random_element(elements=('COSMOS-7', 'HUBBLE', 'JAMES_WEBB')),
-            "target": fake.random_element(elements=('M31', 'M87', 'NGC_1234', 'PSR_J0007+7303')),
-            "exposure_time": fake.random_int(min=100, max=3600),
-            "magnitude": round(fake.random.uniform(10.0, 25.0), 2),
-            "coordinates": {
-                "ra": round(fake.random.uniform(0, 360), 6),
-                "dec": round(fake.random.uniform(-90, 90), 6)
-            },
-            "data_quality": fake.random_element(elements=('EXCELLENT', 'GOOD', 'FAIR', 'POOR')),
-            "processing_version": f"v{fake.random_int(min=1, max=5)}.{fake.random_int(min=0, max=9)}",
-            "results": {
-                "detected_objects": fake.random_int(min=0, max=100),
-                "signal_to_noise": round(fake.random.uniform(1.0, 100.0), 2),
-                "background_level": round(fake.random.uniform(0.1, 10.0), 3)
-            }
-        }
-        
-        with open(filepath, 'w') as f:
-            json.dump(data, f, indent=2)
-    
-    def _generate_csv_analysis(self, filepath: Path):
-        """Generate CSV analysis file."""
-        with open(filepath, 'w', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(['timestamp', 'object_id', 'magnitude', 'ra', 'dec', 'quality'])
-            
-            for _ in range(fake.random_int(min=10, max=100)):
-                writer.writerow([
-                    fake.date_time_between(start_date='-1y', end_date='now').isoformat(),
-                    fake.uuid4()[:8],
-                    round(fake.random.uniform(10.0, 25.0), 2),
-                    round(fake.random.uniform(0, 360), 6),
-                    round(fake.random.uniform(-90, 90), 6),
-                    fake.random_element(elements=('EXCELLENT', 'GOOD', 'FAIR', 'POOR'))
-                ])
-    
-    def _generate_text_analysis(self, filepath: Path):
-        """Generate text analysis file."""
-        with open(filepath, 'w') as f:
-            f.write(f"Analysis Report\n")
-            f.write(f"Generated: {datetime.now().isoformat()}\n")
-            f.write(f"Analysis ID: {fake.uuid4()}\n")
-            f.write(f"Telescope: {fake.random_element(elements=('COSMOS-7', 'HUBBLE', 'JAMES_WEBB'))}\n")
-            f.write(f"Target: {fake.random_element(elements=('M31', 'M87', 'NGC_1234'))}\n\n")
-            f.write(f"Summary:\n")
-            f.write(f"{fake.paragraph(nb_sentences=5)}\n\n")
-            f.write(f"Results:\n")
-            f.write(f"- Detected objects: {fake.random_int(min=0, max=100)}\n")
-            f.write(f"- Signal to noise ratio: {round(fake.random.uniform(1.0, 100.0), 2)}\n")
-            f.write(f"- Data quality: {fake.random_element(elements=('EXCELLENT', 'GOOD', 'FAIR', 'POOR'))}\n")
-    
-    def _generate_json_dataset(self, filepath: Path):
-        """Generate JSON dataset file."""
-        dataset = {
-            "dataset_id": fake.uuid4(),
-            "title": fake.sentence(nb_words=6),
-            "authors": [fake.name() for _ in range(fake.random_int(min=1, max=5))],
-            "publication_date": fake.date_between(start_date='-2y', end_date='now').isoformat(),
-            "telescope": fake.random_element(elements=('COSMOS-7', 'HUBBLE', 'JAMES_WEBB')),
-            "wavelength": fake.random_element(elements=('optical', 'infrared', 'radio', 'x-ray')),
-            "target_objects": [fake.random_element(elements=('M31', 'M87', 'NGC_1234', 'PSR_J0007+7303')) for _ in range(fake.random_int(min=1, max=10))],
-            "data_size_gb": round(fake.random.uniform(0.1, 100.0), 2),
-            "observations": fake.random_int(min=10, max=1000),
-            "keywords": [fake.word() for _ in range(fake.random_int(min=3, max=10))],
-            "license": fake.random_element(elements=('MIT', 'Apache-2.0', 'CC-BY-4.0', 'Proprietary')),
-            "doi": f"10.1000/{fake.random_int(min=100000, max=999999)}"
-        }
-        
-        with open(filepath, 'w') as f:
-            json.dump(dataset, f, indent=2)
-    
-    def _generate_pdf_dataset(self, filepath: Path):
-        """Generate a simple PDF-like file (text file with PDF-like content)."""
-        with open(filepath, 'w') as f:
-            f.write(f"%PDF-1.4\n")
-            f.write(f"1 0 obj\n")
-            f.write(f"<<\n")
-            f.write(f"/Type /Catalog\n")
-            f.write(f"/Pages 2 0 R\n")
-            f.write(f">>\n")
-            f.write(f"endobj\n\n")
-            f.write(f"2 0 obj\n")
-            f.write(f"<<\n")
-            f.write(f"/Type /Pages\n")
-            f.write(f"/Kids [3 0 R]\n")
-            f.write(f"/Count 1\n")
-            f.write(f">>\n")
-            f.write(f"endobj\n\n")
-            f.write(f"3 0 obj\n")
-            f.write(f"<<\n")
-            f.write(f"/Type /Page\n")
-            f.write(f"/Parent 2 0 R\n")
-            f.write(f"/MediaBox [0 0 612 792]\n")
-            f.write(f"/Contents 4 0 R\n")
-            f.write(f">>\n")
-            f.write(f"endobj\n\n")
-            f.write(f"4 0 obj\n")
-            f.write(f"<<\n")
-            f.write(f"/Length 44\n")
-            f.write(f">>\n")
-            f.write(f"stream\n")
-            f.write(f"BT\n")
-            f.write(f"/F1 12 Tf\n")
-            f.write(f"72 720 Td\n")
-            f.write(f"(Dataset: {fake.sentence(nb_words=4)}) Tj\n")
-            f.write(f"ET\n")
-            f.write(f"endstream\n")
-            f.write(f"endobj\n")
-            f.write(f"xref\n")
-            f.write(f"0 5\n")
-            f.write(f"0000000000 65535 f \n")
-            f.write(f"0000000009 00000 n \n")
-            f.write(f"0000000058 00000 n \n")
-            f.write(f"0000000115 00000 n \n")
-            f.write(f"0000000204 00000 n \n")
-            f.write(f"trailer\n")
-            f.write(f"<<\n")
-            f.write(f"/Size 5\n")
-            f.write(f"/Root 1 0 R\n")
-            f.write(f">>\n")
-            f.write(f"startxref\n")
-            f.write(f"298\n")
-            f.write(f"%%EOF\n")
-    
-    def _generate_binary_dataset(self, filepath: Path):
-        """Generate binary dataset file."""
-        size_mb = fake.random_int(min=1, max=10)
-        with open(filepath, 'wb') as f:
-            # Write a simple header
-            header = f"BINARY_DATASET_V1.0\nSize: {size_mb}MB\nTimestamp: {datetime.now().isoformat()}\n"
-            f.write(header.encode('utf-8'))
-            
-            # Fill with random binary data
-            remaining_size = (size_mb * 1024 * 1024) - len(header)
-            f.write(os.urandom(remaining_size))
-    
-    def _generate_text_dataset(self, filepath: Path):
-        """Generate text dataset file."""
-        with open(filepath, 'w') as f:
-            f.write(f"Dataset: {fake.sentence(nb_words=4)}\n")
-            f.write(f"Generated: {datetime.now().isoformat()}\n")
-            f.write(f"Description: {fake.paragraph(nb_sentences=3)}\n\n")
-            f.write(f"Data Points:\n")
-            for i in range(fake.random_int(min=20, max=100)):
-                f.write(f"{i:03d}: {fake.random.uniform(0, 100):.6f}\n")
     
     def generate_all_data(self, 
                          raw_files: int = 10,
@@ -774,18 +612,13 @@ class TestDataGenerator:
             raw_size_mb: Size of raw data files in MB
             processed_size_mb: Size of processed data files in MB
         """
-        print("🚀 Starting Lab 4 test data generation...")
-        print(f"📁 Output directory: {self.output_dir}")
+        print("🚀 Starting test data generation...")
         
         # Generate different types of data
         raw_files_list = self.generate_large_files(raw_files, raw_size_mb)
         processed_files_list = self.generate_processed_data(processed_files, processed_size_mb)
         analysis_files_list = self.generate_analysis_results(analysis_files)
         published_files_list = self.generate_published_datasets(published_files)
-        
-        # Create a summary file
-        self._create_summary_file(raw_files_list, processed_files_list, 
-                                analysis_files_list, published_files_list)
         
         print(f"\n✅ Data generation complete!")
         print(f"📊 Generated {len(raw_files_list)} raw files")
@@ -794,51 +627,6 @@ class TestDataGenerator:
         print(f"📊 Generated {len(published_files_list)} published files")
         print(f"📁 Total files: {len(raw_files_list) + len(processed_files_list) + len(analysis_files_list) + len(published_files_list)}")
     
-    def _create_summary_file(self, raw_files, processed_files, analysis_files, published_files):
-        """Create a summary file with generation details."""
-        summary_path = self.output_dir / "generation_summary.txt"
-        
-        with open(summary_path, 'w') as f:
-            f.write(f"{self.lab_type.upper()} Test Data Generation Summary\n")
-            f.write("=" * 50 + "\n\n")
-            f.write(f"Generated: {datetime.now().isoformat()}\n")
-            f.write(f"Lab type: {self.lab_type}\n")
-            f.write(f"Output directory: {self.output_dir}\n\n")
-            
-            f.write("File counts:\n")
-            f.write(f"- Raw data files: {len(raw_files)}\n")
-            f.write(f"- Processed data files: {len(processed_files)}\n")
-            f.write(f"- Analysis result files: {len(analysis_files)}\n")
-            f.write(f"- Published dataset files: {len(published_files)}\n")
-            f.write(f"- Total files: {len(raw_files) + len(processed_files) + len(analysis_files) + len(published_files)}\n\n")
-            
-            f.write("Directory structure:\n")
-            f.write(f"- {self.raw_dir}/\n")
-            f.write(f"- {self.processed_dir}/\n")
-            f.write(f"- {self.analysis_dir}/\n")
-            f.write(f"- {self.published_dir}/\n\n")
-            
-            # Add lab-specific usage instructions
-            lab_views = self.get_lab_views()
-            f.write("Configured VAST views for this lab:\n")
-            for view in lab_views:
-                f.write(f"- {view}\n")
-            f.write("\n")
-            
-            f.write("Next steps:\n")
-            if self.lab_type == "lab1":
-                f.write("1. Upload these files to your VAST views\n")
-                f.write("2. Run lab1_solution.py to test storage monitoring\n")
-                f.write("3. Test auto-expansion when views fill up\n")
-            elif self.lab_type == "lab4":
-                f.write("1. Upload these files to your VAST views\n")
-                f.write("2. Set up protection policies using lab4_solution.py\n")
-                f.write("3. Test snapshot creation and restoration\n")
-            else:
-                f.write("1. Upload these files to your VAST views\n")
-                f.write("2. Use with your lab-specific testing\n")
-        
-        print(f"📄 Summary file created: {summary_path}")
 
 
 def main():
@@ -846,7 +634,6 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description="Generate test data for various lab scenarios")
-    parser.add_argument("--output-dir", default="test_data", help="Output directory for test data")
     parser.add_argument("--lab-type", default="lab4", choices=["lab1", "lab4"], 
                        help="Type of lab (lab1 for storage testing, lab4 for snapshot testing)")
     parser.add_argument("--raw-files", type=int, default=10, help="Number of raw data files")
@@ -858,12 +645,11 @@ def main():
     
     args = parser.parse_args()
     
-    generator = TestDataGenerator(args.output_dir, args.lab_type)
+    generator = TestDataGenerator(args.lab_type)
     
     # Show lab-specific information
     lab_views = generator.get_lab_views()
     print(f"🎯 Generating test data for {args.lab_type.upper()}")
-    print(f"📁 Output directory: {args.output_dir}")
     print(f"🔗 Configured VAST views:")
     for view in lab_views:
         print(f"   - {view}")
