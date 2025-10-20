@@ -659,6 +659,32 @@ class ProtectionPoliciesManager:
                     self.logger.error(f"API Error Response: {e.response.text}")
             raise
     
+    def get_protected_path_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        """
+        Get a protected path by name.
+        
+        Args:
+            name: Name of the protected path
+            
+        Returns:
+            Protected path data if found, None otherwise
+        """
+        try:
+            protected_paths = self.list_protected_paths()
+            
+            # Find exact match
+            for path in protected_paths:
+                if path.get('name') == name:
+                    self.logger.info(f"Found protected path '{name}' with ID: {path.get('id')}")
+                    return path
+            
+            self.logger.debug(f"Protected path '{name}' not found")
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get protected path by name '{name}': {e}")
+            return None
+    
     def delete_protected_path(self, path_id: int) -> bool:
         """
         Delete a protected path.
@@ -711,12 +737,28 @@ class ProtectionPoliciesManager:
         
         self.logger.info(f"Setting up protected paths for views (dry_run={dry_run})")
         
+        # Get existing protected paths to avoid duplicates
+        existing_protected_paths = []
+        if not dry_run:
+            try:
+                existing_protected_paths = self.list_protected_paths()
+                self.logger.info(f"Found {len(existing_protected_paths)} existing protected paths")
+            except Exception as e:
+                self.logger.warning(f"Could not list existing protected paths: {e}")
+        
+        existing_names = {path.get('name') for path in existing_protected_paths}
+        
         for view_name, view_config in views_config.items():
             if not isinstance(view_config, dict) or 'path' not in view_config:
                 self.logger.warning(f"Skipping invalid view config: {view_name}")
                 continue
             
             source_dir = view_config['path']
+            
+            # Check if protected path already exists
+            if view_name in existing_names:
+                self.logger.info(f"Protected path already exists, skipping: {view_name}")
+                continue
             
             # Find matching policy for this view using exact name match
             policy_name = f"lab4-{view_name}-policy"
