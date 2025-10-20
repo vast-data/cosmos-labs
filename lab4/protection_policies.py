@@ -398,7 +398,7 @@ class ProtectionPoliciesManager:
         
         try:
             # Use vastpy DELETE method - the correct way to call it
-            result = self.vast_client.protectionpolicies.delete(policy_id)
+            result = self.vast_client.protectionpolicies[policy_id].delete()
             self.logger.info(f"✅ Successfully deleted protection policy: {policy_id}")
             return True
             
@@ -826,7 +826,7 @@ class ProtectionPoliciesManager:
         
         try:
             # Use vastpy DELETE method - the correct way to call it
-            result = self.vast_client.protectedpaths.delete(path_id)
+            result = self.vast_client.protectedpaths[path_id].delete()
             self.logger.info(f"✅ Deleted protected path ID: {path_id}")
             return True
             

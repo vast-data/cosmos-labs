@@ -242,7 +242,7 @@ class SnapshotManager:
         
         try:
             # Use vastpy DELETE method - the correct way to call it
-            result = self.vast_client.snapshots.delete(snapshot_id)
+            result = self.vast_client.snapshots[snapshot_id].delete()
             self.logger.info(f"✅ Successfully deleted snapshot: {snapshot_id}")
             return True
             
