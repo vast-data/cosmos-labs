@@ -153,38 +153,19 @@ class ProtectionPoliciesManager:
             payload["target_object_id"] = target_object_id
         
         self.logger.info(f"Creating protection policy: {name}")
-        self.logger.info(f"Frames: {frames}")
-        self.logger.info(f"Payload: {json.dumps(payload, indent=2)}")
         
         try:
             policies = self.vast_client.protectionpolicies.post(**payload)
-            self.logger.debug(f"Raw response from vastpy: {policies} (type: {type(policies)})")
-            
-            # Handle different response formats from vastpy
-            if isinstance(policies, list) and len(policies) > 0:
+            # vastpy returns a list, so get the first (and should be only) item
+            if policies and len(policies) > 0:
                 policy_data = policies[0]
                 self.logger.info(f"✅ Successfully created protection policy: {name} (ID: {policy_data.get('id')})")
                 return policy_data
-            elif isinstance(policies, dict):
-                # Sometimes vastpy returns a dict directly
-                self.logger.info(f"✅ Successfully created protection policy: {name} (ID: {policies.get('id')})")
-                return policies
-            elif policies == 0:
-                # vastpy returning 0 might indicate an error or different response format
-                self.logger.warning(f"⚠️  vastpy returned 0 for policy creation - this might indicate an issue")
-                self.logger.info(f"✅ Assuming successful creation of protection policy: {name}")
-                # Return a minimal success response
-                return {"name": name, "id": "unknown", "status": "created", "note": "vastpy_returned_0"}
-            elif policies is None:
-                self.logger.warning(f"⚠️  vastpy returned None for policy creation")
-                self.logger.info(f"✅ Assuming successful creation of protection policy: {name}")
-                return {"name": name, "id": "unknown", "status": "created", "note": "vastpy_returned_none"}
             else:
-                raise Exception(f"Unexpected response format from vastpy: {type(policies)} - {policies}")
+                raise Exception(f"Failed to create protection policy {name} - no data returned")
             
         except Exception as e:
             self.logger.error(f"❌ Failed to create protection policy {name}: {str(e)}")
-            self.logger.error(f"Payload was: {json.dumps(payload, indent=2)}")
             raise
     
     def list_replication_policies(self, name_filter: str = None) -> List[Dict[str, Any]]:
@@ -740,28 +721,16 @@ class ProtectionPoliciesManager:
             payload["capabilities"] = capabilities
         
         self.logger.info(f"Creating protected path: {name} -> {source_dir}")
-        self.logger.debug(f"Payload: {json.dumps(payload, indent=2)}")
         
         try:
             paths = self.vast_client.protectedpaths.post(**payload)
-            self.logger.debug(f"Raw response from vastpy: {paths}")
-            
-            # Handle different response formats from vastpy
-            if isinstance(paths, list) and len(paths) > 0:
+            # vastpy returns a list, so get the first (and should be only) item
+            if paths and len(paths) > 0:
                 protected_path_data = paths[0]
                 self.logger.info(f"✅ Created protected path: {name} (ID: {protected_path_data.get('id')})")
                 return protected_path_data
-            elif isinstance(paths, dict):
-                # Sometimes vastpy returns a dict directly
-                self.logger.info(f"✅ Created protected path: {name} (ID: {paths.get('id')})")
-                return paths
-            elif paths == 0 or paths is None:
-                # vastpy sometimes returns 0 for successful creation
-                self.logger.info(f"✅ Created protected path: {name} (vastpy returned 0)")
-                # Return a minimal success response
-                return {"name": name, "id": "unknown", "status": "created"}
             else:
-                raise Exception(f"Unexpected response format from vastpy: {type(paths)} - {paths}")
+                raise Exception(f"Failed to create protected path {name} - no data returned")
             
         except Exception as e:
             self.logger.error(f"❌ Failed to create protected path {name}: {e}")

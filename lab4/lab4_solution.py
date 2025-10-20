@@ -446,40 +446,6 @@ class Lab4Solution:
                 'status': 'not_implemented'
             }
     
-    def cleanup_old_snapshots(self, 
-                             view_path: Optional[str] = None,
-                             older_than_days: int = 30) -> List[str]:
-        """
-        Clean up old snapshots.
-        
-        Args:
-            view_path: Optional specific view path to clean up
-            older_than_days: Delete snapshots older than this many days
-            
-        Returns:
-            List of deleted snapshot names
-        """
-        self.logger.info(f"Cleaning up snapshots older than {older_than_days} days")
-        if view_path:
-            self.logger.info(f"View filter: {view_path}")
-        
-        try:
-            deleted_snapshots = self.snapshot_manager.cleanup_old_snapshots(
-                view_path=view_path,
-                older_than_days=older_than_days,
-                dry_run=self.dry_run
-            )
-            
-            if self.dry_run:
-                self.logger.info(f"Would delete {len(deleted_snapshots)} old snapshots")
-            else:
-                self.logger.info(f"✅ Deleted {len(deleted_snapshots)} old snapshots")
-            
-            return deleted_snapshots
-        except Exception as e:
-            self.logger.error(f"❌ Failed to cleanup snapshots: {e}")
-            return []
-    
     def show_snapshot_details(self, snapshot_name: str) -> Dict[str, Any]:
         """
         Show detailed information about a snapshot.
@@ -498,57 +464,6 @@ class Lab4Solution:
             'name': snapshot_name,
             'status': 'not_implemented'
         }
-    
-    def run_complete_workflow(self) -> Dict[str, Any]:
-        """
-        Run the complete Lab 4 workflow.
-        
-        Returns:
-            Workflow results
-        """
-        self.logger.info("Running complete Lab 4 workflow...")
-        
-        results = {
-            'protection_policies': [],
-            'protected_paths': [],
-            'snapshots': [],
-            'timestamp': datetime.now().isoformat(),
-            'dry_run': self.dry_run
-        }
-        
-        try:
-            # Step 1: Set up protection policies
-            self.logger.info("Step 1: Setting up protection policies")
-            policies = self.setup_protection_policies()
-            results['protection_policies'] = policies
-            
-            # Step 2: Set up protected paths
-            self.logger.info("Step 2: Setting up protected paths")
-            protected_paths = self.setup_protected_paths()
-            results['protected_paths'] = protected_paths
-            
-            # Step 3: Create initial snapshots
-            self.logger.info("Step 3: Creating initial snapshots")
-            views = self.config.get_views_config()
-            for view_path in views:
-                snapshot = self.create_named_snapshot(
-                    name="initial-setup",
-                    view_path=view_path,
-                    milestone="lab4-initial-setup"
-                )
-                results['snapshots'].append(snapshot)
-            
-            # Step 4: List policies, protected paths, and snapshots
-            self.logger.info("Step 4: Listing created resources")
-            self.list_protection_policies()
-            
-            self.logger.info("✅ Complete workflow finished successfully")
-            
-        except Exception as e:
-            self.logger.error(f"❌ Workflow failed: {str(e)}")
-            results['error'] = str(e)
-        
-        return results
 
 
 def main():
@@ -592,7 +507,7 @@ Examples:
   python lab4_solution.py --restore-snapshot "pre-calibration-change" --view "/cosmos7/processed"
   
   # Complete workflow (includes policies, protected paths, and snapshots)
-  python lab4_solution.py --complete --pushtoprod
+  python lab4_solution.py --setup-policies --setup-protected-paths --pushtoprod
         """
     )
     
@@ -729,19 +644,14 @@ Examples:
             )
         
         elif args.cleanup_snapshots:
-            solution.cleanup_old_snapshots(
+            solution.snapshot_manager.cleanup_old_snapshots(
                 view_path=args.view,
-                older_than_days=args.snapshot_age_days
+                older_than_days=args.snapshot_age_days,
+                dry_run=dry_run
             )
         
         elif args.snapshot_details:
             solution.show_snapshot_details(args.snapshot_details)
-        
-        elif args.complete:
-            results = solution.run_complete_workflow()
-            if args.json:
-                import json
-                print(json.dumps(results, indent=2))
         
         else:
             parser.print_help()

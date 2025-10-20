@@ -373,24 +373,10 @@ class SnapshotManager:
         Returns:
             Tenant ID (defaults to 1 if not found)
         """
-        if not self.vast_client:
-            self.logger.warning("VAST client not initialized, using default tenant ID: 1")
-            return 1
-        
-        try:
-            views = self.vast_client.views.get()
-            if views and len(views) > 0:
-                # Get tenant_id from the first view
-                tenant_id = views[0].get('tenant_id', 1)
-                self.logger.info(f"Using tenant ID: {tenant_id} from views")
-                return tenant_id
-            else:
-                self.logger.warning("No views found, using default tenant ID: 1")
-                return 1
-                
-        except Exception as e:
-            self.logger.warning(f"Could not get tenant ID from views: {e}, using default: 1")
-            return 1
+        # Import here to avoid circular imports
+        from protection_policies import ProtectionPoliciesManager
+        temp_manager = ProtectionPoliciesManager()
+        return temp_manager.get_tenant_id_from_views()
     
     def cleanup_old_snapshots(self, 
                              view_path: Optional[str] = None,
