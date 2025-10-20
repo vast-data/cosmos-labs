@@ -617,24 +617,34 @@ class ProtectionPoliciesManager:
             self.logger.error(f"Failed to list protected paths: {e}")
             return []
         
+        # Get all policies first to avoid individual lookups
+        try:
+            all_policies = self.vast_client.protectionpolicies.get()
+            if isinstance(all_policies, list):
+                policies_list = all_policies
+            else:
+                policies_list = [all_policies] if all_policies else []
+        except Exception as e:
+            self.logger.error(f"Failed to get policies: {e}")
+            return []
+        
+        # Create a mapping of policy_id -> policy_name for lab4 policies
+        lab4_policy_names = {}
+        for policy in policies_list:
+            policy_name = policy.get('name', '')
+            if policy_name.startswith('lab4-'):
+                lab4_policy_names[policy.get('id')] = policy_name
+        
         # Find protected paths that use lab4 policies
         paths_to_delete = []
         for path in protected_paths:
             policy_id = path.get('protection_policy_id')
-            if policy_id:
-                # Get the policy to check its name
-                try:
-                    policy = self.get_protection_policy(policy_id)
-                    policy_name = policy.get('name', '')
-                    if policy_name.startswith('lab4-'):
-                        paths_to_delete.append({
-                            'id': path.get('id'),
-                            'name': path.get('name'),
-                            'policy_name': policy_name
-                        })
-                except Exception as e:
-                    # Policy doesn't exist - skip this protected path (it uses other policies)
-                    self.logger.debug(f"Skipping protected path '{path.get('name')}' - policy {policy_id} not found (likely uses other policies)")
+            if policy_id and policy_id in lab4_policy_names:
+                paths_to_delete.append({
+                    'id': path.get('id'),
+                    'name': path.get('name'),
+                    'policy_name': lab4_policy_names[policy_id]
+                })
         
         deleted_paths = []
         for path_info in paths_to_delete:
