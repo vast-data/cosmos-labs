@@ -394,8 +394,9 @@ class Lab4Solution:
             if view_path:
                 snapshots = self.snapshot_manager.list_snapshots_for_view(view_path)
             else:
-                # Filter to only show snapshots from lab4 policies
-                snapshots = self.snapshot_manager.list_snapshots(protection_policy_name='lab4-')
+                # Get all snapshots and filter client-side for lab4 paths
+                all_snapshots = self.snapshot_manager.list_snapshots()
+                snapshots = [s for s in all_snapshots if s.get('path', '').startswith('/cosmos/lab4-')]
             
             self.logger.info(f"Found {len(snapshots)} snapshots")
             
