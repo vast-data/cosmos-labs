@@ -718,7 +718,7 @@ class ProtectionPoliciesManager:
             
             source_dir = view_config['path']
             
-            # Find matching policy for this view type using API
+            # Find matching policy for this view using exact name match
             policy_name = f"lab4-{view_name}-policy"
             policy = self.get_policy_by_name(policy_name)
             
