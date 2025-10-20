@@ -661,6 +661,12 @@ class ProtectionPoliciesManager:
         deleted_paths = self.cleanup_all_lab4_protected_paths(dry_run=dry_run)
         results['deleted_protected_paths'] = deleted_paths
         
+        # Add delay to allow VAST to process the deletions
+        if len(deleted_paths) > 0 and not dry_run:
+            self.logger.info("⏳ Waiting 10 seconds for VAST to process protected path deletions...")
+            import time
+            time.sleep(10)
+        
         # Step 2: Clean up policies (should work now that protected paths are gone)
         self.logger.info("Step 2: Cleaning up old policies")
         deleted_policies = self.cleanup_all_lab4_policies(dry_run=dry_run)
