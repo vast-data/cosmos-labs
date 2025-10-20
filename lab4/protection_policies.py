@@ -576,8 +576,9 @@ class ProtectionPoliciesManager:
             "lab4-published_datasets-policy"
         ]
         
-        # Delete old policies
+        # Try to delete old policies (some may fail if in use)
         deleted_count = 0
+        failed_deletions = []
         for policy_name in old_policy_names:
             if dry_run:
                 self.logger.info(f"Would delete policy: {policy_name}")
@@ -590,9 +591,12 @@ class ProtectionPoliciesManager:
                     else:
                         self.logger.warning(f"⚠️  Policy not found: {policy_name}")
                 except Exception as e:
-                    self.logger.error(f"❌ Failed to delete policy {policy_name}: {e}")
+                    self.logger.warning(f"⚠️  Could not delete policy {policy_name}: {e}")
+                    failed_deletions.append(policy_name)
         
         self.logger.info(f"Deleted {deleted_count} old policies")
+        if failed_deletions:
+            self.logger.warning(f"Could not delete {len(failed_deletions)} policies (may be in use): {failed_deletions}")
         
         # Create new policies with simplified names
         new_policies = self.setup_default_policies(dry_run=dry_run)
