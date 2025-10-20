@@ -156,13 +156,29 @@ class ProtectionPoliciesManager:
         
         try:
             policies = self.vast_client.protectionpolicies.post(**payload)
-            # vastpy returns a list, so get the first (and should be only) item
-            if policies and len(policies) > 0:
+            
+            # Handle different response formats from vastpy
+            if isinstance(policies, list) and len(policies) > 0:
                 policy_data = policies[0]
                 self.logger.info(f"✅ Successfully created protection policy: {name} (ID: {policy_data.get('id')})")
                 return policy_data
+            elif policies == 0:
+                # vastpy returns 0 for successful creation - fetch the actual policy data
+                self.logger.info(f"✅ Successfully created protection policy: {name} (vastpy returned 0)")
+                # Try to get the actual policy data by name
+                try:
+                    actual_policy = self.get_policy_by_name(name)
+                    if actual_policy:
+                        self.logger.info(f"Retrieved actual policy data: {name} (ID: {actual_policy.get('id')})")
+                        return actual_policy
+                    else:
+                        self.logger.warning(f"Could not retrieve policy data for {name}, returning minimal data")
+                        return {"name": name, "id": "unknown", "status": "created"}
+                except Exception as e:
+                    self.logger.warning(f"Could not retrieve policy data for {name}: {e}")
+                    return {"name": name, "id": "unknown", "status": "created"}
             else:
-                raise Exception(f"Failed to create protection policy {name} - no data returned")
+                raise Exception(f"Failed to create protection policy {name} - unexpected response: {policies}")
             
         except Exception as e:
             self.logger.error(f"❌ Failed to create protection policy {name}: {str(e)}")
@@ -724,13 +740,18 @@ class ProtectionPoliciesManager:
         
         try:
             paths = self.vast_client.protectedpaths.post(**payload)
-            # vastpy returns a list, so get the first (and should be only) item
-            if paths and len(paths) > 0:
+            
+            # Handle different response formats from vastpy
+            if isinstance(paths, list) and len(paths) > 0:
                 protected_path_data = paths[0]
                 self.logger.info(f"✅ Created protected path: {name} (ID: {protected_path_data.get('id')})")
                 return protected_path_data
+            elif paths == 0:
+                # vastpy returns 0 for successful creation
+                self.logger.info(f"✅ Created protected path: {name} (vastpy returned 0)")
+                return {"name": name, "id": "unknown", "status": "created"}
             else:
-                raise Exception(f"Failed to create protected path {name} - no data returned")
+                raise Exception(f"Failed to create protected path {name} - unexpected response: {paths}")
             
         except Exception as e:
             self.logger.error(f"❌ Failed to create protected path {name}: {e}")
