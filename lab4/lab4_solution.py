@@ -419,9 +419,15 @@ class Lab4Solution:
                 snapshot_name = snapshot.get('name', 'Unknown')
                 snapshot_path = snapshot.get('path', 'Unknown')
                 
-                # Debug: show available fields for first snapshot
+                # Debug: show available fields and policy-related values for first snapshot
                 if i == 1:
                     self.logger.info(f"Available snapshot fields: {list(snapshot.keys())}")
+                    self.logger.info(f"Policy-related values:")
+                    self.logger.info(f"  policy: {snapshot.get('policy')}")
+                    self.logger.info(f"  policy_id: {snapshot.get('policy_id')}")
+                    self.logger.info(f"  protection_policy_id: {snapshot.get('protection_policy_id')}")
+                    self.logger.info(f"  tenant_name: {snapshot.get('tenant_name')}")
+                    self.logger.info(f"  cluster: {snapshot.get('cluster')}")
                 
                 # Get policy name from the correct field
                 policy_name = snapshot.get('policy', 'Unknown')
