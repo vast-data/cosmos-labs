@@ -556,9 +556,9 @@ class ProtectionPoliciesManager:
         
         return policies
     
-    def cleanup_old_policies(self, dry_run: bool = True) -> List[str]:
+    def cleanup_all_lab4_policies(self, dry_run: bool = True) -> List[str]:
         """
-        Clean up old policies with verbose names.
+        Clean up all lab4 policies (since we're not published yet).
         
         Args:
             dry_run: If True, only show what would be deleted
@@ -566,43 +566,45 @@ class ProtectionPoliciesManager:
         Returns:
             List of deleted policy names
         """
-        self.logger.info(f"Cleaning up old policies (dry_run={dry_run})")
+        self.logger.info(f"Cleaning up all lab4 policies (dry_run={dry_run})")
         
-        # Old policy names to delete
-        old_policy_names = [
-            "lab4-raw_data-policy",
-            "lab4-processed_data-policy", 
-            "lab4-analysis_results-policy",
-            "lab4-published_datasets-policy"
-        ]
+        try:
+            all_policies = self.list_protection_policies()
+        except Exception as e:
+            self.logger.error(f"Failed to list policies: {e}")
+            return []
         
-        # Try to delete old policies (some may fail if in use)
+        # Find all lab4 policies
+        lab4_policies = [policy for policy in all_policies if policy.get('name', '').startswith('lab4-')]
+        
         deleted_policies = []
         failed_deletions = []
-        for policy_name in old_policy_names:
+        
+        for policy in lab4_policies:
+            policy_name = policy.get('name')
             if dry_run:
                 self.logger.info(f"Would delete policy: {policy_name}")
                 deleted_policies.append(policy_name)
             else:
                 try:
-                    if self.delete_protection_policy_by_name(policy_name):
+                    if self.delete_protection_policy(policy['id']):
                         deleted_policies.append(policy_name)
                         self.logger.info(f"✅ Deleted policy: {policy_name}")
                     else:
-                        self.logger.warning(f"⚠️  Policy not found: {policy_name}")
+                        self.logger.warning(f"⚠️  Failed to delete policy: {policy_name}")
                 except Exception as e:
                     self.logger.warning(f"⚠️  Could not delete policy {policy_name}: {e}")
                     failed_deletions.append(policy_name)
         
-        self.logger.info(f"Deleted {len(deleted_policies)} old policies")
+        self.logger.info(f"Deleted {len(deleted_policies)} lab4 policies")
         if failed_deletions:
             self.logger.warning(f"Could not delete {len(failed_deletions)} policies (may be in use): {failed_deletions}")
         
         return deleted_policies
     
-    def cleanup_protected_paths(self, dry_run: bool = True) -> List[str]:
+    def cleanup_all_lab4_protected_paths(self, dry_run: bool = True) -> List[str]:
         """
-        Clean up protected paths that use old policy names.
+        Clean up all lab4 protected paths (since we're not published yet).
         
         Args:
             dry_run: If True, only show what would be deleted
@@ -610,7 +612,7 @@ class ProtectionPoliciesManager:
         Returns:
             List of deleted protected path names
         """
-        self.logger.info(f"Cleaning up protected paths (dry_run={dry_run})")
+        self.logger.info(f"Cleaning up all lab4 protected paths (dry_run={dry_run})")
         
         try:
             protected_paths = self.list_protected_paths()
@@ -618,14 +620,7 @@ class ProtectionPoliciesManager:
             self.logger.error(f"Failed to list protected paths: {e}")
             return []
         
-        # Find protected paths that use old policy names
-        old_policy_names = [
-            "lab4-raw_data-policy",
-            "lab4-processed_data-policy", 
-            "lab4-analysis_results-policy",
-            "lab4-published_datasets-policy"
-        ]
-        
+        # Find protected paths that use lab4 policies
         paths_to_delete = []
         for path in protected_paths:
             policy_id = path.get('protection_policy_id')
@@ -634,7 +629,7 @@ class ProtectionPoliciesManager:
                 try:
                     policy = self.get_protection_policy(policy_id)
                     policy_name = policy.get('name', '')
-                    if policy_name in old_policy_names:
+                    if policy_name.startswith('lab4-'):
                         paths_to_delete.append({
                             'id': path.get('id'),
                             'name': path.get('name'),
@@ -681,12 +676,12 @@ class ProtectionPoliciesManager:
         
         # Step 1: Clean up protected paths first (they depend on policies)
         self.logger.info("Step 1: Cleaning up protected paths")
-        deleted_paths = self.cleanup_protected_paths(dry_run=dry_run)
+        deleted_paths = self.cleanup_all_lab4_protected_paths(dry_run=dry_run)
         results['deleted_protected_paths'] = deleted_paths
         
         # Step 2: Clean up policies (should work now that protected paths are gone)
         self.logger.info("Step 2: Cleaning up old policies")
-        deleted_policies = self.cleanup_old_policies(dry_run=dry_run)
+        deleted_policies = self.cleanup_all_lab4_policies(dry_run=dry_run)
         results['deleted_policies'] = deleted_policies
         
         self.logger.info("✅ Full cleanup completed")

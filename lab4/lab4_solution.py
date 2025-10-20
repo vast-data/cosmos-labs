@@ -544,9 +544,9 @@ Examples:
     parser.add_argument('--setup-policies', action='store_true',
                        help='Set up protection policies based on configuration')
     parser.add_argument('--cleanup-policies', action='store_true',
-                       help='Clean up old policies with verbose names')
+                       help='Clean up all lab4 policies')
     parser.add_argument('--cleanup-protected-paths', action='store_true',
-                       help='Clean up protected paths that use old policy names')
+                       help='Clean up all lab4 protected paths')
     parser.add_argument('--full-cleanup', action='store_true',
                        help='Complete cleanup: protected paths -> policies (in dependency order)')
     parser.add_argument('--setup-protected-paths', action='store_true',
@@ -620,10 +620,10 @@ Examples:
             solution.setup_protection_policies()
         
         elif args.cleanup_policies:
-            solution.protection_policies.cleanup_old_policies(dry_run=dry_run)
+            solution.protection_policies.cleanup_all_lab4_policies(dry_run=dry_run)
         
         elif args.cleanup_protected_paths:
-            solution.protection_policies.cleanup_protected_paths(dry_run=dry_run)
+            solution.protection_policies.cleanup_all_lab4_protected_paths(dry_run=dry_run)
         
         elif args.full_cleanup:
             results = solution.protection_policies.full_cleanup(dry_run=dry_run)
