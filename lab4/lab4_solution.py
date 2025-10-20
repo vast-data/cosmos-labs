@@ -511,8 +511,14 @@ Examples:
   # Production - actually create policies
   python lab4_solution.py --setup-policies --pushtoprod
   
-  # Clean up old policies and create new ones with simplified names
+  # Clean up old policies with verbose names
   python lab4_solution.py --cleanup-policies --pushtoprod
+  
+  # Clean up protected paths that use old policy names
+  python lab4_solution.py --cleanup-protected-paths --pushtoprod
+  
+  # Complete cleanup: protected paths -> policies (in dependency order)
+  python lab4_solution.py --full-cleanup --pushtoprod
   
   # Set up protected paths for all views
   python lab4_solution.py --setup-protected-paths --pushtoprod
@@ -538,7 +544,11 @@ Examples:
     parser.add_argument('--setup-policies', action='store_true',
                        help='Set up protection policies based on configuration')
     parser.add_argument('--cleanup-policies', action='store_true',
-                       help='Clean up old policies and create new ones with simplified names')
+                       help='Clean up old policies with verbose names')
+    parser.add_argument('--cleanup-protected-paths', action='store_true',
+                       help='Clean up protected paths that use old policy names')
+    parser.add_argument('--full-cleanup', action='store_true',
+                       help='Complete cleanup: protected paths -> policies (in dependency order)')
     parser.add_argument('--setup-protected-paths', action='store_true',
                        help='Set up protected paths for all configured views')
     parser.add_argument('--list-policies', action='store_true',
@@ -610,7 +620,16 @@ Examples:
             solution.setup_protection_policies()
         
         elif args.cleanup_policies:
-            solution.protection_policies.cleanup_and_recreate_policies(dry_run=dry_run)
+            solution.protection_policies.cleanup_old_policies(dry_run=dry_run)
+        
+        elif args.cleanup_protected_paths:
+            solution.protection_policies.cleanup_protected_paths(dry_run=dry_run)
+        
+        elif args.full_cleanup:
+            results = solution.protection_policies.full_cleanup(dry_run=dry_run)
+            if args.json:
+                import json
+                print(json.dumps(results, indent=2))
         
         elif args.setup_protected_paths:
             solution.setup_protected_paths()

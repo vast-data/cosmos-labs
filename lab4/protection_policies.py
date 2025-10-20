@@ -556,17 +556,17 @@ class ProtectionPoliciesManager:
         
         return policies
     
-    def cleanup_and_recreate_policies(self, dry_run: bool = True) -> List[Dict[str, Any]]:
+    def cleanup_old_policies(self, dry_run: bool = True) -> List[str]:
         """
-        Clean up old policies with verbose names and create new ones with simplified names.
+        Clean up old policies with verbose names.
         
         Args:
-            dry_run: If True, only show what would be done
+            dry_run: If True, only show what would be deleted
             
         Returns:
-            List of created policies
+            List of deleted policy names
         """
-        self.logger.info(f"Cleaning up old policies and creating new ones (dry_run={dry_run})")
+        self.logger.info(f"Cleaning up old policies (dry_run={dry_run})")
         
         # Old policy names to delete
         old_policy_names = [
@@ -577,16 +577,16 @@ class ProtectionPoliciesManager:
         ]
         
         # Try to delete old policies (some may fail if in use)
-        deleted_count = 0
+        deleted_policies = []
         failed_deletions = []
         for policy_name in old_policy_names:
             if dry_run:
                 self.logger.info(f"Would delete policy: {policy_name}")
-                deleted_count += 1
+                deleted_policies.append(policy_name)
             else:
                 try:
                     if self.delete_protection_policy_by_name(policy_name):
-                        deleted_count += 1
+                        deleted_policies.append(policy_name)
                         self.logger.info(f"✅ Deleted policy: {policy_name}")
                     else:
                         self.logger.warning(f"⚠️  Policy not found: {policy_name}")
@@ -594,14 +594,103 @@ class ProtectionPoliciesManager:
                     self.logger.warning(f"⚠️  Could not delete policy {policy_name}: {e}")
                     failed_deletions.append(policy_name)
         
-        self.logger.info(f"Deleted {deleted_count} old policies")
+        self.logger.info(f"Deleted {len(deleted_policies)} old policies")
         if failed_deletions:
             self.logger.warning(f"Could not delete {len(failed_deletions)} policies (may be in use): {failed_deletions}")
         
-        # Create new policies with simplified names
-        new_policies = self.setup_default_policies(dry_run=dry_run)
+        return deleted_policies
+    
+    def cleanup_protected_paths(self, dry_run: bool = True) -> List[str]:
+        """
+        Clean up protected paths that use old policy names.
         
-        return new_policies
+        Args:
+            dry_run: If True, only show what would be deleted
+            
+        Returns:
+            List of deleted protected path names
+        """
+        self.logger.info(f"Cleaning up protected paths (dry_run={dry_run})")
+        
+        try:
+            protected_paths = self.list_protected_paths()
+        except Exception as e:
+            self.logger.error(f"Failed to list protected paths: {e}")
+            return []
+        
+        # Find protected paths that use old policy names
+        old_policy_names = [
+            "lab4-raw_data-policy",
+            "lab4-processed_data-policy", 
+            "lab4-analysis_results-policy",
+            "lab4-published_datasets-policy"
+        ]
+        
+        paths_to_delete = []
+        for path in protected_paths:
+            policy_id = path.get('protection_policy_id')
+            if policy_id:
+                # Get the policy to check its name
+                try:
+                    policy = self.get_protection_policy(policy_id)
+                    policy_name = policy.get('name', '')
+                    if policy_name in old_policy_names:
+                        paths_to_delete.append({
+                            'id': path.get('id'),
+                            'name': path.get('name'),
+                            'policy_name': policy_name
+                        })
+                except Exception as e:
+                    self.logger.warning(f"Could not get policy {policy_id}: {e}")
+        
+        deleted_paths = []
+        for path_info in paths_to_delete:
+            if dry_run:
+                self.logger.info(f"Would delete protected path: {path_info['name']} (policy: {path_info['policy_name']})")
+                deleted_paths.append(path_info['name'])
+            else:
+                try:
+                    if self.delete_protected_path(path_info['id']):
+                        self.logger.info(f"✅ Deleted protected path: {path_info['name']}")
+                        deleted_paths.append(path_info['name'])
+                    else:
+                        self.logger.warning(f"⚠️  Failed to delete protected path: {path_info['name']}")
+                except Exception as e:
+                    self.logger.error(f"❌ Error deleting protected path {path_info['name']}: {e}")
+        
+        self.logger.info(f"Deleted {len(deleted_paths)} protected paths")
+        return deleted_paths
+    
+    def full_cleanup(self, dry_run: bool = True) -> Dict[str, Any]:
+        """
+        Complete cleanup: protected paths -> policies (in dependency order).
+        
+        Args:
+            dry_run: If True, only show what would be deleted
+            
+        Returns:
+            Dict with cleanup results
+        """
+        self.logger.info(f"Starting full cleanup (dry_run={dry_run})")
+        
+        results = {
+            'deleted_protected_paths': [],
+            'deleted_policies': [],
+            'dry_run': dry_run
+        }
+        
+        # Step 1: Clean up protected paths first (they depend on policies)
+        self.logger.info("Step 1: Cleaning up protected paths")
+        deleted_paths = self.cleanup_protected_paths(dry_run=dry_run)
+        results['deleted_protected_paths'] = deleted_paths
+        
+        # Step 2: Clean up policies (should work now that protected paths are gone)
+        self.logger.info("Step 2: Cleaning up old policies")
+        deleted_policies = self.cleanup_old_policies(dry_run=dry_run)
+        results['deleted_policies'] = deleted_policies
+        
+        self.logger.info("✅ Full cleanup completed")
+        return results
     
     def create_protected_path(self, 
                              name: str, 
