@@ -300,27 +300,31 @@ class Lab4Solution:
         
         Args:
             name: Base name for the snapshot
-            view_path: Path of the view to snapshot
+            view_path: Protected path name (e.g., 'raw', 'processed') or full view path
             milestone: Optional milestone description
             metadata: Optional metadata dictionary
             
         Returns:
             Created snapshot information
         """
+        # Map protected path names to actual view paths
+        actual_view_path = self._resolve_view_path(view_path)
+        
         snapshot_name = self.config.generate_snapshot_name(name, milestone)
         
         self.logger.info(f"Creating named snapshot: {snapshot_name}")
-        self.logger.info(f"View: {view_path}")
+        self.logger.info(f"Protected path: {view_path} -> View: {actual_view_path}")
         if milestone:
             self.logger.info(f"Milestone: {milestone}")
         if metadata:
             self.logger.info(f"Metadata: {metadata}")
         
         if self.dry_run:
-            self.logger.info(f"Would create snapshot '{snapshot_name}' for view '{view_path}'")
+            self.logger.info(f"Would create snapshot '{snapshot_name}' for view '{actual_view_path}'")
             return {
                 'name': snapshot_name,
-                'view': view_path,
+                'view': actual_view_path,
+                'protected_path': view_path,
                 'milestone': milestone,
                 'metadata': metadata,
                 'dry_run': True
@@ -329,7 +333,7 @@ class Lab4Solution:
             try:
                 snapshot = self.snapshot_manager.create_named_snapshot(
                     name=name,
-                    view_path=view_path,
+                    view_path=actual_view_path,
                     milestone=milestone,
                     metadata=metadata
                 )
@@ -339,12 +343,36 @@ class Lab4Solution:
                 self.logger.error(f"❌ Failed to create snapshot: {e}")
                 return {
                     'name': snapshot_name,
-                    'view': view_path,
+                    'view': actual_view_path,
+                    'protected_path': view_path,
                     'milestone': milestone,
                     'metadata': metadata,
                     'dry_run': False,
                     'error': str(e)
                 }
+    
+    def _resolve_view_path(self, path_input: str) -> str:
+        """
+        Resolve protected path names to actual view paths.
+        
+        Args:
+            path_input: Protected path name (e.g., 'raw', 'processed') or full view path
+            
+        Returns:
+            Actual view path
+        """
+        # If it's already a full path, return as-is
+        if path_input.startswith('/'):
+            return path_input
+        
+        # Map protected path names to view paths from config
+        views_config = self.config.views
+        if path_input in views_config:
+            return views_config[path_input]['path']
+        
+        # If not found, raise an error with available options
+        available_paths = list(views_config.keys())
+        raise ValueError(f"Unknown protected path '{path_input}'. Available paths: {available_paths}")
     
     def list_snapshots(self, view_path: Optional[str] = None) -> List[Dict[str, Any]]:
         """
@@ -509,7 +537,7 @@ Examples:
   python lab4_solution.py --cleanup-snapshots --snapshot-age-days 30 --pushtoprod
   
   # Create named snapshot
-  python lab4_solution.py --create-snapshot "pre-calibration-change" --view "/cosmos7/processed"
+  python lab4_solution.py --create-snapshot "pre-calibration-change" --view "processed"
   
   # List snapshots
   python lab4_solution.py --list-snapshots
