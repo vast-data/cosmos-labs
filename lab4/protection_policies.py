@@ -677,9 +677,9 @@ class ProtectionPoliciesManager:
         
         # Add delay to allow VAST to process the deletions
         if len(deleted_paths) > 0 and not dry_run:
-            self.logger.info("⏳ Waiting 10 seconds for VAST to process protected path deletions...")
+            self.logger.info("⏳ Waiting 30 seconds for VAST to process protected path deletions...")
             import time
-            time.sleep(10)
+            time.sleep(30)
         
         # Step 2: Clean up policies (should work now that protected paths are gone)
         self.logger.info("Step 2: Cleaning up old policies")
