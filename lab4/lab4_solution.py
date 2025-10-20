@@ -366,7 +366,7 @@ class Lab4Solution:
             return path_input
         
         # Map protected path names to view paths from config
-        views_config = self.config.views
+        views_config = self.config.lab4.views
         if path_input in views_config:
             return views_config[path_input]['path']
         
