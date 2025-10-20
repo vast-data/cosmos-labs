@@ -397,13 +397,20 @@ class ProtectionPoliciesManager:
         self.logger.info(f"Deleting protection policy: {policy_id}")
         
         try:
-            self.vast_client.protectionpolicies.delete(id=policy_id)
+            # Use vastpy DELETE method - the correct way to call it
+            result = self.vast_client.protectionpolicies.delete(policy_id)
             self.logger.info(f"✅ Successfully deleted protection policy: {policy_id}")
             return True
             
         except Exception as e:
             self.logger.error(f"❌ Failed to delete protection policy {policy_id}: {str(e)}")
-            raise
+            # Provide helpful guidance for manual cleanup
+            self.logger.info("💡 Manual cleanup may be required:")
+            self.logger.info("   1. Check VAST Web UI for protection policies")
+            self.logger.info("   2. Disable or remove policies manually if needed")
+            self.logger.info("   3. Some policies may be protected from deletion")
+            # Don't raise the exception, just return False to allow cleanup to continue
+            return False
     
     def delete_protection_policy_by_name(self, policy_name: str) -> bool:
         """
@@ -660,6 +667,13 @@ class ProtectionPoliciesManager:
         results['deleted_policies'] = deleted_policies
         
         self.logger.info("✅ Full cleanup completed")
+        
+        # Provide summary of manual cleanup needed
+        if results['deleted_protected_paths'] == [] and results['deleted_policies'] == []:
+            self.logger.warning("⚠️  No resources were deleted automatically")
+            self.logger.info("💡 This may be due to VAST API limitations or resource protection")
+            self.logger.info("   Manual cleanup via VAST Web UI may be required")
+        
         return results
     
     def create_protected_path(self, 
@@ -811,12 +825,19 @@ class ProtectionPoliciesManager:
         self.logger.info(f"Deleting protected path ID: {path_id}")
         
         try:
-            self.vast_client.protectedpaths.delete(id=path_id)
+            # Use vastpy DELETE method - the correct way to call it
+            result = self.vast_client.protectedpaths.delete(path_id)
             self.logger.info(f"✅ Deleted protected path ID: {path_id}")
             return True
             
         except Exception as e:
             self.logger.error(f"❌ Failed to delete protected path {path_id}: {e}")
+            # Provide helpful guidance for manual cleanup
+            self.logger.info("💡 Manual cleanup may be required:")
+            self.logger.info("   1. Check VAST Web UI for protected paths")
+            self.logger.info("   2. Disable or remove protected paths manually if needed")
+            self.logger.info("   3. Some protected paths may be protected from deletion")
+            # Don't raise the exception, just return False to allow cleanup to continue
             return False
     
     def setup_protected_paths_for_views(self, dry_run: bool = False) -> List[Dict[str, Any]]:

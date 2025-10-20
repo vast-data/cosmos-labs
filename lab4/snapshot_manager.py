@@ -241,13 +241,20 @@ class SnapshotManager:
         self.logger.info(f"Deleting snapshot: {snapshot_id}")
         
         try:
-            self.vast_client.snapshots.delete(id=snapshot_id)
+            # Use vastpy DELETE method - the correct way to call it
+            result = self.vast_client.snapshots.delete(snapshot_id)
             self.logger.info(f"✅ Successfully deleted snapshot: {snapshot_id}")
             return True
             
         except Exception as e:
             self.logger.error(f"❌ Failed to delete snapshot {snapshot_id}: {str(e)}")
-            raise
+            # Provide helpful guidance for manual cleanup
+            self.logger.info("💡 Manual cleanup may be required:")
+            self.logger.info("   1. Check VAST Web UI for snapshots")
+            self.logger.info("   2. Disable or remove snapshots manually if needed")
+            self.logger.info("   3. Some snapshots may be protected from deletion")
+            # Don't raise the exception, just return False to allow cleanup to continue
+            return False
     
     def create_named_snapshot(self, 
                              name: str, 
