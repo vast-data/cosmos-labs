@@ -586,6 +586,18 @@ Examples:
         # Initialize solution
         solution = Lab4Solution(dry_run=dry_run)
         
+        # Check if any operation arguments were provided
+        operation_args = [
+            args.setup_policies, args.cleanup_policies, args.cleanup_protected_paths,
+            args.full_cleanup, args.setup_protected_paths, args.list_policies,
+            args.list_protected_paths, args.create_snapshot, args.list_snapshots,
+            args.search_snapshots, args.restore_snapshot, args.cleanup_snapshots
+        ]
+        
+        if not any(operation_args):
+            parser.print_help()
+            return 1
+        
         # Execute requested operations
         if args.setup_policies:
             solution.setup_protection_policies()
@@ -649,10 +661,6 @@ Examples:
                 older_than_days=args.snapshot_age_days,
                 dry_run=dry_run
             )
-        
-        else:
-            parser.print_help()
-            return 1
         
         return 0
         
