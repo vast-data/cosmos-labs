@@ -157,9 +157,14 @@ class ProtectionPoliciesManager:
         self.logger.debug(f"Payload: {json.dumps(payload, indent=2)}")
         
         try:
-            policy_data = self.vast_client.protectionpolicies.post(**payload)
-            self.logger.info(f"✅ Successfully created protection policy: {name} (ID: {policy_data.get('id')})")
-            return policy_data
+            policies = self.vast_client.protectionpolicies.post(**payload)
+            # vastpy returns a list, so get the first (and should be only) item
+            if policies and len(policies) > 0:
+                policy_data = policies[0]
+                self.logger.info(f"✅ Successfully created protection policy: {name} (ID: {policy_data.get('id')})")
+                return policy_data
+            else:
+                raise Exception(f"Failed to create protection policy {name} - no data returned")
             
         except Exception as e:
             self.logger.error(f"❌ Failed to create protection policy {name}: {str(e)}")
@@ -324,9 +329,14 @@ class ProtectionPoliciesManager:
         self.logger.info(f"Getting protection policy: {policy_id}")
         
         try:
-            policy = self.vast_client.protectionpolicies.get(id=policy_id)
-            self.logger.info(f"✅ Retrieved protection policy: {policy.get('name')}")
-            return policy
+            policies = self.vast_client.protectionpolicies.get(id=policy_id)
+            # vastpy returns a list, so get the first (and should be only) item
+            if policies and len(policies) > 0:
+                policy = policies[0]
+                self.logger.info(f"✅ Retrieved protection policy: {policy.get('name')}")
+                return policy
+            else:
+                raise Exception(f"Policy with ID {policy_id} not found")
             
         except Exception as e:
             self.logger.error(f"❌ Failed to get protection policy {policy_id}: {str(e)}")
@@ -355,9 +365,14 @@ class ProtectionPoliciesManager:
         self.logger.debug(f"Update fields: {kwargs}")
         
         try:
-            policy = self.vast_client.protectionpolicies.patch(id=policy_id, **kwargs)
-            self.logger.info(f"✅ Successfully updated protection policy: {policy.get('name')}")
-            return policy
+            policies = self.vast_client.protectionpolicies.patch(id=policy_id, **kwargs)
+            # vastpy returns a list, so get the first (and should be only) item
+            if policies and len(policies) > 0:
+                policy = policies[0]
+                self.logger.info(f"✅ Successfully updated protection policy: {policy.get('name')}")
+                return policy
+            else:
+                raise Exception(f"Policy with ID {policy_id} not found after update")
             
         except Exception as e:
             self.logger.error(f"❌ Failed to update protection policy {policy_id}: {str(e)}")
@@ -691,9 +706,14 @@ class ProtectionPoliciesManager:
         self.logger.debug(f"Payload: {json.dumps(payload, indent=2)}")
         
         try:
-            protected_path_data = self.vast_client.protectedpaths.post(**payload)
-            self.logger.info(f"✅ Created protected path: {name} (ID: {protected_path_data.get('id')})")
-            return protected_path_data
+            paths = self.vast_client.protectedpaths.post(**payload)
+            # vastpy returns a list, so get the first (and should be only) item
+            if paths and len(paths) > 0:
+                protected_path_data = paths[0]
+                self.logger.info(f"✅ Created protected path: {name} (ID: {protected_path_data.get('id')})")
+                return protected_path_data
+            else:
+                raise Exception(f"Failed to create protected path {name} - no data returned")
             
         except Exception as e:
             self.logger.error(f"❌ Failed to create protected path {name}: {e}")
@@ -736,9 +756,14 @@ class ProtectionPoliciesManager:
         self.logger.info(f"Getting protected path ID: {path_id}")
         
         try:
-            protected_path_data = self.vast_client.protectedpaths.get(id=path_id)
-            self.logger.info(f"✅ Retrieved protected path: {protected_path_data.get('name')}")
-            return protected_path_data
+            paths = self.vast_client.protectedpaths.get(id=path_id)
+            # vastpy returns a list, so get the first (and should be only) item
+            if paths and len(paths) > 0:
+                protected_path_data = paths[0]
+                self.logger.info(f"✅ Retrieved protected path: {protected_path_data.get('name')}")
+                return protected_path_data
+            else:
+                raise Exception(f"Protected path with ID {path_id} not found")
             
         except Exception as e:
             self.logger.error(f"❌ Failed to get protected path {path_id}: {e}")

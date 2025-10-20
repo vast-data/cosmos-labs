@@ -100,9 +100,14 @@ class SnapshotManager:
         self.logger.debug(f"Snapshot payload: {json.dumps(payload, indent=2)}")
         
         try:
-            snapshot_data = self.vast_client.snapshots.post(**payload)
-            self.logger.info(f"✅ Successfully created snapshot: {name} (ID: {snapshot_data.get('id')})")
-            return snapshot_data
+            snapshots = self.vast_client.snapshots.post(**payload)
+            # vastpy returns a list, so get the first (and should be only) item
+            if snapshots and len(snapshots) > 0:
+                snapshot_data = snapshots[0]
+                self.logger.info(f"✅ Successfully created snapshot: {name} (ID: {snapshot_data.get('id')})")
+                return snapshot_data
+            else:
+                raise Exception(f"Failed to create snapshot {name} - no data returned")
             
         except Exception as e:
             self.logger.error(f"❌ Failed to create snapshot {name}: {str(e)}")
@@ -204,9 +209,14 @@ class SnapshotManager:
         self.logger.info(f"Getting snapshot: {snapshot_id}")
         
         try:
-            snapshot = self.vast_client.snapshots.get(id=snapshot_id)
-            self.logger.info(f"✅ Retrieved snapshot: {snapshot.get('name')}")
-            return snapshot
+            snapshots = self.vast_client.snapshots.get(id=snapshot_id)
+            # vastpy returns a list, so get the first (and should be only) item
+            if snapshots and len(snapshots) > 0:
+                snapshot = snapshots[0]
+                self.logger.info(f"✅ Retrieved snapshot: {snapshot.get('name')}")
+                return snapshot
+            else:
+                raise Exception(f"Snapshot with ID {snapshot_id} not found")
             
         except Exception as e:
             self.logger.error(f"❌ Failed to get snapshot {snapshot_id}: {str(e)}")
