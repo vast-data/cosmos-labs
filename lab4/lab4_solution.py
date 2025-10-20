@@ -423,11 +423,8 @@ class Lab4Solution:
                 if i == 1:
                     self.logger.debug(f"Available snapshot fields: {list(snapshot.keys())}")
                 
-                # Try different possible field names for policy
-                policy_name = (snapshot.get('protection_policy__name') or 
-                             snapshot.get('protection_policy', {}).get('name') if isinstance(snapshot.get('protection_policy'), dict) else None or
-                             snapshot.get('policy_name') or
-                             'Unknown')
+                # Get policy name from the correct field
+                policy_name = snapshot.get('policy', 'Unknown')
                 
                 created = snapshot.get('created', 'Unknown')
                 state = snapshot.get('state', 'Unknown')
