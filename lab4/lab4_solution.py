@@ -419,14 +419,29 @@ class Lab4Solution:
                 snapshot_name = snapshot.get('name', 'Unknown')
                 snapshot_path = snapshot.get('path', 'Unknown')
                 
-                # Debug: show full JSON for first snapshot
-                if i == 1:
-                    import json
-                    self.logger.info(f"Full snapshot JSON:")
-                    self.logger.info(json.dumps(snapshot, indent=2, default=str))
-                
-                # Get policy name from the correct field
-                policy_name = snapshot.get('policy', 'Unknown')
+                # Extract policy name from snapshot name since policy fields are null
+                # Snapshot names like "raw-6h-policy_2025-10-20_18_00_00_UTC" contain the policy name
+                policy_name = "Unknown"
+                if snapshot_name:
+                    # Extract policy name from snapshot name (before the first underscore)
+                    if '_' in snapshot_name:
+                        potential_policy = snapshot_name.split('_')[0]
+                        
+                        # Get policy prefixes from config and map to full policy names
+                        lab_config = self.config.get_lab_config()
+                        protection_policies = lab_config.get('protection_policies', {})
+                        
+                        # Find matching policy prefix and construct full policy name
+                        for policy_type, policy_config in protection_policies.items():
+                            prefix = policy_config.get('prefix', '')
+                            if prefix == potential_policy:
+                                policy_name = f"lab4-{policy_type}-policy"
+                                break
+                        else:
+                            # If no match found, use the extracted name as-is
+                            policy_name = potential_policy
+                    else:
+                        policy_name = snapshot_name
                 
                 created = snapshot.get('created', 'Unknown')
                 state = snapshot.get('state', 'Unknown')
