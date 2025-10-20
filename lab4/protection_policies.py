@@ -562,13 +562,21 @@ class ProtectionPoliciesManager:
         self.logger.info(f"Cleaning up all lab4 policies (dry_run={dry_run})")
         
         try:
-            # Filter policies by name to get only lab4 policies
-            policies = self.vast_client.protectionpolicies.get(name='lab4-')
+            # Get all policies and filter by name (name parameter might not support prefix filtering)
+            all_policies = self.vast_client.protectionpolicies.get()
             
-            if isinstance(policies, list):
-                lab4_policies = policies
+            if isinstance(all_policies, list):
+                policies_list = all_policies
             else:
-                lab4_policies = [policies] if policies else []
+                policies_list = [all_policies] if all_policies else []
+                
+            # Filter for lab4 policies
+            lab4_policies = [policy for policy in policies_list if policy.get('name', '').startswith('lab4-')]
+            
+            self.logger.info(f"Found {len(policies_list)} total policies, {len(lab4_policies)} lab4 policies")
+            if lab4_policies:
+                policy_names = [p.get('name', 'unknown') for p in lab4_policies]
+                self.logger.info(f"Lab4 policies to delete: {policy_names}")
                 
         except Exception as e:
             self.logger.error(f"Failed to list lab4 policies: {e}")

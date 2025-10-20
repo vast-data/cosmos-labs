@@ -650,9 +650,6 @@ Examples:
                 dry_run=dry_run
             )
         
-        elif args.snapshot_details:
-            solution.show_snapshot_details(args.snapshot_details)
-        
         else:
             parser.print_help()
             return 1
