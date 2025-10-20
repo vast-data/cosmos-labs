@@ -424,7 +424,7 @@ class Lab4Solution:
                     self.logger.debug(f"Available snapshot fields: {list(snapshot.keys())}")
                 
                 # Get policy name from the correct field
-                policy_name = snapshot.get('policy', 'Unknown')
+                policy_name = snapshot.get('protection_policy', 'Unknown')
                 
                 created = snapshot.get('created', 'Unknown')
                 state = snapshot.get('state', 'Unknown')
