@@ -101,13 +101,16 @@ class SnapshotManager:
         
         try:
             snapshots = self.vast_client.snapshots.post(**payload)
-            # vastpy returns a list, so get the first (and should be only) item
-            if snapshots and len(snapshots) > 0:
-                snapshot_data = snapshots[0]
-                self.logger.info(f"✅ Successfully created snapshot: {name} (ID: {snapshot_data.get('id')})")
-                return snapshot_data
+            # vastpy returns a dict with the snapshot data
+            if isinstance(snapshots, dict):
+                self.logger.info(f"✅ Successfully created snapshot: {name} (ID: {snapshots.get('id')})")
+                return snapshots
+            elif snapshots == 0:
+                # vastpy sometimes returns 0 for successful creation
+                self.logger.info(f"✅ Successfully created snapshot: {name} (vastpy returned 0)")
+                return {"name": name, "id": "unknown", "status": "created"}
             else:
-                raise Exception(f"Failed to create snapshot {name} - no data returned")
+                raise Exception(f"Failed to create snapshot {name} - unexpected response: {snapshots}")
             
         except Exception as e:
             self.logger.error(f"❌ Failed to create snapshot {name}: {str(e)}")
@@ -210,11 +213,10 @@ class SnapshotManager:
         
         try:
             snapshots = self.vast_client.snapshots.get(id=snapshot_id)
-            # vastpy returns a list, so get the first (and should be only) item
-            if snapshots and len(snapshots) > 0:
-                snapshot = snapshots[0]
-                self.logger.info(f"✅ Retrieved snapshot: {snapshot.get('name')}")
-                return snapshot
+            # vastpy returns a dict with the snapshot data
+            if isinstance(snapshots, dict):
+                self.logger.info(f"✅ Retrieved snapshot: {snapshots.get('name')}")
+                return snapshots
             else:
                 raise Exception(f"Snapshot with ID {snapshot_id} not found")
             

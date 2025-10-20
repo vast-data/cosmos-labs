@@ -157,13 +157,12 @@ class ProtectionPoliciesManager:
         try:
             policies = self.vast_client.protectionpolicies.post(**payload)
             
-            # Handle different response formats from vastpy
-            if isinstance(policies, list) and len(policies) > 0:
-                policy_data = policies[0]
-                self.logger.info(f"✅ Successfully created protection policy: {name} (ID: {policy_data.get('id')})")
-                return policy_data
+            # vastpy returns a dict with the policy data
+            if isinstance(policies, dict):
+                self.logger.info(f"✅ Successfully created protection policy: {name} (ID: {policies.get('id')})")
+                return policies
             elif policies == 0:
-                # vastpy returns 0 for successful creation - fetch the actual policy data
+                # vastpy sometimes returns 0 for successful creation - fetch the actual policy data
                 self.logger.info(f"✅ Successfully created protection policy: {name} (vastpy returned 0)")
                 # Try to get the actual policy data by name
                 try:
@@ -344,11 +343,10 @@ class ProtectionPoliciesManager:
         
         try:
             policies = self.vast_client.protectionpolicies.get(id=policy_id)
-            # vastpy returns a list, so get the first (and should be only) item
-            if policies and len(policies) > 0:
-                policy = policies[0]
-                self.logger.info(f"✅ Retrieved protection policy: {policy.get('name')}")
-                return policy
+            # vastpy returns a dict with the policy data
+            if isinstance(policies, dict):
+                self.logger.info(f"✅ Retrieved protection policy: {policies.get('name')}")
+                return policies
             else:
                 raise Exception(f"Policy with ID {policy_id} not found")
             
@@ -380,11 +378,10 @@ class ProtectionPoliciesManager:
         
         try:
             policies = self.vast_client.protectionpolicies.patch(id=policy_id, **kwargs)
-            # vastpy returns a list, so get the first (and should be only) item
-            if policies and len(policies) > 0:
-                policy = policies[0]
-                self.logger.info(f"✅ Successfully updated protection policy: {policy.get('name')}")
-                return policy
+            # vastpy returns a dict with the updated policy data
+            if isinstance(policies, dict):
+                self.logger.info(f"✅ Successfully updated protection policy: {policies.get('name')}")
+                return policies
             else:
                 raise Exception(f"Policy with ID {policy_id} not found after update")
             
@@ -741,13 +738,12 @@ class ProtectionPoliciesManager:
         try:
             paths = self.vast_client.protectedpaths.post(**payload)
             
-            # Handle different response formats from vastpy
-            if isinstance(paths, list) and len(paths) > 0:
-                protected_path_data = paths[0]
-                self.logger.info(f"✅ Created protected path: {name} (ID: {protected_path_data.get('id')})")
-                return protected_path_data
+            # vastpy returns a dict with the protected path data
+            if isinstance(paths, dict):
+                self.logger.info(f"✅ Created protected path: {name} (ID: {paths.get('id')})")
+                return paths
             elif paths == 0:
-                # vastpy returns 0 for successful creation
+                # vastpy sometimes returns 0 for successful creation
                 self.logger.info(f"✅ Created protected path: {name} (vastpy returned 0)")
                 return {"name": name, "id": "unknown", "status": "created"}
             else:
@@ -795,11 +791,10 @@ class ProtectionPoliciesManager:
         
         try:
             paths = self.vast_client.protectedpaths.get(id=path_id)
-            # vastpy returns a list, so get the first (and should be only) item
-            if paths and len(paths) > 0:
-                protected_path_data = paths[0]
-                self.logger.info(f"✅ Retrieved protected path: {protected_path_data.get('name')}")
-                return protected_path_data
+            # vastpy returns a dict with the protected path data
+            if isinstance(paths, dict):
+                self.logger.info(f"✅ Retrieved protected path: {paths.get('name')}")
+                return paths
             else:
                 raise Exception(f"Protected path with ID {path_id} not found")
             
