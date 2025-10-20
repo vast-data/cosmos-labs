@@ -629,7 +629,8 @@ class ProtectionPoliciesManager:
                             'policy_name': policy_name
                         })
                 except Exception as e:
-                    self.logger.warning(f"Could not get policy {policy_id}: {e}")
+                    # Policy doesn't exist - skip this protected path (it uses other policies)
+                    self.logger.debug(f"Skipping protected path '{path.get('name')}' - policy {policy_id} not found (likely uses other policies)")
         
         deleted_paths = []
         for path_info in paths_to_delete:
