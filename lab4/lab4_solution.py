@@ -365,9 +365,20 @@ class Lab4Solution:
             if view_path:
                 snapshots = self.snapshot_manager.list_snapshots_for_view(view_path)
             else:
-                snapshots = self.snapshot_manager.list_snapshots()
+                # Filter to only show snapshots from lab4 policies
+                snapshots = self.snapshot_manager.list_snapshots(protection_policy_name='lab4-')
             
             self.logger.info(f"Found {len(snapshots)} snapshots")
+            
+            # Display the snapshots
+            for i, snapshot in enumerate(snapshots, 1):
+                snapshot_name = snapshot.get('name', 'Unknown')
+                snapshot_path = snapshot.get('path', 'Unknown')
+                policy_name = snapshot.get('protection_policy', {}).get('name', 'Unknown') if isinstance(snapshot.get('protection_policy'), dict) else 'Unknown'
+                created = snapshot.get('created', 'Unknown')
+                state = snapshot.get('state', 'Unknown')
+                self.logger.info(f"  {i}. {snapshot_name} -> {snapshot_path} (Policy: {policy_name}, State: {state}, Created: {created})")
+            
             return snapshots
         except Exception as e:
             self.logger.error(f"❌ Failed to list snapshots: {e}")
