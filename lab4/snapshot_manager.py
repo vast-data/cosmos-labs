@@ -86,7 +86,6 @@ class SnapshotManager:
         payload = {
             "name": name,
             "path": path,
-            "cluster_id": cluster_id,
             "locked": locked,
             "indestructible": indestructible,
             "tenant_id": tenant_id
