@@ -674,37 +674,29 @@ Examples:
             )
         
         if args.list_snapshots:
-            # Use --protected-path if provided, fallback to --view for backward compatibility
-            path_arg = args.protected_path or args.view
-            solution.list_snapshots(path_arg)
+            solution.list_snapshots(args.protected_path)
         
         if args.search_snapshots:
-            # Use --protected-path if provided, fallback to --view for backward compatibility
-            path_arg = args.protected_path or args.view
             solution.search_snapshots(
                 search_term=args.search_snapshots,
-                view_path=path_arg,
+                view_path=args.protected_path,
                 date_range=args.date_range
             )
         
         if args.restore_snapshot:
-            # Use --protected-path if provided, fallback to --view for backward compatibility
-            path_arg = args.protected_path or args.view
-            if not path_arg:
-                print("Error: --protected-path (or --view) is required for snapshot restoration")
+            if not args.protected_path:
+                print("Error: --protected-path is required for snapshot restoration")
                 return 1
             
             solution.restore_snapshot(
                 snapshot_name=args.restore_snapshot,
-                view_path=path_arg,
+                view_path=args.protected_path,
                 backup_first=args.backup_first and not args.no_backup
             )
         
         if args.cleanup_snapshots:
-            # Use --protected-path if provided, fallback to --view for backward compatibility
-            path_arg = args.protected_path or args.view
             solution.snapshot_manager.cleanup_old_snapshots(
-                view_path=path_arg,
+                view_path=args.protected_path,
                 older_than_days=args.snapshot_age_days,
                 dry_run=dry_run
             )
