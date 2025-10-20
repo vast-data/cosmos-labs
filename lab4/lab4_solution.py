@@ -394,9 +394,23 @@ class Lab4Solution:
             if view_path:
                 snapshots = self.snapshot_manager.list_snapshots_for_view(view_path)
             else:
-                # Get all snapshots and filter client-side for lab4 paths
-                all_snapshots = self.snapshot_manager.list_snapshots()
-                snapshots = [s for s in all_snapshots if s.get('path', '').startswith('/cosmos/lab4-')]
+                # Filter by snapshot names that contain lab4 policy prefixes
+                # This covers: raw-6h-policy, processed-daily-policy, analysis-weekly-policy, published-monthly-policy
+                # and any manually created snapshots with lab4-related names
+                lab4_name_patterns = ['raw-6h-policy', 'processed-daily-policy', 'analysis-weekly-policy', 'published-monthly-policy', 'lab4']
+                
+                all_snapshots = []
+                for pattern in lab4_name_patterns:
+                    pattern_snapshots = self.snapshot_manager.list_snapshots(name_contains=pattern)
+                    all_snapshots.extend(pattern_snapshots)
+                
+                # Remove duplicates and filter by path as additional safety
+                seen_ids = set()
+                snapshots = []
+                for s in all_snapshots:
+                    if s.get('id') not in seen_ids and s.get('path', '').startswith('/cosmos/lab4-'):
+                        seen_ids.add(s.get('id'))
+                        snapshots.append(s)
             
             self.logger.info(f"Found {len(snapshots)} snapshots")
             
@@ -404,7 +418,17 @@ class Lab4Solution:
             for i, snapshot in enumerate(snapshots, 1):
                 snapshot_name = snapshot.get('name', 'Unknown')
                 snapshot_path = snapshot.get('path', 'Unknown')
-                policy_name = snapshot.get('protection_policy__name', 'Unknown')
+                
+                # Debug: show available fields for first snapshot
+                if i == 1:
+                    self.logger.debug(f"Available snapshot fields: {list(snapshot.keys())}")
+                
+                # Try different possible field names for policy
+                policy_name = (snapshot.get('protection_policy__name') or 
+                             snapshot.get('protection_policy', {}).get('name') if isinstance(snapshot.get('protection_policy'), dict) else None or
+                             snapshot.get('policy_name') or
+                             'Unknown')
+                
                 created = snapshot.get('created', 'Unknown')
                 state = snapshot.get('state', 'Unknown')
                 self.logger.info(f"  {i}. {snapshot_name} -> {snapshot_path} (Policy: {policy_name}, State: {state}, Created: {created})")
