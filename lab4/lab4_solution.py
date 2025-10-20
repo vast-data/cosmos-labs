@@ -404,7 +404,7 @@ class Lab4Solution:
             for i, snapshot in enumerate(snapshots, 1):
                 snapshot_name = snapshot.get('name', 'Unknown')
                 snapshot_path = snapshot.get('path', 'Unknown')
-                policy_name = snapshot.get('protection_policy', {}).get('name', 'Unknown') if isinstance(snapshot.get('protection_policy'), dict) else 'Unknown'
+                policy_name = snapshot.get('protection_policy__name', 'Unknown')
                 created = snapshot.get('created', 'Unknown')
                 state = snapshot.get('state', 'Unknown')
                 self.logger.info(f"  {i}. {snapshot_name} -> {snapshot_path} (Policy: {policy_name}, State: {state}, Created: {created})")
