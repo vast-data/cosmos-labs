@@ -590,28 +590,28 @@ Examples:
         if args.setup_policies:
             solution.setup_protection_policies()
         
-        elif args.cleanup_policies:
+        if args.cleanup_policies:
             solution.protection_policies.cleanup_all_lab4_policies(dry_run=dry_run)
         
-        elif args.cleanup_protected_paths:
+        if args.cleanup_protected_paths:
             solution.protection_policies.cleanup_all_lab4_protected_paths(dry_run=dry_run)
         
-        elif args.full_cleanup:
+        if args.full_cleanup:
             results = solution.protection_policies.full_cleanup(dry_run=dry_run)
             if args.json:
                 import json
                 print(json.dumps(results, indent=2))
         
-        elif args.setup_protected_paths:
+        if args.setup_protected_paths:
             solution.setup_protected_paths()
         
-        elif args.list_policies:
+        if args.list_policies:
             solution.list_protection_policies()
         
-        elif args.list_protected_paths:
+        if args.list_protected_paths:
             solution.protection_policies.list_protected_paths()
         
-        elif args.create_snapshot:
+        if args.create_snapshot:
             if not args.view:
                 print("Error: --view is required for snapshot creation")
                 return 1
@@ -622,17 +622,17 @@ Examples:
                 milestone=args.milestone
             )
         
-        elif args.list_snapshots:
+        if args.list_snapshots:
             solution.list_snapshots(args.view)
         
-        elif args.search_snapshots:
+        if args.search_snapshots:
             solution.search_snapshots(
                 search_term=args.search_snapshots,
                 view_path=args.view,
                 date_range=args.date_range
             )
         
-        elif args.restore_snapshot:
+        if args.restore_snapshot:
             if not args.view:
                 print("Error: --view is required for snapshot restoration")
                 return 1
@@ -643,7 +643,7 @@ Examples:
                 backup_first=args.backup_first and not args.no_backup
             )
         
-        elif args.cleanup_snapshots:
+        if args.cleanup_snapshots:
             solution.snapshot_manager.cleanup_old_snapshots(
                 view_path=args.view,
                 older_than_days=args.snapshot_age_days,
