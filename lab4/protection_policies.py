@@ -791,6 +791,15 @@ class ProtectionPoliciesManager:
         try:
             protected_paths = self.vast_client.protectedpaths.get()
             self.logger.info(f"Found {len(protected_paths)} protected paths")
+            
+            # Display the protected paths
+            for i, path in enumerate(protected_paths, 1):
+                path_name = path.get('name', 'Unknown')
+                source_dir = path.get('source_dir', 'Unknown')
+                policy_id = path.get('protection_policy_id', 'None')
+                tenant_id = path.get('tenant_id', 'Unknown')
+                self.logger.info(f"  {i}. {path_name} -> {source_dir} (Policy ID: {policy_id}, Tenant: {tenant_id})")
+            
             return protected_paths
             
         except Exception as e:
