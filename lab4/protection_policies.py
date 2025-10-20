@@ -7,13 +7,13 @@ for automated snapshot creation with configurable schedules and retention.
 """
 
 import json
-import requests
 import logging
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 
 # Import Lab 4 configuration
 from lab4_config import Lab4Config
+from vastpy import VASTClient
 
 
 class ProtectionPoliciesManager:
@@ -32,7 +32,7 @@ class ProtectionPoliciesManager:
             config: Lab 4 configuration instance
         """
         self.config = config or Lab4Config()
-        self.vast_config = self.config.get_vast_api_config()
+        self.vast_config = self.config.get_vast_config()
         
         # Strip protocol from address (like other labs do)
         address = self.vast_config['address']
@@ -41,25 +41,18 @@ class ProtectionPoliciesManager:
         elif address.startswith('http://'):
             address = address[7:]
         
-        self.base_url = f"https://{address}/api"
-        self.session = requests.Session()
-        self.session.verify = self.vast_config['ssl_verify']
-        self.session.timeout = self.vast_config['timeout']
-        
-        # Debug logging
+        # Initialize VAST client
         self.logger = logging.getLogger(__name__)
-        self.logger.info(f"VAST API Config - SSL Verify: {self.vast_config['ssl_verify']}")
-        self.logger.info(f"Session verify setting: {self.session.verify}")
-        self.logger.info(f"Base URL: {self.base_url}")
-        
-        # Suppress SSL warnings if verification is disabled (like other labs)
-        if not self.vast_config['ssl_verify']:
-            import urllib3
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            self.logger.info("SSL verification disabled and warnings suppressed")
-        
-        # Set up authentication
-        self.session.auth = (self.vast_config['user'], self.vast_config['password'])
+        try:
+            self.vast_client = VASTClient(
+                address=address,
+                user=self.vast_config.get('user'),
+                password=self.vast_config.get('password')
+            )
+            self.logger.info(f"✅ VAST client initialized for protection policies")
+        except Exception as e:
+            self.logger.error(f"❌ Failed to initialize VAST client: {e}")
+            self.vast_client = None
     
     def _parse_frames_string(self, frames_string: str) -> list:
         """
@@ -76,7 +69,6 @@ class ProtectionPoliciesManager:
         
         # Parse the frames string
         # Example: "every 6h start-at 2025-10-16 00:00:00 keep-local 3d"
-        parts = frames_string.split()
         
         frame_obj = {}
         
@@ -135,9 +127,10 @@ class ProtectionPoliciesManager:
             Dict containing the created policy information
             
         Raises:
-            requests.RequestException: If API request fails
+            Exception: If API request fails
         """
-        url = f"{self.base_url}/protectionpolicies/"
+        if not self.vast_client:
+            raise Exception("VAST client not initialized")
         
         # Parse frames string into the required array format
         frames_array = self._parse_frames_string(frames)
@@ -160,31 +153,16 @@ class ProtectionPoliciesManager:
             payload["target_object_id"] = target_object_id
         
         self.logger.info(f"Creating protection policy: {name}")
-        self.logger.info(f"Original frames string: {frames}")
-        self.logger.info(f"Parsed frames array: {json.dumps(frames_array, indent=2)}")
-        self.logger.info(f"Policy payload: {json.dumps(payload, indent=2)}")
+        self.logger.debug(f"Frames: {frames}")
+        self.logger.debug(f"Payload: {json.dumps(payload, indent=2)}")
         
         try:
-            # Explicitly pass verify parameter to ensure SSL verification is disabled
-            ssl_verify = self.vast_config['ssl_verify']
-            self.logger.info(f"Making POST request with ssl_verify={ssl_verify}")
-            response = self.session.post(url, json=payload, verify=ssl_verify)
-            response.raise_for_status()
-            
-            policy_data = response.json()
-            self.logger.info(f"Successfully created protection policy: {name} (ID: {policy_data.get('id')})")
-            
+            policy_data = self.vast_client.protectionpolicies.post(**payload)
+            self.logger.info(f"✅ Successfully created protection policy: {name} (ID: {policy_data.get('id')})")
             return policy_data
             
-        except requests.RequestException as e:
-            self.logger.error(f"Failed to create protection policy {name}: {str(e)}")
-            # Log the response content for debugging
-            if hasattr(e, 'response') and e.response is not None:
-                try:
-                    error_detail = e.response.json()
-                    self.logger.error(f"API Error Details: {error_detail}")
-                except:
-                    self.logger.error(f"API Error Response: {e.response.text}")
+        except Exception as e:
+            self.logger.error(f"❌ Failed to create protection policy {name}: {str(e)}")
             raise
     
     def list_replication_policies(self, name_filter: str = None) -> List[Dict[str, Any]]:
@@ -198,28 +176,24 @@ class ProtectionPoliciesManager:
             List of replication policy dictionaries
             
         Raises:
-            requests.RequestException: If API request fails
+            Exception: If API request fails
         """
-        url = f"{self.base_url}/replicationpolicies/"
-        
-        # Add query parameters if filtering by name
-        params = {}
-        if name_filter:
-            params['name'] = name_filter
+        if not self.vast_client:
+            raise Exception("VAST client not initialized")
         
         self.logger.info(f"Listing replication policies{' (filtered by name: ' + name_filter + ')' if name_filter else ''}")
         
         try:
-            response = self.session.get(url, params=params, verify=self.vast_config['ssl_verify'])
-            response.raise_for_status()
+            params = {}
+            if name_filter:
+                params['name'] = name_filter
             
-            policies = response.json()
+            policies = self.vast_client.replicationpolicies.get(**params)
             self.logger.info(f"Found {len(policies)} replication policies")
-            
             return policies
             
-        except requests.RequestException as e:
-            self.logger.error(f"Failed to list replication policies: {str(e)}")
+        except Exception as e:
+            self.logger.error(f"❌ Failed to list replication policies: {str(e)}")
             raise
 
     def list_protection_policies(self, name_filter: str = None) -> List[Dict[str, Any]]:
@@ -233,28 +207,24 @@ class ProtectionPoliciesManager:
             List of protection policy dictionaries
             
         Raises:
-            requests.RequestException: If API request fails
+            Exception: If API request fails
         """
-        url = f"{self.base_url}/protectionpolicies/"
-        
-        # Add query parameters if filtering by name
-        params = {}
-        if name_filter:
-            params['name'] = name_filter
+        if not self.vast_client:
+            raise Exception("VAST client not initialized")
         
         self.logger.info(f"Listing protection policies{' (filtered by name: ' + name_filter + ')' if name_filter else ''}")
         
         try:
-            response = self.session.get(url, params=params, verify=self.vast_config['ssl_verify'])
-            response.raise_for_status()
+            params = {}
+            if name_filter:
+                params['name'] = name_filter
             
-            policies = response.json()
+            policies = self.vast_client.protectionpolicies.get(**params)
             self.logger.info(f"Found {len(policies)} protection policies")
-            
             return policies
             
-        except requests.RequestException as e:
-            self.logger.error(f"Failed to list protection policies: {str(e)}")
+        except Exception as e:
+            self.logger.error(f"❌ Failed to list protection policies: {str(e)}")
             raise
     
     def get_policy_by_name(self, policy_name: str) -> Optional[Dict[str, Any]]:
@@ -316,15 +286,12 @@ class ProtectionPoliciesManager:
         Returns:
             Tenant ID (defaults to 1 if not found)
         """
+        if not self.vast_client:
+            self.logger.warning("VAST client not initialized, using default tenant ID: 1")
+            return 1
+        
         try:
-            # Get views to extract tenant_id
-            url = f"{self.base_url}/views/"
-            
-            self.logger.debug(f"Getting tenant ID from views endpoint: {url}")
-            response = self.session.get(url, verify=self.vast_config['ssl_verify'])
-            response.raise_for_status()
-            
-            views = response.json()
+            views = self.vast_client.views.get()
             if views and len(views) > 0:
                 # Get tenant_id from the first view
                 tenant_id = views[0].get('tenant_id', 1)
@@ -349,23 +316,20 @@ class ProtectionPoliciesManager:
             Dict containing the policy information
             
         Raises:
-            requests.RequestException: If API request fails
+            Exception: If API request fails
         """
-        url = f"{self.base_url}/protectionpolicies/{policy_id}/"
+        if not self.vast_client:
+            raise Exception("VAST client not initialized")
         
         self.logger.info(f"Getting protection policy: {policy_id}")
         
         try:
-            response = self.session.get(url, verify=self.vast_config['ssl_verify'])
-            response.raise_for_status()
-            
-            policy = response.json()
-            self.logger.info(f"Retrieved protection policy: {policy.get('name')}")
-            
+            policy = self.vast_client.protectionpolicies.get(id=policy_id)
+            self.logger.info(f"✅ Retrieved protection policy: {policy.get('name')}")
             return policy
             
-        except requests.RequestException as e:
-            self.logger.error(f"Failed to get protection policy {policy_id}: {str(e)}")
+        except Exception as e:
+            self.logger.error(f"❌ Failed to get protection policy {policy_id}: {str(e)}")
             raise
     
     def update_protection_policy(self, 
@@ -382,24 +346,21 @@ class ProtectionPoliciesManager:
             Dict containing the updated policy information
             
         Raises:
-            requests.RequestException: If API request fails
+            Exception: If API request fails
         """
-        url = f"{self.base_url}/protectionpolicies/{policy_id}/"
+        if not self.vast_client:
+            raise Exception("VAST client not initialized")
         
         self.logger.info(f"Updating protection policy: {policy_id}")
         self.logger.debug(f"Update fields: {kwargs}")
         
         try:
-            response = self.session.patch(url, json=kwargs, verify=self.vast_config['ssl_verify'])
-            response.raise_for_status()
-            
-            policy = response.json()
-            self.logger.info(f"Successfully updated protection policy: {policy.get('name')}")
-            
+            policy = self.vast_client.protectionpolicies.patch(id=policy_id, **kwargs)
+            self.logger.info(f"✅ Successfully updated protection policy: {policy.get('name')}")
             return policy
             
-        except requests.RequestException as e:
-            self.logger.error(f"Failed to update protection policy {policy_id}: {str(e)}")
+        except Exception as e:
+            self.logger.error(f"❌ Failed to update protection policy {policy_id}: {str(e)}")
             raise
     
     def delete_protection_policy(self, policy_id: int) -> bool:
@@ -413,21 +374,20 @@ class ProtectionPoliciesManager:
             True if deletion was successful
             
         Raises:
-            requests.RequestException: If API request fails
+            Exception: If API request fails
         """
-        url = f"{self.base_url}/protectionpolicies/{policy_id}/"
+        if not self.vast_client:
+            raise Exception("VAST client not initialized")
         
         self.logger.info(f"Deleting protection policy: {policy_id}")
         
         try:
-            response = self.session.delete(url, verify=self.vast_config['ssl_verify'])
-            response.raise_for_status()
-            
-            self.logger.info(f"Successfully deleted protection policy: {policy_id}")
+            self.vast_client.protectionpolicies.delete(id=policy_id)
+            self.logger.info(f"✅ Successfully deleted protection policy: {policy_id}")
             return True
             
-        except requests.RequestException as e:
-            self.logger.error(f"Failed to delete protection policy {policy_id}: {str(e)}")
+        except Exception as e:
+            self.logger.error(f"❌ Failed to delete protection policy {policy_id}: {str(e)}")
             raise
     
     def delete_protection_policy_by_name(self, policy_name: str) -> bool:
@@ -441,7 +401,7 @@ class ProtectionPoliciesManager:
             True if deletion was successful, False if policy not found
             
         Raises:
-            requests.RequestException: If API request fails
+            Exception: If API request fails
         """
         policy = self.get_policy_by_name(policy_name)
         if not policy:
@@ -503,7 +463,7 @@ class ProtectionPoliciesManager:
             List of created or would-be-created policies
             
         Raises:
-            requests.RequestException: If API request fails
+            Exception: If API request fails
         """
         policies = []
         templates = self.config.get_policy_templates()
@@ -710,12 +670,13 @@ class ProtectionPoliciesManager:
         Returns:
             Dict containing the created protected path data
         """
-        url = f"{self.base_url}/protectedpaths/"
+        if not self.vast_client:
+            raise Exception("VAST client not initialized")
         
         payload = {
             "name": name,
             "source_dir": source_dir,
-            "protection_policy_id": policy_id,  # Use protection_policy_id instead of policy_id
+            "protection_policy_id": policy_id,
             "enabled": enabled,
             "tenant_id": tenant_id
         }
@@ -726,26 +687,16 @@ class ProtectionPoliciesManager:
         if capabilities:
             payload["capabilities"] = capabilities
         
-        ssl_verify = self.vast_config['ssl_verify']
         self.logger.info(f"Creating protected path: {name} -> {source_dir}")
         self.logger.debug(f"Payload: {json.dumps(payload, indent=2)}")
         
         try:
-            response = self.session.post(url, json=payload, verify=ssl_verify)
-            response.raise_for_status()
-            
-            protected_path_data = response.json()
+            protected_path_data = self.vast_client.protectedpaths.post(**payload)
             self.logger.info(f"✅ Created protected path: {name} (ID: {protected_path_data.get('id')})")
             return protected_path_data
             
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             self.logger.error(f"❌ Failed to create protected path {name}: {e}")
-            if hasattr(e, 'response') and e.response is not None:
-                try:
-                    error_details = e.response.json()
-                    self.logger.error(f"API Error Details: {error_details}")
-                except:
-                    self.logger.error(f"API Error Response: {e.response.text}")
             raise
     
     def list_protected_paths(self) -> List[Dict[str, Any]]:
@@ -755,27 +706,18 @@ class ProtectionPoliciesManager:
         Returns:
             List of protected path dictionaries
         """
-        url = f"{self.base_url}/protectedpaths/"
+        if not self.vast_client:
+            raise Exception("VAST client not initialized")
         
-        ssl_verify = self.vast_config['ssl_verify']
         self.logger.info("Listing protected paths...")
         
         try:
-            response = self.session.get(url, verify=ssl_verify)
-            response.raise_for_status()
-            
-            protected_paths = response.json()
+            protected_paths = self.vast_client.protectedpaths.get()
             self.logger.info(f"Found {len(protected_paths)} protected paths")
             return protected_paths
             
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             self.logger.error(f"❌ Failed to list protected paths: {e}")
-            if hasattr(e, 'response') and e.response is not None:
-                try:
-                    error_details = e.response.json()
-                    self.logger.error(f"API Error Details: {error_details}")
-                except:
-                    self.logger.error(f"API Error Response: {e.response.text}")
             raise
     
     def get_protected_path(self, path_id: int) -> Dict[str, Any]:
@@ -788,27 +730,18 @@ class ProtectionPoliciesManager:
         Returns:
             Dict containing the protected path data
         """
-        url = f"{self.base_url}/protectedpaths/{path_id}/"
+        if not self.vast_client:
+            raise Exception("VAST client not initialized")
         
-        ssl_verify = self.vast_config['ssl_verify']
         self.logger.info(f"Getting protected path ID: {path_id}")
         
         try:
-            response = self.session.get(url, verify=ssl_verify)
-            response.raise_for_status()
-            
-            protected_path_data = response.json()
+            protected_path_data = self.vast_client.protectedpaths.get(id=path_id)
             self.logger.info(f"✅ Retrieved protected path: {protected_path_data.get('name')}")
             return protected_path_data
             
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             self.logger.error(f"❌ Failed to get protected path {path_id}: {e}")
-            if hasattr(e, 'response') and e.response is not None:
-                try:
-                    error_details = e.response.json()
-                    self.logger.error(f"API Error Details: {error_details}")
-                except:
-                    self.logger.error(f"API Error Response: {e.response.text}")
             raise
     
     def get_protected_path_by_name(self, name: str) -> Optional[Dict[str, Any]]:
@@ -847,26 +780,18 @@ class ProtectionPoliciesManager:
         Returns:
             True if successful, False otherwise
         """
-        url = f"{self.base_url}/protectedpaths/{path_id}/"
+        if not self.vast_client:
+            raise Exception("VAST client not initialized")
         
-        ssl_verify = self.vast_config['ssl_verify']
         self.logger.info(f"Deleting protected path ID: {path_id}")
         
         try:
-            response = self.session.delete(url, verify=ssl_verify)
-            response.raise_for_status()
-            
+            self.vast_client.protectedpaths.delete(id=path_id)
             self.logger.info(f"✅ Deleted protected path ID: {path_id}")
             return True
             
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             self.logger.error(f"❌ Failed to delete protected path {path_id}: {e}")
-            if hasattr(e, 'response') and e.response is not None:
-                try:
-                    error_details = e.response.json()
-                    self.logger.error(f"API Error Details: {error_details}")
-                except:
-                    self.logger.error(f"API Error Response: {e.response.text}")
             return False
     
     def setup_protected_paths_for_views(self, dry_run: bool = False) -> List[Dict[str, Any]]:
@@ -924,7 +849,7 @@ class ProtectionPoliciesManager:
             policy_id = int(policy['id'])  # Ensure it's an integer
             
             # Debug: Log policy details
-            self.logger.info(f"Found policy: {policy_name} (ID: {policy_id}, Type: {policy.get('type', 'unknown')})")
+            self.logger.debug(f"Found policy: {policy_name} (ID: {policy_id}, Type: {policy.get('type', 'unknown')})")
             self.logger.debug(f"Policy details: {json.dumps(policy, indent=2)}")
             
             if dry_run:
@@ -951,27 +876,6 @@ class ProtectionPoliciesManager:
                     self.logger.error(f"❌ Failed to create protected path for {view_name}: {e}")
         
         return protected_paths
-    
-    def apply_policy_to_view(self, policy_id: int, view_path: str) -> bool:
-        """
-        Apply a protection policy to a specific view.
-        
-        Note: This method would need to be implemented based on VAST's
-        protected path API endpoints.
-        
-        Args:
-            policy_id: ID of the protection policy
-            view_path: Path of the view to protect
-            
-        Returns:
-            True if application was successful
-            
-        Raises:
-            NotImplementedError: This method needs VAST protected path API implementation
-        """
-        # This would require VAST's protected path API
-        # Implementation depends on specific VAST API endpoints
-        raise NotImplementedError("apply_policy_to_view requires VAST protected path API implementation")
     
     def validate_policy_configuration(self, policy_data: Dict[str, Any]) -> List[str]:
         """
@@ -1004,27 +908,6 @@ class ProtectionPoliciesManager:
         
         return errors
     
-    def get_policy_by_name(self, name: str) -> Optional[Dict[str, Any]]:
-        """
-        Get a protection policy by name.
-        
-        Args:
-            name: Name of the protection policy
-            
-        Returns:
-            Policy data if found, None otherwise
-            
-        Raises:
-            requests.RequestException: If API request fails
-        """
-        policies = self.list_protection_policies()
-        
-        for policy in policies:
-            if policy.get('name') == name:
-                return policy
-        
-        return None
-    
     def policy_exists(self, name: str) -> bool:
         """
         Check if a protection policy exists by name.
@@ -1036,7 +919,7 @@ class ProtectionPoliciesManager:
             True if policy exists, False otherwise
             
         Raises:
-            requests.RequestException: If API request fails
+            Exception: If API request fails
         """
         return self.get_policy_by_name(name) is not None
 

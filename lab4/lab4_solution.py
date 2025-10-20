@@ -13,17 +13,11 @@ import os
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
-# Import Lab 4 components
 from lab4_config import Lab4Config
 from protection_policies import ProtectionPoliciesManager
+from snapshot_manager import SnapshotManager
 
 from vastpy import VASTClient
-
-# Import other components (these would be created in separate files)
-# from snapshot_manager import SnapshotManager
-# from snapshot_browser import SnapshotBrowser
-# from snapshot_restore import SnapshotRestore
-# from version_tracker import VersionTracker
 
 
 class Lab4Solution:
@@ -46,6 +40,7 @@ class Lab4Solution:
         
         # Initialize components
         self.protection_policies = ProtectionPoliciesManager(self.config)
+        self.snapshot_manager = SnapshotManager(self.config)
         self.vast_client = None
         # Initialize vast client (used for view checks/creation)
         vast_cfg = self.config.get_vast_config()
@@ -331,17 +326,25 @@ class Lab4Solution:
                 'dry_run': True
             }
         else:
-            # This would use the SnapshotManager when implemented
-            # return self.snapshot_manager.create_named_snapshot(snapshot_name, view_path, metadata)
-            self.logger.warning("Snapshot creation not yet implemented - use dry run mode")
-            return {
-                'name': snapshot_name,
-                'view': view_path,
-                'milestone': milestone,
-                'metadata': metadata,
-                'dry_run': False,
-                'status': 'not_implemented'
-            }
+            try:
+                snapshot = self.snapshot_manager.create_named_snapshot(
+                    name=name,
+                    view_path=view_path,
+                    milestone=milestone,
+                    metadata=metadata
+                )
+                self.logger.info(f"✅ Created snapshot: {snapshot_name}")
+                return snapshot
+            except Exception as e:
+                self.logger.error(f"❌ Failed to create snapshot: {e}")
+                return {
+                    'name': snapshot_name,
+                    'view': view_path,
+                    'milestone': milestone,
+                    'metadata': metadata,
+                    'dry_run': False,
+                    'error': str(e)
+                }
     
     def list_snapshots(self, view_path: Optional[str] = None) -> List[Dict[str, Any]]:
         """
@@ -358,9 +361,17 @@ class Lab4Solution:
         else:
             self.logger.info("Listing all snapshots")
         
-        # This would use the SnapshotBrowser when implemented
-        self.logger.warning("Snapshot listing not yet implemented")
-        return []
+        try:
+            if view_path:
+                snapshots = self.snapshot_manager.list_snapshots_for_view(view_path)
+            else:
+                snapshots = self.snapshot_manager.list_snapshots()
+            
+            self.logger.info(f"Found {len(snapshots)} snapshots")
+            return snapshots
+        except Exception as e:
+            self.logger.error(f"❌ Failed to list snapshots: {e}")
+            return []
     
     def search_snapshots(self, 
                         search_term: str,
@@ -383,9 +394,17 @@ class Lab4Solution:
         if date_range:
             self.logger.info(f"Date range: {date_range[0]} to {date_range[1]}")
         
-        # This would use the SnapshotBrowser when implemented
-        self.logger.warning("Snapshot search not yet implemented")
-        return []
+        try:
+            snapshots = self.snapshot_manager.search_snapshots(
+                search_term=search_term,
+                view_path=view_path,
+                date_range=date_range
+            )
+            self.logger.info(f"Found {len(snapshots)} matching snapshots")
+            return snapshots
+        except Exception as e:
+            self.logger.error(f"❌ Failed to search snapshots: {e}")
+            return []
     
     def restore_snapshot(self, 
                         snapshot_name: str, 
@@ -426,6 +445,40 @@ class Lab4Solution:
                 'dry_run': False,
                 'status': 'not_implemented'
             }
+    
+    def cleanup_old_snapshots(self, 
+                             view_path: Optional[str] = None,
+                             older_than_days: int = 30) -> List[str]:
+        """
+        Clean up old snapshots.
+        
+        Args:
+            view_path: Optional specific view path to clean up
+            older_than_days: Delete snapshots older than this many days
+            
+        Returns:
+            List of deleted snapshot names
+        """
+        self.logger.info(f"Cleaning up snapshots older than {older_than_days} days")
+        if view_path:
+            self.logger.info(f"View filter: {view_path}")
+        
+        try:
+            deleted_snapshots = self.snapshot_manager.cleanup_old_snapshots(
+                view_path=view_path,
+                older_than_days=older_than_days,
+                dry_run=self.dry_run
+            )
+            
+            if self.dry_run:
+                self.logger.info(f"Would delete {len(deleted_snapshots)} old snapshots")
+            else:
+                self.logger.info(f"✅ Deleted {len(deleted_snapshots)} old snapshots")
+            
+            return deleted_snapshots
+        except Exception as e:
+            self.logger.error(f"❌ Failed to cleanup snapshots: {e}")
+            return []
     
     def show_snapshot_details(self, snapshot_name: str) -> Dict[str, Any]:
         """
@@ -526,6 +579,9 @@ Examples:
   # List protected paths
   python lab4_solution.py --list-protected-paths
   
+  # Clean up old snapshots
+  python lab4_solution.py --cleanup-snapshots --snapshot-age-days 30 --pushtoprod
+  
   # Create named snapshot
   python lab4_solution.py --create-snapshot "pre-calibration-change" --view "/cosmos7/processed"
   
@@ -563,10 +619,10 @@ Examples:
                        help='Search snapshots by name or metadata')
     parser.add_argument('--restore-snapshot', type=str, metavar='NAME',
                        help='Restore from a snapshot')
-    parser.add_argument('--snapshot-details', type=str, metavar='NAME',
-                       help='Show detailed information about a snapshot')
-    parser.add_argument('--complete', action='store_true',
-                       help='Run complete Lab 4 workflow')
+    parser.add_argument('--cleanup-snapshots', action='store_true',
+                       help='Clean up old snapshots')
+    parser.add_argument('--snapshot-age-days', type=int, default=30,
+                       help='Age in days for snapshot cleanup (default: 30)')
     
     # Configuration options
     parser.add_argument('--view', type=str, metavar='PATH',
@@ -670,6 +726,12 @@ Examples:
                 snapshot_name=args.restore_snapshot,
                 view_path=args.view,
                 backup_first=args.backup_first and not args.no_backup
+            )
+        
+        elif args.cleanup_snapshots:
+            solution.cleanup_old_snapshots(
+                view_path=args.view,
+                older_than_days=args.snapshot_age_days
             )
         
         elif args.snapshot_details:

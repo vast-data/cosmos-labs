@@ -198,11 +198,6 @@ lab4:
       published_datasets:
         schedule: "every 30d keep-local 365d"
         prefix: "published-monthly"
-      
-      # Critical research data: Multiple tiers for maximum protection
-      critical_research:
-        schedule: "every 6h keep-local 3d"  # High frequency for active work
-        prefix: "critical-6h"
   
   views:
     - "/cosmos7/raw"
