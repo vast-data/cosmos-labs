@@ -537,13 +537,13 @@ Examples:
   python lab4_solution.py --cleanup-snapshots --snapshot-age-days 30 --pushtoprod
   
   # Create named snapshot
-  python lab4_solution.py --create-snapshot "pre-calibration-change" --view "processed"
+  python lab4_solution.py --create-snapshot "pre-calibration-change" --protected-path "processed"
   
   # List snapshots
   python lab4_solution.py --list-snapshots
   
   # Restore from snapshot (dry run)
-  python lab4_solution.py --restore-snapshot "pre-calibration-change" --view "/cosmos7/processed"
+  python lab4_solution.py --restore-snapshot "pre-calibration-change" --protected-path "processed"
   
   # Complete workflow (includes policies, protected paths, and snapshots)
   python lab4_solution.py --setup-policies --setup-protected-paths --pushtoprod
@@ -579,8 +579,8 @@ Examples:
                        help='Age in days for snapshot cleanup (default: 30)')
     
     # Configuration options
-    parser.add_argument('--view', type=str, metavar='PATH',
-                       help='View path for snapshot operations')
+    parser.add_argument('--protected-path', type=str, metavar='PATH',
+                       help='Protected path name for snapshot operations (e.g., raw, processed)')
     parser.add_argument('--views', nargs='+', metavar='PATH',
                        help='Multiple view paths for batch operations')
     parser.add_argument('--milestone', type=str, metavar='DESCRIPTION',
@@ -663,40 +663,48 @@ Examples:
             solution.protection_policies.list_protected_paths()
         
         if args.create_snapshot:
-            if not args.view:
-                print("Error: --view is required for snapshot creation")
+            if not args.protected_path:
+                print("Error: --protected-path is required for snapshot creation")
                 return 1
             
             solution.create_named_snapshot(
                 name=args.create_snapshot,
-                view_path=args.view,
+                view_path=args.protected_path,
                 milestone=args.milestone
             )
         
         if args.list_snapshots:
-            solution.list_snapshots(args.view)
+            # Use --protected-path if provided, fallback to --view for backward compatibility
+            path_arg = args.protected_path or args.view
+            solution.list_snapshots(path_arg)
         
         if args.search_snapshots:
+            # Use --protected-path if provided, fallback to --view for backward compatibility
+            path_arg = args.protected_path or args.view
             solution.search_snapshots(
                 search_term=args.search_snapshots,
-                view_path=args.view,
+                view_path=path_arg,
                 date_range=args.date_range
             )
         
         if args.restore_snapshot:
-            if not args.view:
-                print("Error: --view is required for snapshot restoration")
+            # Use --protected-path if provided, fallback to --view for backward compatibility
+            path_arg = args.protected_path or args.view
+            if not path_arg:
+                print("Error: --protected-path (or --view) is required for snapshot restoration")
                 return 1
             
             solution.restore_snapshot(
                 snapshot_name=args.restore_snapshot,
-                view_path=args.view,
+                view_path=path_arg,
                 backup_first=args.backup_first and not args.no_backup
             )
         
         if args.cleanup_snapshots:
+            # Use --protected-path if provided, fallback to --view for backward compatibility
+            path_arg = args.protected_path or args.view
             solution.snapshot_manager.cleanup_old_snapshots(
-                view_path=args.view,
+                view_path=path_arg,
                 older_than_days=args.snapshot_age_days,
                 dry_run=dry_run
             )
