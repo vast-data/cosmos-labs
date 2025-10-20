@@ -430,6 +430,27 @@ class ProtectionPoliciesManager:
             self.logger.error(f"Failed to delete protection policy {policy_id}: {str(e)}")
             raise
     
+    def delete_protection_policy_by_name(self, policy_name: str) -> bool:
+        """
+        Delete a protection policy by name.
+        
+        Args:
+            policy_name: Name of the protection policy to delete
+            
+        Returns:
+            True if deletion was successful, False if policy not found
+            
+        Raises:
+            requests.RequestException: If API request fails
+        """
+        policy = self.get_policy_by_name(policy_name)
+        if not policy:
+            self.logger.warning(f"Policy '{policy_name}' not found, cannot delete")
+            return False
+        
+        policy_id = policy['id']
+        return self.delete_protection_policy(policy_id)
+    
     def create_policy_from_template(self, 
                                    template_name: str, 
                                    policy_name: str,
@@ -534,6 +555,49 @@ class ProtectionPoliciesManager:
             self.logger.info("Policies created. Next step would be to apply them to views.")
         
         return policies
+    
+    def cleanup_and_recreate_policies(self, dry_run: bool = True) -> List[Dict[str, Any]]:
+        """
+        Clean up old policies with verbose names and create new ones with simplified names.
+        
+        Args:
+            dry_run: If True, only show what would be done
+            
+        Returns:
+            List of created policies
+        """
+        self.logger.info(f"Cleaning up old policies and creating new ones (dry_run={dry_run})")
+        
+        # Old policy names to delete
+        old_policy_names = [
+            "lab4-raw_data-policy",
+            "lab4-processed_data-policy", 
+            "lab4-analysis_results-policy",
+            "lab4-published_datasets-policy"
+        ]
+        
+        # Delete old policies
+        deleted_count = 0
+        for policy_name in old_policy_names:
+            if dry_run:
+                self.logger.info(f"Would delete policy: {policy_name}")
+                deleted_count += 1
+            else:
+                try:
+                    if self.delete_protection_policy_by_name(policy_name):
+                        deleted_count += 1
+                        self.logger.info(f"✅ Deleted policy: {policy_name}")
+                    else:
+                        self.logger.warning(f"⚠️  Policy not found: {policy_name}")
+                except Exception as e:
+                    self.logger.error(f"❌ Failed to delete policy {policy_name}: {e}")
+        
+        self.logger.info(f"Deleted {deleted_count} old policies")
+        
+        # Create new policies with simplified names
+        new_policies = self.setup_default_policies(dry_run=dry_run)
+        
+        return new_policies
     
     def create_protected_path(self, 
                              name: str, 

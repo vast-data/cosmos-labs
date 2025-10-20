@@ -511,6 +511,9 @@ Examples:
   # Production - actually create policies
   python lab4_solution.py --setup-policies --pushtoprod
   
+  # Clean up old policies and create new ones with simplified names
+  python lab4_solution.py --cleanup-policies --pushtoprod
+  
   # Set up protected paths for all views
   python lab4_solution.py --setup-protected-paths --pushtoprod
   
@@ -534,6 +537,8 @@ Examples:
     # Main operation flags
     parser.add_argument('--setup-policies', action='store_true',
                        help='Set up protection policies based on configuration')
+    parser.add_argument('--cleanup-policies', action='store_true',
+                       help='Clean up old policies and create new ones with simplified names')
     parser.add_argument('--setup-protected-paths', action='store_true',
                        help='Set up protected paths for all configured views')
     parser.add_argument('--list-policies', action='store_true',
@@ -603,6 +608,9 @@ Examples:
         # Execute requested operations
         if args.setup_policies:
             solution.setup_protection_policies()
+        
+        elif args.cleanup_policies:
+            solution.protection_policies.cleanup_and_recreate_policies(dry_run=dry_run)
         
         elif args.setup_protected_paths:
             solution.setup_protected_paths()
