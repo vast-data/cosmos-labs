@@ -761,6 +761,7 @@ class ProtectionPoliciesManager:
                 continue
             
             # Find matching policy for this view using exact name match
+            # The policy name should match the template name, not necessarily the view name
             policy_name = f"lab4-{view_name}-policy"
             policy = self.get_policy_by_name(policy_name)
             
