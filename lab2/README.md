@@ -121,8 +121,11 @@ python lab2_solution.py --search-only --recent 10
 # Search by pattern
 python lab2_solution.py --search-only --pattern "*.gz"
 
-# Search by mission
-python lab2_solution.py --search-only --obs-id "SWIFT"
+# Search by mission (using pattern matching)
+python lab2_solution.py --search-only --pattern "SWIFT*"
+
+# Search by observation ID (if in filename)
+python lab2_solution.py --search-only --pattern "swbj1421*"
 ```
 
 #### Complete Workflow
@@ -203,10 +206,7 @@ lab2:
 - **`--recent N`** - Show recent N files
 - **`--pattern PATTERN`** - Search by file pattern (supports wildcards)
 - **`--target TARGET`** - Search by target object (supports wildcards)
-- **`--mission MISSION`** - Search by mission name
-- **`--instrument INSTRUMENT`** - Search by instrument type
-- **`--dataset DATASET`** - Search by dataset name
-- **`--format FORMAT`** - Search by file format
+- **`--file-type TYPE`** - Search by file type/format
 - **`--json`** - Output results in JSON format
 
 ### Sample Search Results
@@ -263,11 +263,11 @@ python lab2_solution.py --search-only --target "PSR J0007+7303"
 # Search by observation ID pattern
 python lab2_solution.py --search-only --pattern "swbj0007_*"
 
-# Search by dataset
-python lab2_solution.py --search-only --dataset "batsources_monitoring_north"
+# Search by file type
+python lab2_solution.py --search-only --file-type "gz"
 
-# Search by mission
-python lab2_solution.py --search-only --mission "SWIFT"
+# Search by mission (using pattern matching)
+python lab2_solution.py --search-only --pattern "SWIFT*"
 
 # Search with JSON output for analysis
 python lab2_solution.py --search-only --target "PSR*" --json
