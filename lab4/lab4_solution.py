@@ -16,6 +16,7 @@ from datetime import datetime
 from lab4_config import Lab4Config
 from protection_policies import ProtectionPoliciesManager
 from snapshot_manager import SnapshotManager
+from snapshot_restore import SnapshotRestoreManager
 
 from vastpy import VASTClient
 
@@ -41,6 +42,7 @@ class Lab4Solution:
         # Initialize components
         self.protection_policies = ProtectionPoliciesManager(self.config)
         self.snapshot_manager = SnapshotManager(self.config)
+        self.snapshot_restore = SnapshotRestoreManager(self.config)
         self.vast_client = None
         # Initialize vast client (used for view checks/creation)
         vast_cfg = self.config.get_vast_config()
@@ -490,12 +492,12 @@ class Lab4Solution:
                         view_path: str,
                         backup_first: bool = True) -> Dict[str, Any]:
         """
-        Restore a view from a snapshot.
+        Restore a view from a snapshot using VAST's protected path restore API.
         
         Args:
             snapshot_name: Name of the snapshot to restore from
             view_path: Path of the view to restore
-            backup_first: Whether to create a backup before restoration
+            backup_first: Whether to create a backup before restoration (noted for future implementation)
             
         Returns:
             Restoration result information
@@ -504,25 +506,56 @@ class Lab4Solution:
         self.logger.info(f"Target view: {view_path}")
         self.logger.info(f"Backup first: {backup_first}")
         
-        if self.dry_run:
-            self.logger.info(f"Would restore view '{view_path}' from snapshot '{snapshot_name}'")
-            if backup_first:
-                self.logger.info("Would create backup before restoration")
+        # Resolve protected path name to actual view path
+        actual_view_path = self._resolve_view_path(view_path)
+        
+        # Validate restoration before attempting
+        validation = self.snapshot_restore.validate_restoration(snapshot_name, actual_view_path)
+        if not validation['valid']:
+            self.logger.error(f"❌ Restoration validation failed: {validation['issues']}")
             return {
                 'snapshot': snapshot_name,
-                'view': view_path,
+                'view': actual_view_path,
+                'protected_path': view_path,
                 'backup_first': backup_first,
-                'dry_run': True
+                'dry_run': self.dry_run,
+                'status': 'validation_failed',
+                'issues': validation['issues']
             }
-        else:
-            # This would use the SnapshotRestore when implemented
-            self.logger.warning("Snapshot restoration not yet implemented - use dry run mode")
+        
+        # Perform the restoration
+        try:
+            result = self.snapshot_restore.restore_from_snapshot(
+                snapshot_name=snapshot_name,
+                view_path=actual_view_path,
+                dry_run=self.dry_run
+            )
+            
+            if result['status'] == 'completed':
+                self.logger.info(f"✅ Successfully restored view '{actual_view_path}' from snapshot '{snapshot_name}'")
+            elif result['status'] == 'preview':
+                self.logger.info(f"Preview: Would restore view '{actual_view_path}' from snapshot '{snapshot_name}'")
+            
             return {
                 'snapshot': snapshot_name,
-                'view': view_path,
+                'view': actual_view_path,
+                'protected_path': view_path,
                 'backup_first': backup_first,
-                'dry_run': False,
-                'status': 'not_implemented'
+                'dry_run': self.dry_run,
+                'status': result['status'],
+                'result': result
+            }
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to restore snapshot: {e}")
+            return {
+                'snapshot': snapshot_name,
+                'view': actual_view_path,
+                'protected_path': view_path,
+                'backup_first': backup_first,
+                'dry_run': self.dry_run,
+                'status': 'failed',
+                'error': str(e)
             }
     
     def show_snapshot_details(self, snapshot_name: str) -> Dict[str, Any]:
@@ -585,6 +618,12 @@ Examples:
   # Restore from snapshot (dry run)
   python lab4_solution.py --restore-snapshot "pre-calibration-change" --protected-path "processed"
   
+  # List snapshots available for restoration
+  python lab4_solution.py --list-available-snapshots --protected-path "test_snapshot"
+  
+  # Test snapshot restoration on test view (safe for lab takers)
+  python lab4_solution.py --restore-snapshot "test-snapshot-20250116-120000" --protected-path "test_snapshot" --pushtoprod
+  
   # Complete workflow (includes policies, protected paths, and snapshots)
   python lab4_solution.py --setup-policies --setup-protected-paths --pushtoprod
         """
@@ -613,6 +652,8 @@ Examples:
                        help='Search snapshots by name or metadata')
     parser.add_argument('--restore-snapshot', type=str, metavar='NAME',
                        help='Restore from a snapshot')
+    parser.add_argument('--list-available-snapshots', action='store_true',
+                       help='List snapshots available for restoration')
     parser.add_argument('--cleanup-snapshots', action='store_true',
                        help='Clean up old snapshots')
     parser.add_argument('--snapshot-age-days', type=int, default=30,
@@ -670,7 +711,8 @@ Examples:
             args.setup_policies, args.cleanup_policies, args.cleanup_protected_paths,
             args.full_cleanup, args.setup_protected_paths, args.list_policies,
             args.list_protected_paths, args.create_snapshot, args.list_snapshots,
-            args.search_snapshots, args.restore_snapshot, args.cleanup_snapshots
+            args.search_snapshots, args.restore_snapshot, args.list_available_snapshots,
+            args.cleanup_snapshots
         ]
         
         if not any(operation_args):
@@ -733,6 +775,9 @@ Examples:
                 view_path=args.protected_path,
                 backup_first=args.backup_first and not args.no_backup
             )
+        
+        if args.list_available_snapshots:
+            solution.snapshot_restore.list_available_snapshots(args.protected_path)
         
         if args.cleanup_snapshots:
             solution.snapshot_manager.cleanup_old_snapshots(

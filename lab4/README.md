@@ -113,11 +113,29 @@ python lab4_solution.py --list-snapshots
 # Search snapshots by name
 python lab4_solution.py --search-snapshots "calibration"
 
+# List snapshots available for restoration
+python lab4_solution.py --list-available-snapshots --protected-path "processed"
+
 # Restore from snapshot (dry run)
-python lab4_solution.py --restore-snapshot "pre-calibration-change" --view "/cosmos7/processed"
+python lab4_solution.py --restore-snapshot "pre-calibration-change" --protected-path "processed"
 
 # Restore from snapshot (production)
-python lab4_solution.py --restore-snapshot "pre-calibration-change" --view "/cosmos7/processed" --pushtoprod
+python lab4_solution.py --restore-snapshot "pre-calibration-change" --protected-path "processed" --pushtoprod
+```
+
+#### Test Snapshot Restoration (Safe for Lab Takers)
+```bash
+# List test snapshots
+python lab4_solution.py --list-available-snapshots --protected-path "test_snapshot"
+
+# Create a test snapshot
+python lab4_solution.py --create-snapshot "test-snapshot" --protected-path "test_snapshot" --pushtoprod
+
+# Test restoration (dry run)
+python lab4_solution.py --restore-snapshot "test-snapshot-20250116-120000" --protected-path "test_snapshot"
+
+# Test restoration (production - safe on test view)
+python lab4_solution.py --restore-snapshot "test-snapshot-20250116-120000" --protected-path "test_snapshot" --pushtoprod
 ```
 
 #### Complete Workflow
@@ -245,10 +263,12 @@ vast_password: "your_vast_password_here"
 - **Comparison Tools** - Compare snapshots to understand changes
 
 ### ✅ Restoration Tools
+- **VAST Protected Path Restore API** - Uses proper VAST API for reliable restoration
+- **Two-Step Process** - Create clone from snapshot, then commit (abortable)
 - **One-Click Restoration** - Easy restoration to previous states
 - **Dry-Run Mode** - Preview changes before applying
-- **Selective Rollback** - Restore specific changes while preserving others
-- **Batch Operations** - Restore multiple datasets simultaneously
+- **Validation Checks** - Ensures snapshots and protected paths exist before restoration
+- **Test View Support** - Safe testing environment for lab takers
 
 ### ✅ Version Tracking
 - **Automatic Versioning** - Systematic version numbering for datasets
