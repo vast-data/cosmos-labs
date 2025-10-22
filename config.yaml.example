@@ -95,3 +95,82 @@ lab3:
       extended: "6 major global cities with diverse weather patterns"
       pollution: "High-pollution cities for dramatic air quality analysis (Delhi: extreme PM2.5, Lahore: winter pollution, Mexico City: ozone issues, Krakow: coal heating, Ulaanbaatar: extreme seasonal variation, LA: classic smog)"
       global: "Comprehensive 10-city global dataset for advanced analytics" 
+
+# Lab 4: Snapshot Strategy Settings
+lab4:
+  # Protection policies by data classification
+  protection_policies:
+    raw_data:
+      schedule: "every 6h start-at 2025-01-16 00:00:00 keep-local 3d"
+      prefix: "raw-6h-policy"
+
+    processed_data:
+      schedule: "every 24h start-at 2025-01-16 00:00:00 keep-local 14d"
+      prefix: "processed-daily-policy"
+
+    analysis_results:
+      schedule: "every 7d start-at 2025-01-16 00:00:00 keep-local 90d"
+      prefix: "analysis-weekly-policy"
+
+    published_datasets:
+      schedule: "every 30d start-at 2025-01-16 00:00:00 keep-local 365d"
+      prefix: "published-monthly-policy"
+
+    # Test policy for lab takers to practice snapshot operations
+    test_snapshot:
+      schedule: "every 1h start-at 2025-01-16 00:00:00 keep-local 24h"
+      prefix: "test-snapshot-policy"
+
+  # View settings (standardized with other labs)
+  views:
+    raw_data:
+      path: "/your-name/lab4-raw"
+      bucket_name: "your-name-lab4-raw"
+      quota_gb: 10240  # 10TB
+      policy_name: "s3_default_policy"
+      bucket_owner: "your-email@example.com"
+      protocols: ["S3", "NFS"]
+    
+    processed_data:
+      path: "/your-name/lab4-processed"
+      bucket_name: "your-name-lab4-processed"
+      quota_gb: 20480  # 20TB
+      policy_name: "s3_default_policy"
+      bucket_owner: "your-email@example.com"
+      protocols: ["S3", "NFS"]
+    
+    analysis_results:
+      path: "/your-name/lab4-analysis"
+      bucket_name: "your-name-lab4-analysis"
+      quota_gb: 5120  # 5TB
+      policy_name: "s3_default_policy"
+      bucket_owner: "your-email@example.com"
+      protocols: ["S3", "NFS"]
+    
+    published_datasets:
+      path: "/your-name/lab4-published"
+      bucket_name: "your-name-lab4-published"
+      quota_gb: 10240  # 10TB
+      policy_name: "s3_default_policy"
+      bucket_owner: "your-email@example.com"
+      protocols: ["S3", "NFS"]
+    
+    # Test view for lab takers to practice snapshot restoration
+    test_snapshot:
+      path: "/your-name/lab4-test-snapshot"
+      bucket_name: "your-name-lab4-test-snapshot"
+      quota_gb: 1024  # 1TB - smaller for testing
+      policy_name: "s3_default_policy"
+      bucket_owner: "your-email@example.com"
+      protocols: ["S3", "NFS"]
+
+  snapshot_naming:
+    include_timestamp: true
+    include_user: true
+    include_milestone: true
+    max_name_length: 100
+
+  restoration:
+    dry_run_default: true
+    backup_before_restore: true
+    confirmation_required: true
