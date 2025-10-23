@@ -450,10 +450,10 @@ class SnapshotRestoreManager:
             from botocore.exceptions import ClientError
             
             # Get S3 configuration (following Lab 2 pattern)
-            endpoint_url = self.config.config.get('s3.endpoint_url')
-            region_name = self.config.config.get('s3.region', 'us-east-1')
-            path_style = self.config.config.get('s3.compatibility.path_style_addressing', True)
-            ssl_verify = self.config.config.get('s3.ssl_verify', self.config.config.get('s3.verify_ssl', True))
+            endpoint_url = self.config.get('s3.endpoint_url')
+            region_name = self.config.get('s3.region', 'us-east-1')
+            path_style = self.config.get('s3.compatibility.path_style_addressing', True)
+            ssl_verify = self.config.get('s3.ssl_verify', self.config.get('s3.verify_ssl', True))
             access_key = self.config.get_secret('s3_access_key')
             secret_key = self.config.get_secret('s3_secret_key')
             
