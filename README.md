@@ -54,11 +54,11 @@ Meet the characters who will guide you through these challenges:
 ## Upcoming labs
 
 ### [Lab 4: The Snapshot Strategy](lab4/README.md)
-**Challenge:** Implement systematic version control for research datasets
-- Use `vastpy` to implement automated snapshot policies
-- Build named snapshot workflows for key milestones
-- Create tools for browsing and restoring from snapshots
-- Establish systematic version tracking and management
+**Challenge:** Implement systematic version control for research datasets using VAST protection policies
+- Use `vastpy` to create VAST protection policies with automated schedules and retention
+- Build named snapshot workflows for key research milestones and calibration events
+- Create user-friendly tools for browsing, searching, and restoring from snapshots
+- Establish systematic version tracking and change management for research reproducibility
 
 ### [Lab 5: The Real-Time Alert System](lab5/README.md)
 **Challenge:** Detect astronomical events in real-time and alert appropriate teams
