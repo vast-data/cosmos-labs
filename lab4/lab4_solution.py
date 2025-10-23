@@ -769,20 +769,10 @@ Examples:
                     snapshot_name = snapshot.get('name', 'Unknown')
                     snapshot_path = snapshot.get('path', 'Unknown')
                     created = snapshot.get('created', 'Unknown')
-                    state = snapshot.get('state', 'Unknown')
-                    size = snapshot.get('size', 0)
-                    
-                    # Format size
-                    if size > 0:
-                        size_mb = size / (1024 * 1024)
-                        size_str = f"{size_mb:.1f} MB"
-                    else:
-                        size_str = "Unknown"
                     
                     print(f"  {i}. {snapshot_name}")
                     print(f"     📁 Path: {snapshot_path}")
                     print(f"     📅 Created: {created}")
-                    print(f"     📊 State: {state}, Size: {size_str}")
                     print("")
             else:
                 print(f"❌ No snapshots found matching '{args.search_snapshots}'")
