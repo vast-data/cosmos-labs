@@ -643,8 +643,8 @@ Examples:
                        help='List snapshots available for restoration')
     parser.add_argument('--browse-snapshot', type=str, metavar='NAME',
                        help='Browse files and directories in a snapshot')
-    parser.add_argument('--list-snapshot-files', type=str, metavar='NAME',
-                       help='List files in a specific snapshot')
+    parser.add_argument('--snapshot-stats', type=str, metavar='NAME',
+                       help='Get statistics and metadata for a specific snapshot')
     parser.add_argument('--list-snapshot-dir', type=str, metavar='VIEW_PATH',
                        help='List contents of .snapshot directory for a view')
     parser.add_argument('--cleanup-snapshots', action='store_true',
@@ -709,7 +709,7 @@ Examples:
             args.full_cleanup, args.setup_protected_paths, args.list_policies,
             args.list_protected_paths, args.create_snapshot, args.list_snapshots,
             args.search_snapshots, args.restore_snapshot, args.list_available_snapshots,
-            args.browse_snapshot, args.list_snapshot_files, args.list_snapshot_dir,
+            args.browse_snapshot, args.snapshot_stats, args.list_snapshot_dir,
             args.cleanup_snapshots
         ]
         
@@ -797,9 +797,9 @@ Examples:
                 protected_path_name=args.protected_path
             )
         
-        if args.list_snapshot_files:
+        if args.snapshot_stats:
             result = solution.snapshot_restore.list_snapshot_files(
-                snapshot_name=args.list_snapshot_files,
+                snapshot_name=args.snapshot_stats,
                 protected_path_name=args.protected_path,
                 path_prefix=args.path_prefix,
                 max_depth=args.max_depth
