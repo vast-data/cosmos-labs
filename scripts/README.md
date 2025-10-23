@@ -2,6 +2,41 @@
 
 This directory contains utility scripts for the Orbital Dynamics lab exercises.
 
+## Test Data Generator
+
+The `generate_test_data.py` script creates realistic test data for various lab scenarios, including storage testing, snapshot strategy validation, and performance benchmarking.
+
+### Features
+
+- **Multiple Data Types**: Raw telescope data, processed files, analysis results, and published datasets
+- **Configurable Sizes**: Generate files from MB to GB sizes
+- **Realistic Content**: Uses Faker library for scientific data patterns
+- **High Performance**: Uses elbencho for efficient large file generation
+- **Cross-Lab Usage**: Useful for Lab 1 (storage testing) and Lab 4 (snapshot testing)
+- **Configuration Required**: Reads lab-specific view paths from config.yaml
+
+### Usage
+
+```bash
+# Lab 1 storage testing
+python scripts/generate_test_data.py --lab-type lab1 --raw-files 50 --raw-size-mb 1000
+
+# Lab 4 snapshot testing (default)
+python scripts/generate_test_data.py --lab-type lab4
+
+# Performance testing with large files
+python scripts/generate_test_data.py --lab-type lab4 --raw-size-mb 1000 --processed-size-mb 500
+
+# High-volume testing
+python scripts/generate_test_data.py --lab-type lab4 --raw-files 100 --processed-files 200 --analysis-files 500
+```
+
+### Lab Integration
+
+- **Lab 1**: Generate large files to test storage monitoring and auto-expansion
+- **Lab 4**: Create realistic data volumes for snapshot strategy testing
+- **General**: Any lab needing test data for performance validation
+
 ## Swift Dataset Preparation Tool
 
 The main script `swift_dataset_prep.sh` downloads Swift GRB datasets from NASA HEASARC and prepares them for VAST Data platform integration. This is a **pure bash implementation** with no Python dependencies required.
