@@ -660,8 +660,13 @@ class SnapshotRestoreManager:
         self.logger.info(f"Listing .snapshot directory for view: {view_path}")
         
         try:
-            # Construct .snapshot directory path
-            snapshot_dir = f"{view_path}/.snapshot"
+            # Get the bucket name for this view path
+            bucket_name = self._get_bucket_name_for_view(view_path)
+            if not bucket_name:
+                raise Exception(f"No bucket found for view path: {view_path}")
+            
+            # Construct .snapshot directory path using bucket name
+            snapshot_dir = f"{bucket_name}/.snapshot"
             
             # Use S3 to list .snapshot directory contents
             files_info = self._list_s3_directory_contents(
@@ -707,6 +712,34 @@ class SnapshotRestoreManager:
                 'status': 'failed',
                 'error': str(e)
             }
+    
+    def _get_bucket_name_for_view(self, view_path: str) -> Optional[str]:
+        """
+        Get the bucket name for a given view path.
+        
+        Args:
+            view_path: The view path to get bucket name for
+            
+        Returns:
+            Bucket name if found, None otherwise
+        """
+        # Get Lab 4 views configuration
+        lab_config = self.config.get_lab_config()
+        views_config = lab_config.get('views', {})
+        
+        # Look for exact match first
+        for view_name, view_config in views_config.items():
+            if view_config.get('path') == view_path:
+                bucket_name = view_config.get('bucket_name')
+                if bucket_name:
+                    self.logger.info(f"Found bucket name for view {view_path}: {bucket_name}")
+                    return bucket_name
+        
+        # If no exact match, try to derive bucket name from path
+        # Convert view path to bucket name (remove leading slash, replace slashes with dashes)
+        derived_bucket = view_path.lstrip('/').replace('/', '-')
+        self.logger.info(f"Using derived bucket name for view {view_path}: {derived_bucket}")
+        return derived_bucket
     
     def validate_restoration(self, snapshot_name: str, view_path: str) -> Dict[str, Any]:
         """
