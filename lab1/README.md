@@ -38,7 +38,16 @@ cd lab1
 pip install -r requirements.txt
 ```
 
-### 3. Configure the Solution
+### 3. Generate Test Data (Optional)
+```bash
+# Generate test data for Lab 1 (storage testing)
+python ../scripts/generate_test_data.py --lab-type lab1 --raw-files 20 --raw-size-mb 500
+
+# Generate large files to test auto-expansion
+python ../scripts/generate_test_data.py --lab-type lab1 --raw-files 50 --raw-size-mb 1000
+```
+
+### 4. Configure the Solution
 ```bash
 # Copy the example configuration files (if you haven't already)
 cp ../config.yaml.example ../config.yaml
@@ -49,7 +58,7 @@ cp ../secrets.yaml.example ../secrets.yaml
 # ../secrets.yaml - Sensitive data (passwords, API keys)
 ```
 
-### 4. Run the Solution
+### 5. Run the Solution
 ```bash
 # DRY RUN MODE (default - safe, no changes made)
 python lab1_solution.py
