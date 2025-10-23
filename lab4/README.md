@@ -116,6 +116,12 @@ python lab4_solution.py --search-snapshots "calibration"
 # List snapshots available for restoration
 python lab4_solution.py --list-available-snapshots --protected-path "processed"
 
+# Browse files in a snapshot
+python lab4_solution.py --browse-snapshot "pre-calibration-change" --protected-path "processed"
+
+# List files in snapshot with path filter
+python lab4_solution.py --list-snapshot-files "pre-calibration-change" --protected-path "processed" --path-prefix "data/"
+
 # Restore from snapshot (dry run)
 python lab4_solution.py --restore-snapshot "pre-calibration-change" --protected-path "processed"
 
@@ -127,6 +133,9 @@ python lab4_solution.py --restore-snapshot "pre-calibration-change" --protected-
 ```bash
 # List test snapshots
 python lab4_solution.py --list-available-snapshots --protected-path "test_snapshot"
+
+# Browse files in test snapshot
+python lab4_solution.py --browse-snapshot "test-snapshot-20250116-120000" --protected-path "test_snapshot"
 
 # Create a test snapshot
 python lab4_solution.py --create-snapshot "test-snapshot" --protected-path "test_snapshot" --pushtoprod
@@ -258,7 +267,9 @@ vast_password: "your_vast_password_here"
 
 ### ✅ User-Friendly Interface
 - **Snapshot Browser** - Easy browsing of available snapshots
+- **File Explorer** - Browse files and directories within snapshots
 - **Search Capabilities** - Find snapshots by name, date, or metadata
+- **Path Filtering** - Filter snapshot contents by path prefix
 - **Visual Timeline** - See dataset evolution over time
 - **Comparison Tools** - Compare snapshots to understand changes
 

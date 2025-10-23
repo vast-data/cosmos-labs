@@ -503,42 +503,24 @@ class Lab4Solution:
             Restoration result information
         """
         self.logger.info(f"Restoring snapshot: {snapshot_name}")
-        self.logger.info(f"Target view: {view_path}")
+        self.logger.info(f"Target protected path: {view_path}")
         self.logger.info(f"Backup first: {backup_first}")
         
-        # Resolve protected path name to actual view path
-        actual_view_path = self._resolve_view_path(view_path)
-        
-        # Validate restoration before attempting
-        validation = self.snapshot_restore.validate_restoration(snapshot_name, actual_view_path)
-        if not validation['valid']:
-            self.logger.error(f"❌ Restoration validation failed: {validation['issues']}")
-            return {
-                'snapshot': snapshot_name,
-                'view': actual_view_path,
-                'protected_path': view_path,
-                'backup_first': backup_first,
-                'dry_run': self.dry_run,
-                'status': 'validation_failed',
-                'issues': validation['issues']
-            }
-        
-        # Perform the restoration
+        # Perform the restoration using protected path name directly
         try:
             result = self.snapshot_restore.restore_from_snapshot(
                 snapshot_name=snapshot_name,
-                view_path=actual_view_path,
+                protected_path_name=view_path,  # Use protected path name directly
                 dry_run=self.dry_run
             )
             
             if result['status'] == 'completed':
-                self.logger.info(f"✅ Successfully restored view '{actual_view_path}' from snapshot '{snapshot_name}'")
+                self.logger.info(f"✅ Successfully restored protected path '{view_path}' from snapshot '{snapshot_name}'")
             elif result['status'] == 'preview':
-                self.logger.info(f"Preview: Would restore view '{actual_view_path}' from snapshot '{snapshot_name}'")
+                self.logger.info(f"Preview: Would restore protected path '{view_path}' from snapshot '{snapshot_name}'")
             
             return {
                 'snapshot': snapshot_name,
-                'view': actual_view_path,
                 'protected_path': view_path,
                 'backup_first': backup_first,
                 'dry_run': self.dry_run,
@@ -550,7 +532,6 @@ class Lab4Solution:
             self.logger.error(f"❌ Failed to restore snapshot: {e}")
             return {
                 'snapshot': snapshot_name,
-                'view': actual_view_path,
                 'protected_path': view_path,
                 'backup_first': backup_first,
                 'dry_run': self.dry_run,
@@ -621,6 +602,12 @@ Examples:
   # List snapshots available for restoration
   python lab4_solution.py --list-available-snapshots --protected-path "test_snapshot"
   
+  # Browse files in a snapshot
+  python lab4_solution.py --browse-snapshot "test-snapshot-20250116-120000" --protected-path "test_snapshot"
+  
+  # List files in snapshot with path filter
+  python lab4_solution.py --list-snapshot-files "test-snapshot-20250116-120000" --protected-path "test_snapshot" --path-prefix "data/"
+  
   # Test snapshot restoration on test view (safe for lab takers)
   python lab4_solution.py --restore-snapshot "test-snapshot-20250116-120000" --protected-path "test_snapshot" --pushtoprod
   
@@ -654,6 +641,12 @@ Examples:
                        help='Restore from a snapshot')
     parser.add_argument('--list-available-snapshots', action='store_true',
                        help='List snapshots available for restoration')
+    parser.add_argument('--browse-snapshot', type=str, metavar='NAME',
+                       help='Browse files and directories in a snapshot')
+    parser.add_argument('--list-snapshot-files', type=str, metavar='NAME',
+                       help='List files in a specific snapshot')
+    parser.add_argument('--list-snapshot-dir', type=str, metavar='VIEW_PATH',
+                       help='List contents of .snapshot directory for a view')
     parser.add_argument('--cleanup-snapshots', action='store_true',
                        help='Clean up old snapshots')
     parser.add_argument('--snapshot-age-days', type=int, default=30,
@@ -670,6 +663,10 @@ Examples:
                        help='Protection policy template name')
     parser.add_argument('--date-range', nargs=2, metavar=('START', 'END'),
                        help='Date range for search operations (YYYY-MM-DD format)')
+    parser.add_argument('--path-prefix', type=str, metavar='PREFIX',
+                       help='Path prefix to filter snapshot file listings')
+    parser.add_argument('--max-depth', type=int, default=3,
+                       help='Maximum directory depth for snapshot file listings (default: 3)')
     
     # Safety and mode options
     parser.add_argument('--pushtoprod', action='store_true',
@@ -712,6 +709,7 @@ Examples:
             args.full_cleanup, args.setup_protected_paths, args.list_policies,
             args.list_protected_paths, args.create_snapshot, args.list_snapshots,
             args.search_snapshots, args.restore_snapshot, args.list_available_snapshots,
+            args.browse_snapshot, args.list_snapshot_files, args.list_snapshot_dir,
             args.cleanup_snapshots
         ]
         
@@ -778,6 +776,31 @@ Examples:
         
         if args.list_available_snapshots:
             solution.snapshot_restore.list_available_snapshots(args.protected_path)
+        
+        if args.browse_snapshot:
+            solution.snapshot_restore.browse_snapshot(
+                snapshot_name=args.browse_snapshot,
+                protected_path_name=args.protected_path
+            )
+        
+        if args.list_snapshot_files:
+            result = solution.snapshot_restore.list_snapshot_files(
+                snapshot_name=args.list_snapshot_files,
+                protected_path_name=args.protected_path,
+                path_prefix=args.path_prefix,
+                max_depth=args.max_depth
+            )
+            if result['status'] == 'success':
+                print(f"\n📸 Snapshot: {result['snapshot_name']}")
+                print(f"📁 Path: {result['snapshot_path']}")
+                print(f"📂 Snapshot Directory: {result['snapshot_dir']}")
+                print(f"📄 Files: {result['total_files']}")
+                print(f"📁 Directories: {result['total_directories']}")
+            else:
+                print(f"❌ Failed to list snapshot files: {result.get('error', 'Unknown error')}")
+        
+        if args.list_snapshot_dir:
+            solution.snapshot_restore.list_snapshot_directory(args.list_snapshot_dir)
         
         if args.cleanup_snapshots:
             solution.snapshot_manager.cleanup_old_snapshots(
