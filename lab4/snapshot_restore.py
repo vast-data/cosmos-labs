@@ -124,8 +124,8 @@ class SnapshotRestoreManager:
             self.logger.info(f"View filter: {view_path}")
         
         try:
-            # Build query parameters
-            params = {}
+            # Build query parameters - use name_contains for efficient filtering
+            params = {'name__contains': snapshot_name}
             if view_path:
                 # Try to resolve the view path, but if it fails, use the provided path as-is
                 try:
@@ -137,41 +137,27 @@ class SnapshotRestoreManager:
                     self.logger.info(f"Using provided path as-is: {view_path}")
                     params['path'] = view_path
             
+            self.logger.info(f"Querying snapshots with name containing: {snapshot_name}")
             snapshots = self.vast_client.snapshots.get(**params)
             
-            # Log available snapshots for debugging
-            self.logger.info(f"Found {len(snapshots)} snapshots to search through:")
-            for i, snapshot in enumerate(snapshots[:10], 1):  # Show first 10
-                snapshot_name_found = snapshot.get('name', 'Unknown')
-                snapshot_path_found = snapshot.get('path', 'Unknown')
-                self.logger.info(f"  {i}. {snapshot_name_found} -> {snapshot_path_found}")
-            if len(snapshots) > 10:
-                self.logger.info(f"  ... and {len(snapshots) - 10} more snapshots")
+            self.logger.info(f"Found {len(snapshots)} snapshots matching name filter")
             
-            # Find snapshot by name (exact match)
+            # Find exact match first
             for snapshot in snapshots:
                 if snapshot.get('name') == snapshot_name:
                     snapshot_id = snapshot.get('id')
                     self.logger.info(f"✅ Found exact match: {snapshot_name} (ID: {snapshot_id})")
                     return snapshot_id
             
-            # If no exact match, try partial match (snapshot name contains search term)
-            for snapshot in snapshots:
-                snapshot_full_name = snapshot.get('name', '')
-                if snapshot_name in snapshot_full_name:
-                    snapshot_id = snapshot.get('id')
-                    self.logger.info(f"✅ Found partial match: {snapshot_full_name} (ID: {snapshot_id})")
-                    return snapshot_id
+            # If no exact match, return the first partial match
+            if snapshots:
+                snapshot = snapshots[0]
+                snapshot_id = snapshot.get('id')
+                snapshot_full_name = snapshot.get('name', 'Unknown')
+                self.logger.info(f"✅ Found partial match: {snapshot_full_name} (ID: {snapshot_id})")
+                return snapshot_id
             
-            # If still no match, try reverse partial match (search term contains snapshot name)
-            for snapshot in snapshots:
-                snapshot_full_name = snapshot.get('name', '')
-                if snapshot_full_name in snapshot_name:
-                    snapshot_id = snapshot.get('id')
-                    self.logger.info(f"✅ Found reverse partial match: {snapshot_full_name} (ID: {snapshot_id})")
-                    return snapshot_id
-            
-            self.logger.warning(f"⚠️  No snapshot found with name: {snapshot_name}")
+            self.logger.warning(f"⚠️  No snapshot found with name containing: {snapshot_name}")
             self.logger.info("💡 Try using --list-available-snapshots to see available snapshots")
             return None
             
