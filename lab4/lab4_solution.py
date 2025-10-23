@@ -757,11 +757,35 @@ Examples:
             solution.list_snapshots(args.protected_path)
         
         if args.search_snapshots:
-            solution.search_snapshots(
+            snapshots = solution.search_snapshots(
                 search_term=args.search_snapshots,
                 view_path=args.protected_path,
                 date_range=args.date_range
             )
+            
+            if snapshots:
+                print(f"\n🔍 Search Results for '{args.search_snapshots}':")
+                for i, snapshot in enumerate(snapshots, 1):
+                    snapshot_name = snapshot.get('name', 'Unknown')
+                    snapshot_path = snapshot.get('path', 'Unknown')
+                    created = snapshot.get('created', 'Unknown')
+                    state = snapshot.get('state', 'Unknown')
+                    size = snapshot.get('size', 0)
+                    
+                    # Format size
+                    if size > 0:
+                        size_mb = size / (1024 * 1024)
+                        size_str = f"{size_mb:.1f} MB"
+                    else:
+                        size_str = "Unknown"
+                    
+                    print(f"  {i}. {snapshot_name}")
+                    print(f"     📁 Path: {snapshot_path}")
+                    print(f"     📅 Created: {created}")
+                    print(f"     📊 State: {state}, Size: {size_str}")
+                    print("")
+            else:
+                print(f"❌ No snapshots found matching '{args.search_snapshots}'")
         
         if args.restore_snapshot:
             if not args.protected_path:
