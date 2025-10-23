@@ -683,21 +683,11 @@ Examples:
     # Output options
     parser.add_argument('--json', action='store_true',
                        help='Output results in JSON format')
-    parser.add_argument('--verbose', '-v', action='store_true',
-                       help='Enable verbose logging')
-    parser.add_argument('--debug', action='store_true',
-                       help='Enable debug logging')
     
     args = parser.parse_args()
     
     # Determine dry run mode
     dry_run = not args.pushtoprod and not args.no_dry_run
-    
-    # Set up logging level
-    if args.debug:
-        logging.getLogger().setLevel(logging.DEBUG)
-    elif args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
     
     try:
         # Initialize solution

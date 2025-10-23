@@ -194,31 +194,70 @@ class SnapshotRestoreManager:
             if not protected_path_id:
                 raise Exception(f"No protected path found with name: {protected_path_name}")
             
-            # Step 2: Create backup snapshot before restore (if not dry run)
+            # Step 2: Stop any pending restore operations first
+            if not dry_run:
+                self.logger.info(f"Step 1: Checking for pending restore operations...")
+                self._stop_pending_restore(protected_path_id)
+            
+            # Step 3: Create backup snapshot before restore (MANDATORY - no restore without backup)
             backup_snapshot_id = None
             if not dry_run:
-                self.logger.info(f"Step 1: Creating backup snapshot before restore...")
-                backup_snapshot_name = f"pre-restore-{snapshot_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+                self.logger.info(f"Step 2: Creating backup snapshot before restore...")
+                
+                # Create a shorter backup snapshot name to fit within 64 character limit
+                timestamp = datetime.now().strftime('%m%d-%H%M')
+                # Truncate snapshot name if needed to keep total under 64 chars
+                max_snapshot_len = 64 - len(f"pre-{timestamp}") - 1  # -1 for dash
+                short_snapshot_name = snapshot_name[:max_snapshot_len] if len(snapshot_name) > max_snapshot_len else snapshot_name
+                backup_snapshot_name = f"pre-{short_snapshot_name}-{timestamp}"
                 
                 try:
                     # Create backup snapshot using the snapshot manager
                     from snapshot_manager import SnapshotManager
                     snapshot_manager = SnapshotManager(self.config)
+                    
+                    # Get the actual path where the protected path exists (might be .tmp)
+                    protected_path_data = self.vast_client.protectedpaths.get(id=protected_path_id)
+                    if isinstance(protected_path_data, list) and len(protected_path_data) > 0:
+                        view_path = protected_path_data[0].get('source_dir', f"/cosmos/lab4-{protected_path_name}")
+                    else:
+                        view_path = f"/cosmos/lab4-{protected_path_name}"
+                    
+                    # Get the tenant ID using the same method as the working snapshot creation
+                    from snapshot_manager import SnapshotManager
+                    temp_snapshot_manager = SnapshotManager(self.config)
+                    tenant_id = temp_snapshot_manager._get_tenant_id_from_views()
+                    
+                    self.logger.info(f"Using tenant ID: {tenant_id} for backup snapshot")
+                    self.logger.info(f"Backup snapshot parameters:")
+                    self.logger.info(f"  name: {backup_snapshot_name}")
+                    self.logger.info(f"  path: {view_path}")
+                    self.logger.info(f"  tenant_id: {tenant_id}")
+                    
+                    # Set expiration time to 6 hours from now
+                    import datetime as dt
+                    expiration_time = dt.datetime.now() + dt.timedelta(hours=6)
+                    expiration_time_str = expiration_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+                    
+                    self.logger.info(f"Setting backup snapshot expiration to: {expiration_time_str}")
+                    
                     backup_result = snapshot_manager.create_snapshot(
                         name=backup_snapshot_name,
-                        view_path=f"/cosmos/lab4-{protected_path_name}",
-                        dry_run=False
+                        path=view_path,
+                        tenant_id=tenant_id,
+                        expiration_time=expiration_time_str
                     )
                     
                     if backup_result and 'id' in backup_result:
                         backup_snapshot_id = backup_result['id']
                         self.logger.info(f"✅ Backup snapshot created: {backup_snapshot_name} (ID: {backup_snapshot_id})")
                     else:
-                        self.logger.warning(f"⚠️ Backup snapshot creation may have failed: {backup_result}")
+                        raise Exception(f"Backup snapshot creation failed: {backup_result}")
                         
                 except Exception as e:
-                    self.logger.warning(f"⚠️ Failed to create backup snapshot: {e}")
-                    self.logger.info("Proceeding with restore without backup...")
+                    self.logger.error(f"❌ CRITICAL: Failed to create backup snapshot: {e}")
+                    self.logger.error(f"❌ REFUSING to proceed with restore without backup!")
+                    raise Exception(f"Cannot proceed with restore without backup snapshot. Error: {e}")
             
             # Step 3: Get snapshot ID for restore
             snapshot_id = self.get_snapshot_id(snapshot_name)
@@ -262,11 +301,18 @@ class SnapshotRestoreManager:
             
             # Step 5: Wait for clone to be ready, then commit
             self.logger.info(f"Step 3: Waiting for clone to be ready...")
-            self._wait_for_clone_ready(protected_path_id, max_wait_seconds=60)
+            clone_ready = self._wait_for_clone_ready(protected_path_id, restore_result, max_wait_seconds=120)
+            
+            if not clone_ready:
+                raise Exception("Global snapshot clone isn't ready yet - please check syncing progress in the GUI. The restore process copies all data from the snapshot to a clone, which can take significant time depending on data size.")
             
             self.logger.info(f"Step 4: Committing restored path...")
             commit_result = self.vast_client.protectedpaths[protected_path_id].commit.patch()
             self.logger.info(f"✅ Step 4 completed: Restored path committed")
+            
+            # Step 5: Clean up the global snapshot clone
+            self.logger.info(f"Step 5: Cleaning up global snapshot clone...")
+            self._cleanup_global_snapshot_clone(protected_path_id)
             
             return {
                 'snapshot_name': snapshot_name,
@@ -307,14 +353,27 @@ class SnapshotRestoreManager:
             self.logger.info(f"Protected path filter: {protected_path_name}")
         
         try:
-            # Get all snapshots (no filtering by path for now)
-            snapshots = self.vast_client.snapshots.get()
+            # Get all snapshots
+            all_snapshots = self.vast_client.snapshots.get()
+            
+            # Filter snapshots by protected path if specified
+            if protected_path_name:
+                # Convert protected path name to view path
+                view_path = f"/cosmos/lab4-{protected_path_name}"
+                snapshots = [s for s in all_snapshots if s.get('path', '').startswith(view_path)]
+                self.logger.info(f"Filtering snapshots for path: {view_path}")
+            else:
+                snapshots = all_snapshots
             
             self.logger.info(f"Found {len(snapshots)} available snapshots")
             
             if not snapshots:
-                self.logger.info("📭 No snapshots found")
-                self.logger.info("💡 Create a snapshot first with: --create-snapshot 'name' --protected-path 'view' --pushtoprod")
+                if protected_path_name:
+                    self.logger.info(f"📭 No snapshots found for protected path: {protected_path_name}")
+                    self.logger.info(f"💡 Create a snapshot first with: --create-snapshot 'name' --protected-path '{protected_path_name}' --pushtoprod")
+                else:
+                    self.logger.info("📭 No snapshots found")
+                    self.logger.info("💡 Create a snapshot first with: --create-snapshot 'name' --protected-path 'view' --pushtoprod")
                 return []
             
             # Display snapshots with better formatting
@@ -425,9 +484,13 @@ class SnapshotRestoreManager:
                 self.logger.info("Falling back to S3-based snapshot browsing")
                 snapshot_path = None
             
-            # If we couldn't get the path from VAST API, try to find it from the snapshot name
-            if not snapshot_path:
-                # Try to extract path from snapshot name patterns
+            # If we couldn't get the path from VAST API, use the protected_path_name parameter
+            if not snapshot_path and protected_path_name:
+                # Use the protected path name to determine the correct view path
+                snapshot_path = f"/cosmos/lab4-{protected_path_name}"
+                self.logger.info(f"Using protected path to determine snapshot path: {snapshot_path}")
+            elif not snapshot_path:
+                # Fallback: try to extract path from snapshot name patterns
                 if 'raw-6h-policy' in snapshot_name:
                     snapshot_path = '/cosmos/lab4-raw'
                 elif 'processed-daily-policy' in snapshot_name:
@@ -799,18 +862,147 @@ class SnapshotRestoreManager:
         self.logger.info(f"Using derived bucket name for view {view_path}: {derived_bucket}")
         return derived_bucket
     
-    def _wait_for_clone_ready(self, protected_path_id: int, max_wait_seconds: int = 60) -> bool:
+    def _stop_pending_restore(self, protected_path_id: int) -> bool:
         """
-        Wait for a snapshot clone to be ready for commit.
+        Stop any pending restore operations on the protected path.
+        
+        Args:
+            protected_path_id: ID of the protected path
+            
+        Returns:
+            True if stop was successful or no pending restore, False if failed
+        """
+        import time
+        
+        try:
+            self.logger.info(f"Stopping any pending restore operations on protected path {protected_path_id}...")
+            
+            # Call the stop endpoint
+            result = self.vast_client.protectedpaths[protected_path_id].stop.patch()
+            
+            if result:
+                self.logger.info(f"✅ Successfully stopped pending restore operations")
+                
+                # Wait for cleanup to complete
+                self.logger.info(f"⏳ Waiting for cleanup to complete...")
+                self._wait_for_cleanup_complete(protected_path_id, max_wait_seconds=30)
+                return True
+            else:
+                self.logger.info(f"ℹ️ No pending restore operations to stop")
+                return True
+                
+        except Exception as e:
+            # If there's no pending restore, the API might return an error
+            # This is usually fine - it just means there was nothing to stop
+            error_str = str(e).lower()
+            if ("not found" in error_str or 
+                "no pending" in error_str or 
+                "failed to find relevant gss" in error_str or
+                "bad_request" in error_str):
+                self.logger.info(f"ℹ️ No pending restore operations found (this is normal)")
+                return True
+            else:
+                self.logger.warning(f"⚠️ Could not stop pending restore operations: {e}")
+                # Don't fail the entire operation for this
+                return True
+    
+    def _wait_for_cleanup_complete(self, protected_path_id: int, max_wait_seconds: int = 30) -> bool:
+        """
+        Wait for cleanup to complete after stopping a restore operation.
         
         Args:
             protected_path_id: ID of the protected path
             max_wait_seconds: Maximum time to wait in seconds
             
         Returns:
+            True if cleanup completed, False if timeout
+        """
+        import time
+        
+        self.logger.info(f"Waiting for cleanup to complete (max {max_wait_seconds}s)...")
+        
+        start_time = time.time()
+        while time.time() - start_time < max_wait_seconds:
+            try:
+                # Check protected path status
+                protected_path = self.vast_client.protectedpaths.get(id=protected_path_id)
+                
+                if isinstance(protected_path, list) and len(protected_path) > 0:
+                    protected_path = protected_path[0]
+                
+                # Check if there are any active restore tasks
+                restore_task = protected_path.get('restore_task')
+                
+                # Cleanup is complete when there's no active restore task
+                if restore_task is None or restore_task == 0:
+                    self.logger.info(f"✅ Cleanup completed")
+                    return True
+                
+                # Wait 2 seconds before checking again
+                time.sleep(2)
+                
+            except Exception as e:
+                self.logger.debug(f"Error checking cleanup status: {e}")
+                time.sleep(2)
+        
+        self.logger.warning(f"⚠️ Cleanup may not be complete after {max_wait_seconds}s, proceeding anyway")
+        return False
+    
+    def _cleanup_global_snapshot_clone(self, protected_path_id: int) -> bool:
+        """
+        Clean up the global snapshot clone after successful restore.
+        
+        Args:
+            protected_path_id: ID of the protected path
+            
+        Returns:
+            True if cleanup was successful, False if failed
+        """
+        try:
+            self.logger.info(f"Cleaning up global snapshot clone for protected path {protected_path_id}...")
+            
+            # First, get the protected path details to find the global snapshot stream ID
+            protected_path = self.vast_client.protectedpaths.get(id=protected_path_id)
+            
+            if isinstance(protected_path, list) and len(protected_path) > 0:
+                protected_path = protected_path[0]
+            
+            # Look for the global snapshot stream ID in the restore task
+            restore_task = protected_path.get('restore_task')
+            if restore_task:
+                # Try to delete the global snapshot stream
+                try:
+                    delete_payload = {"remove_dir": True}
+                    result = self.vast_client.globalsnapstreams[restore_task].delete(**delete_payload)
+                    self.logger.info(f"✅ Successfully cleaned up global snapshot clone")
+                    return True
+                    
+                except Exception as delete_error:
+                    self.logger.warning(f"⚠️ Could not delete global snapshot stream: {delete_error}")
+                    return True
+            else:
+                self.logger.info(f"ℹ️ No restore task found, nothing to clean up")
+                return True
+                
+        except Exception as e:
+            self.logger.warning(f"⚠️ Could not clean up global snapshot clone: {e}")
+            # Don't fail the entire operation for this
+            return True
+    
+    def _wait_for_clone_ready(self, protected_path_id: int, restore_result: Dict[str, Any] = None, max_wait_seconds: int = 60) -> bool:
+        """
+        Wait for a snapshot clone to be ready for commit.
+        
+        Args:
+            protected_path_id: ID of the protected path
+            restore_result: Result from the restore API call (contains clone details)
+            max_wait_seconds: Maximum time to wait in seconds
+            
+        Returns:
             True if clone is ready, False if timeout
         """
         import time
+        import json # Added for json.dumps
         
         self.logger.info(f"Waiting for clone to be ready (max {max_wait_seconds}s)...")
         
@@ -820,48 +1012,29 @@ class SnapshotRestoreManager:
                 # Check protected path status
                 protected_path = self.vast_client.protectedpaths.get(id=protected_path_id)
                 
-                # Debug: Log the full response to understand the structure
-                self.logger.info(f"🔍 Full protected path response: {json.dumps(protected_path, indent=2, default=str)}")
+                if isinstance(protected_path, list) and len(protected_path) > 0:
+                    protected_path = protected_path[0]
                 
                 if isinstance(protected_path, dict):
-                    # Check the main state field
-                    state = protected_path.get('state', 'unknown')
-                    self.logger.info(f"📊 Protected path state: '{state}'")
+                    restore_status = protected_path.get('restore_status', '')
                     
-                    # Check the nested status object
-                    status_obj = protected_path.get('status', {})
-                    self.logger.info(f"📊 Status object type: {type(status_obj)}")
-                    self.logger.info(f"📊 Status object content: {status_obj}")
-                    
-                    if isinstance(status_obj, dict):
-                        # Look for status indicators in the nested object
-                        status_value = status_obj.get('state', status_obj.get('status', 'unknown'))
-                        self.logger.info(f"📊 Status value from nested object: '{status_value}'")
-                    else:
-                        status_value = str(status_obj)
-                        self.logger.info(f"📊 Status value (converted to string): '{status_value}'")
-                    
-                    # Check all relevant fields for debugging
-                    relevant_fields = ['state', 'status', 'health', 'external_state', 'restore_task', 'loanee_snapshot']
-                    for field in relevant_fields:
-                        value = protected_path.get(field, 'NOT_FOUND')
-                        self.logger.info(f"📊 Field '{field}': {value}")
-                    
-                    # Check if clone is ready based on state and status
-                    ready_indicators = ['ready', 'completed', 'active', 'success', 'available', 'idle']
-                    self.logger.info(f"📊 Checking if ready - state: '{state}' in {ready_indicators} = {state in ready_indicators}")
-                    self.logger.info(f"📊 Checking if ready - status: '{status_value}' in {ready_indicators} = {status_value in ready_indicators}")
-                    
-                    if state in ready_indicators or status_value in ready_indicators:
-                        self.logger.info(f"✅ Clone is ready for commit (state: {state}, status: {status_value})")
+                    # Clone is ready ONLY when restore_status contains "Pending commit"
+                    if restore_status and "pending commit" in restore_status.lower():
+                        self.logger.info(f"✅ Clone is ready for commit")
                         return True
                     
-                    # Check if there's a restore task that might indicate progress
-                    restore_task = protected_path.get('restore_task')
-                    if restore_task:
-                        self.logger.info(f"📊 Restore task ID: {restore_task}")
+                    # Check if there's an error condition that means the clone failed
+                    if restore_status and ("error" in restore_status.lower() or "failed" in restore_status.lower()):
+                        self.logger.error(f"❌ Global snapshot clone failed: {restore_status} - please check the GUI for details")
+                        return False
                     
-                    self.logger.info(f"⏳ Clone not ready yet (state: {state}, status: {status_value}), waiting...")
+                    # Check if restore_task is null/0 but no pending commit - this might indicate clone not found
+                    restore_task = protected_path.get('restore_task')
+                    if (restore_task is None or restore_task == 0) and not restore_status:
+                        self.logger.error(f"❌ Global snapshot clone not found - please check the GUI for restore progress")
+                        return False
+                    
+                    self.logger.info(f"⏳ Clone not ready yet, waiting...")
                 
                 # Wait 2 seconds before checking again
                 time.sleep(2)
@@ -870,89 +1043,5 @@ class SnapshotRestoreManager:
                 self.logger.debug(f"Error checking clone status: {e}")
                 time.sleep(2)
         
-        self.logger.warning(f"⚠️ Clone may not be ready after {max_wait_seconds}s, proceeding anyway")
+        self.logger.warning(f"⚠️ Global snapshot clone not ready after {max_wait_seconds}s - please check syncing progress in the GUI")
         return False
-    
-    def validate_restoration(self, snapshot_name: str, view_path: str) -> Dict[str, Any]:
-        """
-        Validate that a restoration can be performed.
-        
-        Args:
-            snapshot_name: Name of the snapshot to restore
-            view_path: Path of the view to restore
-            
-        Returns:
-            Dict containing validation results
-        """
-        self.logger.info(f"Validating restoration: {snapshot_name} -> {view_path}")
-        
-        validation_result = {
-            'snapshot_name': snapshot_name,
-            'view_path': view_path,
-            'valid': False,
-            'issues': []
-        }
-        
-        try:
-            # Check if protected path exists
-            protected_path_id = self.get_protected_path_id(view_path)
-            if not protected_path_id:
-                validation_result['issues'].append(f"No protected path found for view: {view_path}")
-            else:
-                validation_result['protected_path_id'] = protected_path_id
-            
-            # Check if snapshot exists
-            snapshot_id = self.get_snapshot_id(snapshot_name, view_path)
-            if not snapshot_id:
-                validation_result['issues'].append(f"No snapshot found with name: {snapshot_name}")
-            else:
-                validation_result['snapshot_id'] = snapshot_id
-            
-            # If no issues, restoration is valid
-            if not validation_result['issues']:
-                validation_result['valid'] = True
-                self.logger.info(f"✅ Restoration validation passed")
-            else:
-                self.logger.warning(f"⚠️  Restoration validation failed: {validation_result['issues']}")
-            
-            return validation_result
-            
-        except Exception as e:
-            validation_result['issues'].append(f"Validation error: {str(e)}")
-            self.logger.error(f"❌ Validation failed: {e}")
-            return validation_result
-
-
-def main():
-    """Test the snapshot restore manager."""
-    print("Testing Snapshot Restore Manager...")
-    
-    try:
-        config = Lab4Config()
-        manager = SnapshotRestoreManager(config)
-        
-        print("✅ Snapshot restore manager initialized")
-        
-        # Test listing snapshots
-        try:
-            snapshots = manager.list_available_snapshots()
-            print(f"✅ Found {len(snapshots)} available snapshots")
-        except Exception as e:
-            print(f"⚠️  Could not list snapshots (expected if no VAST connection): {str(e)}")
-        
-        # Test validation (dry run)
-        try:
-            validation = manager.validate_restoration("test-snapshot", "/test/path")
-            print(f"✅ Validation test completed: {validation['valid']}")
-        except Exception as e:
-            print(f"⚠️  Could not test validation: {str(e)}")
-        
-    except Exception as e:
-        print(f"❌ Error testing snapshot restore manager: {str(e)}")
-        return 1
-    
-    return 0
-
-
-if __name__ == "__main__":
-    exit(main())

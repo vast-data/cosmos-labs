@@ -99,7 +99,51 @@ class SnapshotManager:
         self.logger.debug(f"Snapshot payload: {json.dumps(payload, indent=2)}")
         
         try:
-            snapshots = self.vast_client.snapshots.post(**payload)
+            # Use direct API call approach since vastpy client seems to have issues with snapshot creation
+            import requests
+            
+            # Get the VAST Management System endpoint from config (not the database endpoint)
+            vast_config = self.config.get_vast_config()
+            base_url = vast_config.get('address', 'https://10.143.15.201/')
+            
+            # Ensure URL ends with /
+            if not base_url.endswith('/'):
+                base_url += '/'
+            
+            # Construct headers for API call
+            headers = {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+            
+            # Add authentication using config credentials
+            import base64
+            user = vast_config.get('user')
+            password = self.config.get_secret('vast_password')
+            
+            if user and password:
+                auth_string = f"{user}:{password}"
+                auth_bytes = auth_string.encode('ascii')
+                auth_b64 = base64.b64encode(auth_bytes).decode('ascii')
+                headers['Authorization'] = f'Basic {auth_b64}'
+                self.logger.debug(f"Added authentication for user: {user}")
+            else:
+                self.logger.warning("No authentication credentials found")
+            
+            response = requests.post(
+                f"{base_url}api/snapshots/",
+                headers=headers,
+                json=payload,
+                verify=False,
+                timeout=30  # Add 30 second timeout
+            )
+            
+            self.logger.info(f"API call completed with status: {response.status_code}")
+            
+            if response.status_code == 200 or response.status_code == 201:
+                snapshots = response.json()
+            else:
+                raise Exception(f"API call failed with status {response.status_code}: {response.text}")
             # vastpy returns a dict with the snapshot data
             if isinstance(snapshots, dict):
                 self.logger.info(f"✅ Successfully created snapshot: {name} (ID: {snapshots.get('id')})")
