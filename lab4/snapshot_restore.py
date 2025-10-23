@@ -374,24 +374,50 @@ class SnapshotRestoreManager:
             self.logger.info(f"Path prefix: {path_prefix}")
         
         try:
-            # Get snapshot ID
+            # Get snapshot ID to verify it exists
             snapshot_id = self.get_snapshot_id(snapshot_name)
             if not snapshot_id:
                 raise Exception(f"No snapshot found with name: {snapshot_name}")
             
-            # Get snapshot details to find the path
-            snapshot = self.vast_client.snapshots.get(id=snapshot_id)
-            if not isinstance(snapshot, dict):
-                raise Exception(f"Failed to get snapshot details for: {snapshot_name}")
+            # Try to get snapshot details, but fall back to S3 if it fails
+            snapshot_path = None
+            snapshot_created = 'Unknown'
             
-            snapshot_path = snapshot.get('path', '')
-            snapshot_created = snapshot.get('created', 'Unknown')
+            try:
+                snapshot = self.vast_client.snapshots.get(id=snapshot_id)
+                if isinstance(snapshot, dict):
+                    snapshot_path = snapshot.get('path', '')
+                    snapshot_created = snapshot.get('created', 'Unknown')
+                    self.logger.info(f"Snapshot path: {snapshot_path}")
+                    self.logger.info(f"Snapshot created: {snapshot_created}")
+            except Exception as e:
+                self.logger.warning(f"Could not get snapshot details from VAST API: {e}")
+                self.logger.info("Falling back to S3-based snapshot browsing")
             
-            self.logger.info(f"Snapshot path: {snapshot_path}")
-            self.logger.info(f"Snapshot created: {snapshot_created}")
+            # If we couldn't get the path from VAST API, try to find it from the snapshot name
+            if not snapshot_path:
+                # Try to extract path from snapshot name patterns
+                if 'raw-6h-policy' in snapshot_name:
+                    snapshot_path = '/cosmos/lab4-raw'
+                elif 'processed-daily-policy' in snapshot_name:
+                    snapshot_path = '/cosmos/lab4-processed'
+                elif 'analysis-weekly-policy' in snapshot_name:
+                    snapshot_path = '/cosmos/lab4-analysis'
+                elif 'test-snapshot' in snapshot_name:
+                    snapshot_path = '/cosmos/lab4-test-snapshot'
+                else:
+                    # Default fallback
+                    snapshot_path = '/cosmos/lab4-raw'
+                
+                self.logger.info(f"Using inferred snapshot path: {snapshot_path}")
             
-            # Construct snapshot directory path
-            snapshot_dir = f"{snapshot_path}/.snapshot/{snapshot_name}"
+            # Get the bucket name for the snapshot path
+            bucket_name = self._get_bucket_name_for_view(snapshot_path)
+            if not bucket_name:
+                raise Exception(f"No bucket found for snapshot path: {snapshot_path}")
+            
+            # Construct snapshot directory path using bucket name
+            snapshot_dir = f"{bucket_name}/.snapshot/{snapshot_name}"
             
             # Use S3 to list files in snapshot directory
             files_info = self._list_s3_directory_contents(
