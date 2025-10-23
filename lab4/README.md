@@ -116,11 +116,11 @@ python lab4_solution.py --search-snapshots "calibration"
 # List snapshots available for restoration
 python lab4_solution.py --list-available-snapshots --protected-path "processed"
 
-# Browse files in a snapshot
-python lab4_solution.py --browse-snapshot "pre-calibration-change" --protected-path "processed"
-
 # Get snapshot statistics with path filter
 python lab4_solution.py --snapshot-stats "pre-calibration-change" --protected-path "processed" --path-prefix "data/"
+
+# Browse files in a snapshot
+python lab4_solution.py --browse-snapshot "pre-calibration-change" --protected-path "processed"
 
 # Restore from snapshot (dry run)
 python lab4_solution.py --restore-snapshot "pre-calibration-change" --protected-path "processed"

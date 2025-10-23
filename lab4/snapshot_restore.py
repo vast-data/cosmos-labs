@@ -194,7 +194,33 @@ class SnapshotRestoreManager:
             if not protected_path_id:
                 raise Exception(f"No protected path found with name: {protected_path_name}")
             
-            # Step 2: Get snapshot ID (no view path filtering needed)
+            # Step 2: Create backup snapshot before restore (if not dry run)
+            backup_snapshot_id = None
+            if not dry_run:
+                self.logger.info(f"Step 1: Creating backup snapshot before restore...")
+                backup_snapshot_name = f"pre-restore-{snapshot_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+                
+                try:
+                    # Create backup snapshot using the snapshot manager
+                    from snapshot_manager import SnapshotManager
+                    snapshot_manager = SnapshotManager(self.config)
+                    backup_result = snapshot_manager.create_snapshot(
+                        name=backup_snapshot_name,
+                        view_path=f"/cosmos/lab4-{protected_path_name}",
+                        dry_run=False
+                    )
+                    
+                    if backup_result and 'id' in backup_result:
+                        backup_snapshot_id = backup_result['id']
+                        self.logger.info(f"✅ Backup snapshot created: {backup_snapshot_name} (ID: {backup_snapshot_id})")
+                    else:
+                        self.logger.warning(f"⚠️ Backup snapshot creation may have failed: {backup_result}")
+                        
+                except Exception as e:
+                    self.logger.warning(f"⚠️ Failed to create backup snapshot: {e}")
+                    self.logger.info("Proceeding with restore without backup...")
+            
+            # Step 3: Get snapshot ID for restore
             snapshot_id = self.get_snapshot_id(snapshot_name)
             if not snapshot_id:
                 raise Exception(f"No snapshot found with name: {snapshot_name}")
@@ -203,31 +229,44 @@ class SnapshotRestoreManager:
                 self.logger.info(f"Would restore protected path '{protected_path_name}' from snapshot '{snapshot_name}'")
                 self.logger.info(f"Protected path ID: {protected_path_id}")
                 self.logger.info(f"Snapshot ID: {snapshot_id}")
+                if backup_snapshot_id:
+                    self.logger.info(f"Would create backup snapshot: pre-restore-{snapshot_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
                 return {
                     'snapshot_name': snapshot_name,
                     'snapshot_id': snapshot_id,
                     'protected_path_name': protected_path_name,
                     'protected_path_id': protected_path_id,
+                    'backup_snapshot_id': backup_snapshot_id,
                     'dry_run': True,
                     'status': 'preview'
                 }
             
-            # Step 3: Create clone from snapshot (POST /protectedpaths/{id}/restore)
-            self.logger.info(f"Step 1: Creating clone from snapshot...")
+            # Step 4: Create clone from snapshot (POST /protectedpaths/{id}/restore)
+            self.logger.info(f"Step 2: Creating clone from snapshot...")
+            
+            # Generate a shorter restore name to fit within 64 character limit
+            timestamp = datetime.now().strftime('%m%d-%H%M')
+            # Truncate snapshot name if needed to keep total under 64 chars
+            max_snapshot_len = 64 - len(f"restore-{timestamp}") - 1  # -1 for dash
+            short_snapshot_name = snapshot_name[:max_snapshot_len] if len(snapshot_name) > max_snapshot_len else snapshot_name
+            
             restore_payload = {
-                "name": f"restore-{snapshot_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
+                "name": f"restore-{short_snapshot_name}-{timestamp}",
                 "loanee_snapshot_id": snapshot_id
             }
             
             self.logger.debug(f"Restore payload: {json.dumps(restore_payload, indent=2)}")
             
             restore_result = self.vast_client.protectedpaths[protected_path_id].restore.post(**restore_payload)
-            self.logger.info(f"✅ Step 1 completed: Clone created from snapshot")
+            self.logger.info(f"✅ Step 2 completed: Clone created from snapshot")
             
-            # Step 4: Commit the restored path (PATCH /protectedpaths/{id}/commit)
-            self.logger.info(f"Step 2: Committing restored path...")
+            # Step 5: Wait for clone to be ready, then commit
+            self.logger.info(f"Step 3: Waiting for clone to be ready...")
+            self._wait_for_clone_ready(protected_path_id, max_wait_seconds=60)
+            
+            self.logger.info(f"Step 4: Committing restored path...")
             commit_result = self.vast_client.protectedpaths[protected_path_id].commit.patch()
-            self.logger.info(f"✅ Step 2 completed: Restored path committed")
+            self.logger.info(f"✅ Step 4 completed: Restored path committed")
             
             return {
                 'snapshot_name': snapshot_name,
@@ -374,11 +413,17 @@ class SnapshotRestoreManager:
                 if isinstance(snapshot, dict):
                     snapshot_path = snapshot.get('path', '')
                     snapshot_created = snapshot.get('created', 'Unknown')
-                    self.logger.info(f"Snapshot path: {snapshot_path}")
-                    self.logger.info(f"Snapshot created: {snapshot_created}")
+                    self.logger.info(f"📸 Snapshot details from VAST API:")
+                    self.logger.info(f"   Path: {snapshot_path}")
+                    self.logger.info(f"   Created: {snapshot_created}")
+                    self.logger.info(f"   Full snapshot data: {json.dumps(snapshot, indent=2, default=str)}")
+                else:
+                    self.logger.warning(f"Unexpected snapshot response type: {type(snapshot)}")
+                    snapshot_path = None
             except Exception as e:
                 self.logger.warning(f"Could not get snapshot details from VAST API: {e}")
                 self.logger.info("Falling back to S3-based snapshot browsing")
+                snapshot_path = None
             
             # If we couldn't get the path from VAST API, try to find it from the snapshot name
             if not snapshot_path:
@@ -388,7 +433,8 @@ class SnapshotRestoreManager:
                 elif 'processed-daily-policy' in snapshot_name:
                     snapshot_path = '/cosmos/lab4-processed'
                 elif 'analysis-weekly-policy' in snapshot_name:
-                    snapshot_path = '/cosmos/lab4-analysis'
+                    # Check if there's a .tmp version (from previous restore)
+                    snapshot_path = '/cosmos/lab4-analysis.tmp'
                 elif 'test-snapshot' in snapshot_name:
                     snapshot_path = '/cosmos/lab4-test-snapshot'
                 else:
@@ -752,6 +798,80 @@ class SnapshotRestoreManager:
         derived_bucket = view_path.lstrip('/').replace('/', '-')
         self.logger.info(f"Using derived bucket name for view {view_path}: {derived_bucket}")
         return derived_bucket
+    
+    def _wait_for_clone_ready(self, protected_path_id: int, max_wait_seconds: int = 60) -> bool:
+        """
+        Wait for a snapshot clone to be ready for commit.
+        
+        Args:
+            protected_path_id: ID of the protected path
+            max_wait_seconds: Maximum time to wait in seconds
+            
+        Returns:
+            True if clone is ready, False if timeout
+        """
+        import time
+        
+        self.logger.info(f"Waiting for clone to be ready (max {max_wait_seconds}s)...")
+        
+        start_time = time.time()
+        while time.time() - start_time < max_wait_seconds:
+            try:
+                # Check protected path status
+                protected_path = self.vast_client.protectedpaths.get(id=protected_path_id)
+                
+                # Debug: Log the full response to understand the structure
+                self.logger.info(f"🔍 Full protected path response: {json.dumps(protected_path, indent=2, default=str)}")
+                
+                if isinstance(protected_path, dict):
+                    # Check the main state field
+                    state = protected_path.get('state', 'unknown')
+                    self.logger.info(f"📊 Protected path state: '{state}'")
+                    
+                    # Check the nested status object
+                    status_obj = protected_path.get('status', {})
+                    self.logger.info(f"📊 Status object type: {type(status_obj)}")
+                    self.logger.info(f"📊 Status object content: {status_obj}")
+                    
+                    if isinstance(status_obj, dict):
+                        # Look for status indicators in the nested object
+                        status_value = status_obj.get('state', status_obj.get('status', 'unknown'))
+                        self.logger.info(f"📊 Status value from nested object: '{status_value}'")
+                    else:
+                        status_value = str(status_obj)
+                        self.logger.info(f"📊 Status value (converted to string): '{status_value}'")
+                    
+                    # Check all relevant fields for debugging
+                    relevant_fields = ['state', 'status', 'health', 'external_state', 'restore_task', 'loanee_snapshot']
+                    for field in relevant_fields:
+                        value = protected_path.get(field, 'NOT_FOUND')
+                        self.logger.info(f"📊 Field '{field}': {value}")
+                    
+                    # Check if clone is ready based on state and status
+                    ready_indicators = ['ready', 'completed', 'active', 'success', 'available', 'idle']
+                    self.logger.info(f"📊 Checking if ready - state: '{state}' in {ready_indicators} = {state in ready_indicators}")
+                    self.logger.info(f"📊 Checking if ready - status: '{status_value}' in {ready_indicators} = {status_value in ready_indicators}")
+                    
+                    if state in ready_indicators or status_value in ready_indicators:
+                        self.logger.info(f"✅ Clone is ready for commit (state: {state}, status: {status_value})")
+                        return True
+                    
+                    # Check if there's a restore task that might indicate progress
+                    restore_task = protected_path.get('restore_task')
+                    if restore_task:
+                        self.logger.info(f"📊 Restore task ID: {restore_task}")
+                    
+                    self.logger.info(f"⏳ Clone not ready yet (state: {state}, status: {status_value}), waiting...")
+                
+                # Wait 2 seconds before checking again
+                time.sleep(2)
+                
+            except Exception as e:
+                self.logger.debug(f"Error checking clone status: {e}")
+                time.sleep(2)
+        
+        self.logger.warning(f"⚠️ Clone may not be ready after {max_wait_seconds}s, proceeding anyway")
+        return False
     
     def validate_restoration(self, snapshot_name: str, view_path: str) -> Dict[str, Any]:
         """
