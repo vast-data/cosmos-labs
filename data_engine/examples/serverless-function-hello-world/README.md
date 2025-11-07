@@ -21,7 +21,7 @@ You can optionally create:
 To build your function for deployment:
 
 ~~~bash
-vastde functions build <function-name>
+vastde functions build hello-world
 ~~~
 
 The build process will:
@@ -36,13 +36,13 @@ You can run your function locally for testing and development:
 
 ~~~bash
 # Basic local run
-vastde functions localrun <function-name>
+vastde functions localrun hello-world
 
 # Run with custom port
-vastde functions localrun <function-name> --port 9090
+vastde functions localrun hello-world --port 9090
 
 # Run in detached mode
-vastde functions localrun <function-name> --detach
+vastde functions localrun hello-world --detach
 ~~~
 
 ### 3. Configuration with config.yaml
@@ -52,29 +52,20 @@ Create a config.yaml file to specify environment variables and secrets:
 ~~~yaml
 # Environment variables
 envs:
-  DATABASE_URL: "postgresql://localhost:5432/mydb"
-  BUCKET_NAME: "my-bucket"
+  FUNCTION_NAME: "hello-world"
+  DATABASE_URL: "database-url"
 
 # Secrets (mounted as files in /secrets/)
 secrets:
   database:
     username: "USER"
     password: "PASS"
-  tls:
-    cert: |
-      -----BEGIN CERTIFICATE-----
-      CERTIFICATATE
-      -----END CERTIFICATE-----
-    key: |
-      -----BEGIN PRIVATE KEY-----
-      PRIVATE_KEY
-      -----END PRIVATE KEY-----
 ~~~
 
 Run with configuration:
 
 ~~~bash
-vastde functions localrun <function-name> -c config.yaml
+vastde functions localrun hello-world -c config.yaml
 ~~~
 
 In your function code, access secrets:
@@ -86,7 +77,6 @@ def init(ctx):
 
     # Access secrets (available as files in /secrets/)
     ctx.logger(f"Database username: {ctx.secrets['database']['username']}")
-    ctx.logger(f"TLS cert: {ctx.secrets['tls']['cert']}")
 ~~~
 
 ### 4. Invoking with CloudEvents
@@ -115,7 +105,7 @@ curl -X POST http://localhost:8080/ \
   -d @cloudevent.yaml
 
 # Or use the vast CLI
-vastde functions invoke <function-name> -f cloudevent.yaml
+vastde functions invoke hello-world -f cloudevent.yaml
 ~~~
 
 ### 5. Function Handlers
