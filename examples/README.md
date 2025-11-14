@@ -76,6 +76,8 @@ All examples use the centralized configuration system via `examples_config.py`. 
 - ✅ Skips VAST internal directories and shows progress indicators
 - ✅ Groups results by top-level folders with detailed breakdown
 
+NOTE: This script only works on systems that have the catalog enabled. If you don't have the catalog enabled, used the 07b script below.
+
 **Run:** `python 07_orphaned_data_discovery_catalog.py`
 
 ### 7b. [Orphaned Data Discovery (no catalog)](07b_orphaned_data_discovery_no_catalog.py)
