@@ -2,7 +2,7 @@
 
 ## 🎯 Presenter Notes
 
-This script provides detailed talking points and timing for the 2-hour VAST SDK workshop. Use this as a guide while adapting to your audience's experience level and questions.
+This script provides detailed talking points and timing for the 2.25-hour VAST SDK workshop. Use this as a guide while adapting to your audience's experience level and questions.
 
 ---
 
@@ -10,7 +10,7 @@ This script provides detailed talking points and timing for the 2-hour VAST SDK 
 
 ### **Welcome & Introduction (5 minutes)**
 
-**"Welcome everyone to the VAST SDK Hands-On Workshop! I'm [Your Name], and I'll be your guide through the next 2 hours as we explore VAST Data's Python SDKs."**
+**"Welcome everyone to the VAST SDK Hands-On Workshop! I'm [Your Name], and I'll be your guide through the next 2.25 hours as we explore VAST Data's Python SDKs."**
 
 **"Let's start with a quick audience survey to understand your backgrounds. Please raise your hand if you:**
 - **Have programmed in Python before** (wait for response)
@@ -280,7 +280,7 @@ python 08_show_user_quotas.py --all
 
 ---
 
-## **Part 3: Lab Scenarios (50 minutes)**
+## **Part 3: Lab Scenarios (65 minutes)**
 
 ### **Lab 1: Storage Monitoring & Auto-Expansion (15 minutes)**
 
@@ -411,6 +411,64 @@ python weather_analytics_demo.py
 
 ---
 
+### **Lab 4: The Snapshot Strategy (15 minutes)**
+
+**"Lab 4 addresses a critical need for research reproducibility and data version control - implementing systematic snapshot strategies using VAST protection policies."**
+
+**"First, let's understand the business context. Read the story in `lab4/STORY.md` - this explains why Orbital Dynamics needs systematic version control for their research datasets as they scale up operations and collaborate with NASA."**
+
+**"The challenge:**
+- **Manual versioning doesn't scale** - Copying entire directories with timestamps is unreliable
+- **Research reproducibility** - NASA requires ability to reproduce results from specific data states
+- **Multiple researchers** - Need to support simultaneous version requests
+- **Data recovery** - Quick rollback when calibration errors or processing issues are discovered
+
+**"Technical approach:**
+- **VAST Protection Policies** - Automated snapshot schedules with configurable retention
+- **Named snapshots** - Create snapshots with descriptive labels for key milestones
+- **Snapshot browsing** - Tools to explore and search previous versions
+- **Restoration workflows** - Easy rollback to known-good states
+
+**"Let's explore the solution:"**
+
+```bash
+cd lab4
+python lab4_solution.py --setup-policies
+```
+
+**"This demonstrates how to create protection policies with different schedules:**
+- **6-hour snapshots** - Active work (3-day retention)
+- **Daily snapshots** - Recent work (2-week retention)
+- **Weekly snapshots** - Milestones (3-month retention)
+- **Monthly snapshots** - Releases (1-year retention)
+- **Yearly snapshots** - Long-term archival (5-year retention)
+
+**"The solution includes:**
+- **Automated protection policies** - Set it and forget it snapshot schedules
+- **Named snapshot creation** - Manual snapshots with descriptive names like 'pre-calibration-change'
+- **Snapshot browsing** - Explore files and metadata in previous versions
+- **Restoration tools** - Rollback to specific snapshot states
+- **Version tracking** - Systematic change management for research reproducibility
+
+**"Try creating and browsing a snapshot:"**
+
+```bash
+python lab4_solution.py --create-snapshot "test-milestone" --protected-path "test_snapshot"
+python lab4_solution.py --list-available-snapshots --protected-path "test_snapshot"
+python lab4_solution.py --browse-snapshot "test-milestone" --protected-path "test_snapshot"
+```
+
+**"This demonstrates how you can build systematic version control that scales with your data and supports research reproducibility requirements."**
+
+**"Key concepts to understand:**
+- **Space-efficient snapshots** - VAST only stores differences, not full copies
+- **Automated policies** - Set schedules and retention, system handles the rest
+- **Named snapshots** - Create milestones with descriptive labels
+- **Easy restoration** - Rollback to previous states quickly and safely
+- **Research reproducibility** - Link published results to specific data versions"
+
+---
+
 ## **Wrap-up & Next Steps (10 minutes)**
 
 ### **Key Takeaways (5 minutes)**
@@ -456,6 +514,7 @@ python weather_analytics_demo.py
 - **'We have 100TB of data to migrate'** - Use the examples as templates, implement batch processing
 - **'We need real-time monitoring'** - Build on Lab 1, add alerting and dashboards
 - **'We want to catalog our research data'** - Use Lab 2 as a starting point, customize for your data types
+- **'We need version control for our datasets'** - Use Lab 4 to implement systematic snapshot strategies
 
 **"Next steps:**
 - **Try the examples** in your own environment

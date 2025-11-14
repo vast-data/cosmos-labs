@@ -1,6 +1,6 @@
 # VAST SDK Workshop Outline
 
-## 🕐 2-Hour Workshop Agenda
+## 🕐 2.25-Hour Workshop Agenda
 
 ### **Part 1: VAST SDK Fundamentals (30 minutes)**
 
@@ -41,7 +41,7 @@
 
 **Note:** Participants run all examples with live demonstration and hands-on practice
 
-### **Part 3: Lab Scenarios (50 minutes)**
+### **Part 3: Lab Scenarios (65 minutes)**
 
 #### **Lab 1: Storage Monitoring & Auto-Expansion (15 minutes)**
 - **Story Context:** Read Lab 1 story (3 minutes)
@@ -67,6 +67,15 @@
   - Health impact assessment
   - Real-time data pipeline concepts
 - **Hands-On Practice:** Explore weather analytics (5 minutes)
+
+#### **Lab 4: The Snapshot Strategy (15 minutes)**
+- **Story Context:** Read Lab 4 story (3 minutes)
+- **Technical Walkthrough:** Lab 4 solution (7 minutes)
+  - Protection policies and automated schedules
+  - Named snapshot workflows for milestones
+  - Snapshot browsing and restoration tools
+  - Version tracking and change management
+- **Hands-On Practice:** Explore snapshot management (5 minutes)
 
 ### **Wrap-up & Next Steps (10 minutes)**
 
@@ -96,6 +105,7 @@
 - [ ] Understand lab scenarios
 - [ ] Can run labs in dry-run mode
 - [ ] Know how to build data pipelines
+- [ ] Understand snapshot and version control strategies
 
 ## ⏰ Timing Notes
 
@@ -118,5 +128,5 @@
 - [ ] Configuration files set up
 - [ ] Connection test successful
 - [ ] Example scripts run successfully
-- [ ] Lab 1 and Lab 2 reviewed
+- [ ] Lab 1, Lab 2, Lab 3, and Lab 4 reviewed
 - [ ] Troubleshooting guide available

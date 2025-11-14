@@ -2,7 +2,7 @@
 
 ## 🎯 Welcome to the Workshop!
 
-This guide will help you follow along during the 2-hour VAST SDK workshop. Keep this open and follow the step-by-step instructions as we explore VAST Data's Python SDKs together.
+This guide will help you follow along during the 2.25-hour VAST SDK workshop. Keep this open and follow the step-by-step instructions as we explore VAST Data's Python SDKs together.
 
 ## 📋 Pre-Workshop Checklist
 
@@ -346,6 +346,47 @@ python weather_analytics_demo.py
 - **Correlation analysis** - Finding relationships between variables
 - **Health impact assessment** - Using data for public health
 - **Scalable processing** - Handling large datasets efficiently
+
+### **Lab 4: The Snapshot Strategy**
+
+**First, read the story:**
+```bash
+cd lab4
+cat STORY.md
+```
+
+**This explains why Orbital Dynamics needs systematic version control for their research datasets as they scale operations and collaborate with NASA.**
+
+**Set up protection policies:**
+```bash
+python lab4_solution.py --setup-policies
+```
+
+**What this creates:**
+- Automated protection policies with different schedules
+- Configurable retention periods for different snapshot types
+- Space-efficient snapshot infrastructure
+- Safety checks for existing policies
+
+**Create and browse snapshots:**
+```bash
+python lab4_solution.py --create-snapshot "test-milestone" --protected-path "test_snapshot"
+python lab4_solution.py --list-available-snapshots --protected-path "test_snapshot"
+python lab4_solution.py --browse-snapshot "test-milestone" --protected-path "test_snapshot"
+```
+
+**What this demonstrates:**
+- Named snapshot creation with descriptive labels
+- Snapshot browsing and exploration
+- Version tracking and change management
+- Restoration capabilities
+
+**Key concepts to understand:**
+- **Space-efficient snapshots** - VAST only stores differences, not full copies
+- **Automated policies** - Set schedules and retention, system handles the rest
+- **Named snapshots** - Create milestones with descriptive labels
+- **Easy restoration** - Rollback to previous states quickly and safely
+- **Research reproducibility** - Link published results to specific data versions
 
 ---
 

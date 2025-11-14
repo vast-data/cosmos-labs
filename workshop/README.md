@@ -2,11 +2,11 @@
 
 ## 🎯 Workshop Overview
 
-This 2-hour hands-on workshop introduces participants to VAST Data's Python SDKs (`vastpy` and `vastdb`) through practical examples and real-world lab scenarios. Participants will learn to connect to VAST systems, manage storage infrastructure, and build data processing pipelines.
+This 2.25-hour hands-on workshop introduces participants to VAST Data's Python SDKs (`vastpy` and `vastdb`) through practical examples and real-world lab scenarios. Participants will learn to connect to VAST systems, manage storage infrastructure, and build data processing pipelines.
 
 ## 📁 Workshop Materials
 
-- **[Workshop Outline](WORKSHOP_OUTLINE.md)** - Detailed 2-hour agenda with timing
+- **[Workshop Outline](WORKSHOP_OUTLINE.md)** - Detailed 2.25-hour agenda with timing
 - **[Presenter Script](PRESENTER_SCRIPT.md)** - Complete speaking notes and talking points
 - **[Participant Guide](PARTICIPANT_GUIDE.md)** - Step-by-step instructions for attendees
 - **[Main README](../README.md)** - Complete installation and setup guide
@@ -21,7 +21,8 @@ By the end of this workshop, participants will be able to:
 3. **Manage Storage Views** - List, analyze, and understand storage view configurations
 4. **Work with VAST Database** - Connect using `vastdb` and perform basic database operations
 5. **Build Data Pipelines** - Create automated workflows for data processing and management
-6. **Implement Safety Practices** - Use dry-run modes and safety checks in production environments
+6. **Implement Snapshot Strategies** - Use protection policies and snapshots for version control and data recovery
+7. **Implement Safety Practices** - Use dry-run modes and safety checks in production environments
 
 ## 🏗️ Workshop Structure
 
@@ -36,10 +37,11 @@ By the end of this workshop, participants will be able to:
 - Interactive exercises with participants
 - Q&A and troubleshooting
 
-### **Part 3: Lab Scenarios (50 minutes)**
+### **Part 3: Lab Scenarios (65 minutes)**
 - Walkthrough of Lab 1 (Storage Monitoring)
 - Walkthrough of Lab 2 (Metadata Management)
 - Walkthrough of Lab 3 (Weather Data Pipeline)
+- Walkthrough of Lab 4 (Snapshot Strategy)
 - Hands-on practice with read-only access
 
 ## 🛠️ Prerequisites
