@@ -163,92 +163,260 @@ NEXT STEPS:
   3. Integrate with VAST systems as needed
 ```
 
-### What This Tool Does (and Doesn't Do)
-
-#### ✅ What It Does:
-- Downloads Swift datasets from NASA HEASARC
-- Organizes data into structured directories
-- Creates organized dataset structure for lab use
-
-#### ❌ What It Doesn't Do:
-- Connect to VAST clusters
-- Create actual VAST views
-- Upload files to VAST systems
-- Handle VAST authentication
-- Create VAST preparation metadata files
-
-#### 🔄 Next Steps for VAST Integration:
-After running this preparation tool, you would need to:
-1. Use VAST client tools to create views
-2. Transfer prepared datasets to VAST
-3. Configure VAST storage policies
-4. Set up VAST access controls
-
-### Lab Integration
-
-#### Lab 2: Metadata Catalog
-- Use `batsources_survey` data to build metadata catalog
-- Practice extracting metadata from FITS files
-- Implement search and query interfaces
-
-#### Lab 3: Pipeline Orchestration
-- Use `batsources_monitoring` data for pipeline testing
-- Practice managing multiple data sources
-- Implement job scheduling and monitoring
-
-#### Lab 5: Event Detection
-- Use `grbsummary` data for GRB event detection
-- Practice pattern recognition algorithms
-- Implement alerting systems
-
-### Troubleshooting
-
-#### Common Issues
-
-1. **Download Failures**
-   - Check internet connectivity
-   - Verify NASA HEASARC server status
-   - Review logs for specific error messages
-   - Ensure curl or wget is available
-
-2. **Permission Errors**
-   - Ensure write permissions in current directory
-   - Check if script is executable: `chmod +x scripts/*.sh`
-
-3. **Bash Version Issues**
-   - Ensure bash version 4.0+: `bash --version`
-   - Some systems use `/bin/sh` instead of `/bin/bash`
-
 #### Log Files
 
 - `swift_download.log`: Contains detailed execution logs
 - Check for ERROR level messages for troubleshooting
 - INFO level messages show progress and success
 
-### Advantages of Bash Implementation
+## Swift Dataset Upload Tool
 
-1. **No Dependencies**: Works out of the box on most Unix-like systems
-2. **Faster Execution**: No Python interpreter startup time
-3. **Smaller Footprint**: No need to install Python packages
-4. **System Integration**: Better integration with shell environment
-5. **Easier Distribution**: Single script file, no requirements.txt needed
-6. **Simpler Usage**: Direct execution without wrapper complexity
-7. **Clear Purpose**: Preparation tool, not upload tool
+The `upload_swift_to_vast_s3.py` script uploads locally prepared Swift datasets to the VAST Data Platform via S3. This script complements the Swift dataset preparation tool by handling the actual transfer of data to VAST.
 
-### Future Enhancements
+### Features
 
-- **VAST Integration**: Add actual VAST client connectivity
-- **Real-time Streaming**: Integration with Kafka for live data feeds
-- **Advanced Analytics**: Machine learning models for event detection
-- **Multi-mission Support**: Expand to other NASA missions (Kepler, Hubble, etc.)
-- **Automated Updates**: Scheduled downloads of new data releases
+- **S3-Based Upload**: Uses boto3 to upload datasets via VAST's S3-compatible interface
+- **Safe by Default**: Dry-run mode enabled by default to preview uploads
+- **Comprehensive Logging**: Detailed progress and error reporting
+- **Batch Processing**: Uploads all available datasets or specific ones
+- **Configuration-Based**: Reads S3 credentials and settings from config.yaml and secrets.yaml
+- **VAST-Compatible**: Configured for VAST S3 endpoint requirements
+
+### Prerequisites
+
+- Swift datasets must be prepared using `swift_dataset_prep.sh`
+- S3 configuration must be set in `config.yaml` (endpoint_url, bucket)
+- S3 credentials must be set in `secrets.yaml` (s3_access_key, s3_secret_key)
+- Python dependencies: `boto3` (install via `pip install -r requirements.txt`)
+
+### Usage
+
+#### Quick Start
+
+```bash
+# Dry run (default - safe, no actual uploads)
+python scripts/upload_swift_to_vast_s3.py
+
+# Production mode (actual uploads)
+python scripts/upload_swift_to_vast_s3.py --pushtoprod
+```
+
+#### Command Line Options
+
+- `--pushtoprod`: Enable production mode (requires confirmation, performs actual uploads)
+- `--config`: Path to custom config file (default: config.yaml in project root)
+
+**Note**: The script runs in dry-run mode by default. Use `--pushtoprod` to perform actual uploads.
+
+#### Examples
+
+```bash
+# Preview what would be uploaded (dry run)
+python scripts/upload_swift_to_vast_s3.py
+
+# Upload all datasets to VAST S3
+python scripts/upload_swift_to_vast_s3.py --pushtoprod
+
+# Use custom config file
+python scripts/upload_swift_to_vast_s3.py --config my_config.yaml --pushtoprod
+```
+
+### Upload Process
+
+1. **Discovery**: Scans `scripts/swift_datasets/` directory for available datasets
+2. **Validation**: Verifies S3 connection and bucket accessibility
+3. **Upload**: Transfers all files from each dataset to S3 bucket under `swift/{dataset_name}/` prefix
+4. **Reporting**: Provides detailed summary of upload results
+
+### Output
+
+- Datasets are uploaded to: `s3://{bucket}/swift/{dataset_name}/`
+- Upload progress is logged to console
+- Detailed logs include file counts, sizes, and success/failure status
+
+### Example Output
+
+```
+🚀 Starting Swift datasets upload process
+📊 Found 4 datasets ready for upload
+
+============================================================
+📤 Processing: grbsummary
+============================================================
+📤 Uploading dataset: grbsummary
+   From: scripts/swift_datasets/grbsummary
+   To S3: s3://cosmos-lab-raw/swift/grbsummary/
+📊 Dataset contains 150 files
+✅ Successfully uploaded: file1.fits
+...
+📊 Upload Summary for grbsummary:
+  ✅ Successfully uploaded: 150
+  ❌ Failed: 0
+  📊 Total: 150
+```
+
+### Safety Features
+
+- **Dry Run Default**: No uploads performed unless `--pushtoprod` is specified
+- **Confirmation Required**: Production mode requires typing 'YES' to confirm
+- **Error Handling**: Continues processing other datasets if one fails
+- **Detailed Logging**: Full audit trail of all operations
+
+### Troubleshooting
+
+1. **S3 Connection Errors**
+   - Verify S3 endpoint URL in config.yaml
+   - Check S3 credentials in secrets.yaml
+   - Ensure bucket exists and is accessible
+
+2. **Upload Failures**
+   - Check network connectivity
+   - Verify sufficient S3 bucket capacity
+   - Review error messages in console output
+
+3. **Missing Datasets**
+   - Ensure `swift_dataset_prep.sh` has been run successfully
+   - Verify `scripts/swift_datasets/` directory exists and contains datasets
+
+## Lab Environment Cleanup Tool
+
+The `cleanup_lab_environment.py` script provides comprehensive cleanup capabilities for resetting the lab environment between exercises or at the end of a lab session.
+
+### Features
+
+- **S3 Bucket Cleanup**: Delete all objects from configured S3 bucket
+- **Database Cleanup**: Clear all tables or remove entire database
+- **Local File Cleanup**: Remove downloaded Swift datasets
+- **Status Reporting**: Show current state of lab environment components
+- **Safe by Default**: Dry-run mode enabled by default
+- **Selective Operations**: Clean specific components or everything at once
+- **Configuration-Based**: Automatically detects configured components
+
+### Prerequisites
+
+- Python dependencies: `boto3` (for S3 cleanup), database dependencies (for database cleanup)
+- Configuration must be set in `config.yaml` and `secrets.yaml`
+- Appropriate permissions for S3 bucket and database access
+
+### Usage
+
+#### Quick Start
+
+```bash
+# Show current status
+python scripts/cleanup_lab_environment.py --status
+
+# Clean S3 bucket only (dry run)
+python scripts/cleanup_lab_environment.py --s3-only
+
+# Clean everything (production mode)
+python scripts/cleanup_lab_environment.py --all --pushtoprod
+```
+
+#### Command Line Options
+
+- `--status`: Show current status of lab environment (no cleanup performed)
+- `--s3-only`: Clean up S3 bucket only (delete all objects)
+- `--db-only`: Clean up database tables only (preserve database structure)
+- `--db-remove`: Remove entire database
+- `--all`: Clean up everything (S3, database, local files)
+- `--pushtoprod`: Enable production mode (required for actual cleanup)
+- `--config`: Path to custom config file
+
+**Note**: All cleanup operations run in dry-run mode by default. Use `--pushtoprod` to perform actual cleanup.
+
+#### Examples
+
+```bash
+# Check current status
+python scripts/cleanup_lab_environment.py --status
+
+# Preview S3 cleanup (dry run)
+python scripts/cleanup_lab_environment.py --s3-only
+
+# Actually clean S3 bucket
+python scripts/cleanup_lab_environment.py --s3-only --pushtoprod
+
+# Clear database tables (preserve structure)
+python scripts/cleanup_lab_environment.py --db-only --pushtoprod
+
+# Remove entire database
+python scripts/cleanup_lab_environment.py --db-remove --pushtoprod
+
+# Clean everything (S3, database, local files)
+python scripts/cleanup_lab_environment.py --all --pushtoprod
+```
+
+### Cleanup Operations
+
+#### S3 Bucket Cleanup
+- Lists all objects in the configured S3 bucket
+- Deletes objects in batches of 1000 (S3 API limit)
+- Provides progress reporting during deletion
+- Safe: Only deletes objects, never deletes the bucket itself
+
+#### Database Cleanup
+- **Table Cleanup** (`--db-only`): Clears all data from tables while preserving structure
+- **Database Removal** (`--db-remove`): Completely removes the database
+- Automatically detects if database exists before attempting cleanup
+
+#### Local File Cleanup
+- Removes the `scripts/swift_datasets/` directory
+- Calculates and reports total size of files removed
+- Safe: Only removes Swift datasets, not other script files
+
+### Status Reporting
+
+The `--status` option provides a comprehensive overview:
+
+```
+📊 Lab Environment Status
+==================================================
+📦 S3 Bucket 'cosmos-lab-raw': 1,234 objects
+🗄️  Database: Connected and exists
+📁 Local Files: 4 datasets, 2.45 GB
+```
+
+### Safety Features
+
+- **Dry Run Default**: No changes made unless `--pushtoprod` is specified
+- **Selective Operations**: Clean only what you need
+- **Status Check**: Preview current state before cleanup
+- **Batch Processing**: Efficient S3 deletion in batches
+- **Error Handling**: Continues with other operations if one fails
+
+### Use Cases
+
+1. **Between Lab Exercises**: Clean specific components to reset state
+2. **End of Lab Session**: Use `--all` to clean everything
+3. **Troubleshooting**: Use `--status` to diagnose environment issues
+4. **Storage Management**: Clean S3 bucket to free up space
+
+### Troubleshooting
+
+1. **Permission Errors**
+   - Verify S3 credentials have delete permissions
+   - Check database user has DROP/CLEAR permissions
+   - Ensure write permissions for local file cleanup
+
+2. **Connection Failures**
+   - Verify S3 endpoint and credentials in config
+   - Check database connection settings
+   - Review error messages for specific issues
+
+3. **Partial Cleanup**
+   - Script continues even if one component fails
+   - Check logs for specific error messages
+   - Re-run cleanup for failed components
 
 ### Contributing
 
-When modifying the script:
-1. Maintain bash compatibility (test on multiple systems)
-2. Add comprehensive logging
-3. Include dry-run mode for new operations
-4. Update this README with new features
-5. Test with various system configurations
-6. Ensure proper error handling and exit codes
+When modifying scripts in this directory:
+1. **Bash Scripts**: Maintain bash compatibility (test on multiple systems)
+2. **Python Scripts**: Follow Python best practices and use type hints where appropriate
+3. **Logging**: Add comprehensive logging for all operations
+4. **Safety**: Default to dry-run mode for destructive operations
+5. **Documentation**: Update this README with new features and usage examples
+6. **Testing**: Test with various system configurations
+7. **Error Handling**: Ensure proper error handling and exit codes
+8. **Configuration**: Use config.yaml and secrets.yaml for all settings (no environment variables)
