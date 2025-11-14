@@ -32,6 +32,7 @@ env/
 ENV/
 .venv/
 .env/
+bin/
 
 # IDE
 .vscode/
