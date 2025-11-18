@@ -1,13 +1,18 @@
-# vast Function
+# VAST Serverless Function
 
-This is a vast DataEngine serverless function written in Python.
+This is a VAST DataEngine serverless function written in Python.
+
+If you have any questions, reach out on [Cosmos community](https://community.vastdata.com/)
+
+## Pre-requisites
+- Access to VAST DataEngine UI and CLI
 
 ## Project Structure
     .
     |- main.py          # Your function handlers (init and handler)
     |- requirements.txt # Python dependencies
     |- Aptfile          # System packages
-    |- customDeps	# custom dependencies such as private common libraries
+    |- customDeps	      # custom dependencies such as private common libraries
     |- README.md        # This file
 
 You can optionally create:
@@ -86,17 +91,18 @@ Create a cloudevent.yaml file to test your function with CloudEvents:
 ~~~yaml
 # Example CloudEvent for testing
 specversion: "1.0"
-type: "com.example.someevent"
+type: "vastdata.com:Element.ObjectCreated"
 source: "/mycontext"
 id: "A234-1234-1234"
 time: "2018-04-05T17:31:00Z"
+subject: "vastdata.com:kafka-view.default-topic"
 datacontenttype: "application/json"
 data:
   message: "Hello from CloudEvent!"
   user_id: 12345
 ~~~
 
-Invoke your function with the CloudEvent:
+In a separate terminal, invoke your function with the CloudEvent:
 
 ~~~bash
 # Send CloudEvent to local function
@@ -105,7 +111,7 @@ curl -X POST http://localhost:8080/ \
   -d @cloudevent.yaml
 
 # Or use the vast CLI
-vastde functions invoke hello-world -f cloudevent.yaml
+vastde functions invoke -e cloudevent.yaml
 ~~~
 
 ### 5. Function Handlers

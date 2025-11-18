@@ -1,0 +1,11 @@
+# Example CloudEvent for testing
+specversion: "1.0"
+type: "vastdata.com:Element.ObjectCreated"
+source: "/mycontext"
+id: "A234-1234-1234"
+time: "2018-04-05T17:31:00Z"
+subject: "vastdata.com:kafka-view.default-topic"
+datacontenttype: "application/json"
+data:
+  message: "Hello from CloudEvent!"
+  user_id: 12345
