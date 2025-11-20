@@ -1,11 +1,12 @@
 # VAST Serverless Function
 
-This is a VAST DataEngine serverless function written in Python.
+This is a VAST DataEngine serverless function written in Python with steps to test locally.
 
 If you have any questions, reach out on [Cosmos community](https://community.vastdata.com/)
 
 ## Pre-requisites
-- Access to VAST DataEngine UI and CLI
+- VAST DataEngine CLI to scaffold function
+- [Docker](https://www.docker.com/) running locally
 
 ## Project Structure
     .
@@ -23,7 +24,7 @@ You can optionally create:
 
 ### 1. Building the Function
 
-To build your function for deployment:
+To build your function for testing (and deployment):
 
 ~~~bash
 vastde functions build hello-world
@@ -40,7 +41,7 @@ The build process will:
 You can run your function locally for testing and development:
 
 ~~~bash
-# Basic local run
+# Basic local run, default port is 8080
 vastde functions localrun hello-world
 
 # Run with custom port
@@ -49,6 +50,8 @@ vastde functions localrun hello-world --port 9090
 # Run in detached mode
 vastde functions localrun hello-world --detach
 ~~~
+
+Note the default port will be 8080.
 
 ### 3. Configuration with config.yaml
 
@@ -86,7 +89,7 @@ def init(ctx):
 
 ### 4. Invoking with CloudEvents
 
-Create a cloudevent.yaml file to test your function with CloudEvents:
+Create a cloudevent.yaml file to test your function locally with CloudEvents:
 
 ~~~yaml
 # Example CloudEvent for testing
@@ -179,7 +182,7 @@ Add common libraries to customDeps:
 
 ### Local Run Common Issues
 
-1. **Port already in use**: Use a different port with --port
+1. **Port already in use**: The default port is 8080. If in use, use a different port with --port
 2. **Permission denied on secrets**: Check that your config.yaml has correct permissions
 3. **Missing dependencies**: Ensure all packages are listed in requirements.txt
 4. **Build failures**: Check the build.log file for detailed error information
