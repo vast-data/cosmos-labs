@@ -30,6 +30,10 @@ def get_all_directory_paths():
         s3_access_key = config_loader.secrets.get('s3_access_key')
         s3_secret_key = config_loader.secrets.get('s3_secret_key')
         
+        # Get SSL verification setting (check vastdb first, then vast, default to True)
+        ssl_verify = config_loader.config.get('vastdb.ssl_verify', 
+                                               config_loader.config.get('vast.ssl_verify', True))
+        
         if not all([s3_endpoint, s3_access_key, s3_secret_key]):
             print("❌ Missing S3 credentials for vastdb connection")
             return set()
@@ -38,7 +42,8 @@ def get_all_directory_paths():
         session = vastdb.connect(
             endpoint=s3_endpoint,
             access=s3_access_key,
-            secret=s3_secret_key
+            secret=s3_secret_key,
+            ssl_verify=ssl_verify
         )
         
         all_directories = set()
