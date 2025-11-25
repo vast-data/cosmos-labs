@@ -801,11 +801,18 @@ def main():
     
     # Show lab-specific information
     lab_views = generator.get_lab_views()
+    bucket_mapping = generator.get_bucket_mapping()
     print(f"🎯 Generating test data for {args.lab_type.upper()}")
     print(f"⚡ Threading: {args.max_workers} concurrent workers")
     print(f"🔗 Configured VAST views:")
     for view in lab_views:
         print(f"   - {view}")
+    print(f"🪣 Configured S3 buckets:")
+    for data_type, bucket_name in bucket_mapping.items():
+        if bucket_name:
+            print(f"   - {data_type}: {bucket_name}")
+        else:
+            print(f"   - {data_type}: ❌ NOT CONFIGURED")
     print()
     
     generator.generate_all_data(
