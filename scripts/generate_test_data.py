@@ -807,6 +807,13 @@ def main():
     for view in lab_views:
         print(f"   - {view}")
     
+    # CRITICAL DEBUG: Immediately after views loop
+    print("*** DEBUG: After views loop, before bucket mapping ***", flush=True)
+    import sys
+    sys.stdout.flush()
+    sys.stderr.write("*** STDERR DEBUG: After views loop ***\n")
+    sys.stderr.flush()
+    
     # Show bucket mapping - this MUST execute
     print("", flush=True)
     print("=" * 60, flush=True)
@@ -829,6 +836,11 @@ def main():
         traceback.print_exc()
     print("DEBUG_END: Bucket mapping section", flush=True)
     print()
+    
+    # CRITICAL DEBUG: Right before generate_all_data
+    print("=" * 60, flush=True)
+    print("DEBUG: About to call generator.generate_all_data()", flush=True)
+    print("=" * 60, flush=True)
     
     generator.generate_all_data(
         raw_files=args.raw_files,
