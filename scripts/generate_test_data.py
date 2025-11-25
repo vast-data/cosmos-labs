@@ -198,11 +198,6 @@ class TestDataGenerator:
         """
         if self.lab_type == "lab4":
             views_config = self.lab_config.get('views', {})
-            # Debug: show what keys are actually in views_config
-            if not views_config:
-                print(f"⚠️  DEBUG: views_config is empty for lab4")
-            else:
-                print(f"⚠️  DEBUG: views_config keys: {list(views_config.keys())}")
             return {
                 'raw': views_config.get('raw_data', {}).get('bucket_name'),
                 'processed': views_config.get('processed_data', {}).get('bucket_name'),
