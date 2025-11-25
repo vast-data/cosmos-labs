@@ -244,7 +244,7 @@ class TestDataGenerator:
                 raise SystemExit(1)
             
             # Suppress SSL warnings if verification is disabled (like other labs)
-            ssl_verify = s3_config.get('ssl_verify', True)
+            ssl_verify = s3_config.get('ssl_verify', s3_config.get('verify_ssl', True))
             if not ssl_verify:
                 import urllib3
                 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
