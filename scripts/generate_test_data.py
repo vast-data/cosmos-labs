@@ -808,7 +808,10 @@ def main():
         print(f"   - {view}")
     
     # Show bucket mapping - this MUST execute
+    print("", flush=True)
+    print("=" * 60, flush=True)
     print("DEBUG_START: Bucket mapping section", flush=True)
+    print("=" * 60, flush=True)
     try:
         bucket_mapping = generator.get_bucket_mapping()
         print(f"🪣 Configured S3 buckets:", flush=True)
