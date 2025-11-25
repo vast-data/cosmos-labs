@@ -807,40 +807,18 @@ def main():
     for view in lab_views:
         print(f"   - {view}")
     
-    # CRITICAL DEBUG: Immediately after views loop
-    print("*** DEBUG: After views loop, before bucket mapping ***", flush=True)
-    import sys
-    sys.stdout.flush()
-    sys.stderr.write("*** STDERR DEBUG: After views loop ***\n")
-    sys.stderr.flush()
-    
-    # Show bucket mapping - this MUST execute
-    print("", flush=True)
-    print("=" * 60, flush=True)
-    print("DEBUG_START: Bucket mapping section", flush=True)
-    print("=" * 60, flush=True)
+    # Show bucket mapping
     try:
         bucket_mapping = generator.get_bucket_mapping()
-        print(f"🪣 Configured S3 buckets:", flush=True)
-        if not bucket_mapping:
-            print(f"   ⚠️  No bucket mapping found!", flush=True)
-        else:
-            for data_type, bucket_name in sorted(bucket_mapping.items()):
-                if bucket_name:
-                    print(f"   - {data_type}: {bucket_name}", flush=True)
-                else:
-                    print(f"   - {data_type}: ❌ NOT CONFIGURED (bucket_name missing in config)", flush=True)
+        print(f"🪣 Configured S3 buckets:")
+        for data_type, bucket_name in sorted(bucket_mapping.items()):
+            if bucket_name:
+                print(f"   - {data_type}: {bucket_name}")
+            else:
+                print(f"   - {data_type}: ❌ NOT CONFIGURED")
     except Exception as e:
-        import traceback
-        print(f"⚠️  Error retrieving bucket mapping: {e}", flush=True)
-        traceback.print_exc()
-    print("DEBUG_END: Bucket mapping section", flush=True)
+        print(f"⚠️  Error retrieving bucket mapping: {e}")
     print()
-    
-    # CRITICAL DEBUG: Right before generate_all_data
-    print("=" * 60, flush=True)
-    print("DEBUG: About to call generator.generate_all_data()", flush=True)
-    print("=" * 60, flush=True)
     
     generator.generate_all_data(
         raw_files=args.raw_files,
