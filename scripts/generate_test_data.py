@@ -199,10 +199,10 @@ class TestDataGenerator:
         if self.lab_type == "lab4":
             views_config = self.lab_config.get('views', {})
             return {
-                'raw': views_config.get('raw', {}).get('bucket_name'),
-                'processed': views_config.get('processed', {}).get('bucket_name'),
-                'analysis': views_config.get('analysis', {}).get('bucket_name'),
-                'published': views_config.get('published', {}).get('bucket_name')
+                'raw': views_config.get('raw_data', {}).get('bucket_name'),
+                'processed': views_config.get('processed_data', {}).get('bucket_name'),
+                'analysis': views_config.get('analysis_results', {}).get('bucket_name'),
+                'published': views_config.get('published_datasets', {}).get('bucket_name')
             }
         else:
             # For lab1, use raw and processed buckets
