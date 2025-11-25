@@ -807,22 +807,24 @@ def main():
     for view in lab_views:
         print(f"   - {view}")
     
-    # Show bucket mapping
+    # Show bucket mapping - this MUST execute
+    print("DEBUG_START: Bucket mapping section", flush=True)
     try:
         bucket_mapping = generator.get_bucket_mapping()
-        print(f"🪣 Configured S3 buckets:")
+        print(f"🪣 Configured S3 buckets:", flush=True)
         if not bucket_mapping:
-            print(f"   ⚠️  No bucket mapping found!")
+            print(f"   ⚠️  No bucket mapping found!", flush=True)
         else:
             for data_type, bucket_name in sorted(bucket_mapping.items()):
                 if bucket_name:
-                    print(f"   - {data_type}: {bucket_name}")
+                    print(f"   - {data_type}: {bucket_name}", flush=True)
                 else:
-                    print(f"   - {data_type}: ❌ NOT CONFIGURED (bucket_name missing in config)")
+                    print(f"   - {data_type}: ❌ NOT CONFIGURED (bucket_name missing in config)", flush=True)
     except Exception as e:
         import traceback
-        print(f"⚠️  Error retrieving bucket mapping: {e}")
+        print(f"⚠️  Error retrieving bucket mapping: {e}", flush=True)
         traceback.print_exc()
+    print("DEBUG_END: Bucket mapping section", flush=True)
     print()
     
     generator.generate_all_data(
