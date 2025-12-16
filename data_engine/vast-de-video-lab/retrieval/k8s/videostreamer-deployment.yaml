@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: video-stream-capture
+  namespace: vastvideo
+  labels:
+    app: video-stream-capture
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: video-stream-capture
+  template:
+    metadata:
+      labels:
+        app: video-stream-capture
+    spec:
+      containers:
+      - name: video-stream-capture
+        image: vastdatasolutions/vde-video-streaming:v1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ping
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: video-stream-capture-service
+  namespace: vastvideo
+  labels:
+    app: video-stream-capture
+spec:
+  selector:
+    app: video-stream-capture
+  ports:
+  - port: 5000
+    targetPort: 5000
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: video-stream-capture-ingress
+  namespace: vastvideo
+  labels:
+    app: video-stream-capture
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: video-streamer.CLUSTER_NAME.vastdata.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: video-stream-capture-service
+            port:
+              number: 5000
+
