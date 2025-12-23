@@ -1,7 +1,7 @@
 """
 Authentication schemas
 """
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class VastLoginRequest(BaseModel):
@@ -9,6 +9,7 @@ class VastLoginRequest(BaseModel):
     username: str
     secret_key: str  # S3 secret key (for local, AD, LDAP, or NIS users)
     vast_host: str
+    tenant_name: str = Field(default="default", description="Tenant name (default: 'default')")
 
 
 class Token(BaseModel):

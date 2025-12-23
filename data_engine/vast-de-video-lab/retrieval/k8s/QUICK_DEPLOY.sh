@@ -31,6 +31,44 @@ CLUSTER_NAME="$1"
 # Check prerequisites
 echo -e "${YELLOW}Checking prerequisites...${NC}"
 command -v kubectl >/dev/null 2>&1 || { echo -e "${RED}kubectl not found${NC}"; exit 1; }
+
+# Check kubectl configuration
+echo -e "${YELLOW}Checking kubectl configuration...${NC}"
+if ! kubectl cluster-info >/dev/null 2>&1; then
+  echo -e "${RED}✗ kubectl is not configured or cannot connect to cluster${NC}"
+  echo ""
+  
+  # Show current KUBECONFIG status
+  if [ -n "$KUBECONFIG" ]; then
+    echo -e "${YELLOW}Current KUBECONFIG: $KUBECONFIG${NC}"
+    if [ ! -f "$KUBECONFIG" ]; then
+      echo -e "${RED}  ⚠ File does not exist!${NC}"
+    fi
+  else
+    echo -e "${YELLOW}KUBECONFIG environment variable is not set${NC}"
+    DEFAULT_KUBECONFIG="$HOME/.kube/config"
+    if [ -f "$DEFAULT_KUBECONFIG" ]; then
+      echo -e "${YELLOW}  Found default config at: $DEFAULT_KUBECONFIG${NC}"
+    else
+      echo -e "${RED}  No default config found at: $DEFAULT_KUBECONFIG${NC}"
+    fi
+  fi
+  echo ""
+  
+  echo -e "${YELLOW}Troubleshooting:${NC}"
+  echo "  1. Check if KUBECONFIG environment variable is set:"
+  echo "     echo \$KUBECONFIG"
+  echo ""
+  echo "  2. If not set, export your kubeconfig file:"
+  echo "     export KUBECONFIG=/path/to/your/kubeconfig.yaml"
+  echo ""
+  echo "  4. Verify kubectl can connect:"
+  echo "     kubectl cluster-info"
+  echo ""
+  echo -e "${RED}Please configure kubectl before running this script.${NC}"
+  exit 1
+fi
+echo -e "${GREEN}✓ kubectl is configured and can connect to cluster${NC}"
 echo -e "${GREEN}✓ All prerequisites found${NC}"
 echo ""
 
@@ -104,22 +142,18 @@ fi
 echo ""
 echo "Add to /etc/hosts:"
 echo -e "${YELLOW}  $INGRESS_IP video-lab.$CLUSTER_NAME.vastdata.com${NC}"
-echo -e "${YELLOW}  $INGRESS_IP video-streamer.$CLUSTER_NAME.vastdata.com${NC}"
 echo ""
 echo "Then access:"
 echo -e "${GREEN}  http://video-lab.$CLUSTER_NAME.vastdata.com${NC} (Main Video Lab)"
-echo -e "${GREEN}  http://video-streamer.$CLUSTER_NAME.vastdata.com${NC} (Video Streaming Service)"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo "📝 Next Steps:"
 echo "  1. Wait for pods to be ready:"
 echo "     kubectl get pods -n $NAMESPACE -w"
-echo "  2. Add Ingress IP to /etc/hosts"
-echo "     X.X.X.X video-streamer.$CLUSTER_NAME.vastdata.com"
+echo "  2. Add Ingress IP to your local machine's /etc/hosts"
 echo "  3. Open http://video-lab.$CLUSTER_NAME.vastdata.com"
 echo "  4. Login with VAST credentials"
-echo "  5. Access video streaming at http://video-streamer.$CLUSTER_NAME.vastdata.com"
 echo ""
 echo "🔍 View Logs:"
 echo "  Backend:         kubectl logs -f -n $NAMESPACE -l app=video-backend"

@@ -63,7 +63,71 @@ def get_admin_token(address: str) -> Optional[str]:
         return None
 
 
-def query_user_by_username(vast_host: str, username: str, admin_token: str) -> Optional[dict]:
+def get_tenant_info_by_name(vast_host: str, tenant_name: str, admin_token: str) -> Optional[dict]:
+    """
+    Resolve tenant name to tenant info (ID) by querying VAST API
+    
+    Args:
+        vast_host: VAST cluster address
+        tenant_name: Tenant name (e.g., "default")
+        admin_token: Admin JWT token for authentication
+        
+    Returns:
+        Tenant info dict with 'id' and 'name' if found, None otherwise
+    """
+    try:
+        # Query tenants endpoint with name filter
+        response = requests.get(
+            f"https://{vast_host}/api/tenants/",
+            params={
+                "name__icontains": tenant_name  # Case-insensitive partial match
+            },
+            headers={"Authorization": f"Bearer {admin_token}"},
+            verify=False,
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            tenants = response.json()
+            
+            # Find exact match (case-insensitive)
+            for tenant in tenants:
+                if tenant.get("name", "").lower() == tenant_name.lower():
+                    tenant_id = tenant.get("id")
+                    logger.info(f"Resolved tenant '{tenant_name}' to ID: {tenant_id}")
+                    return {
+                        "id": tenant_id,
+                        "name": tenant.get("name")
+                    }
+            
+            logger.warning(f"Tenant '{tenant_name}' not found. Available tenants: {[t.get('name') for t in tenants]}")
+            return None
+        else:
+            logger.warning(f"Failed to query tenants: {response.status_code} - {response.text}")
+            return None
+            
+    except Exception as e:
+        logger.error(f"Error resolving tenant name: {str(e)}")
+        return None
+
+
+def get_tenant_id_by_name(vast_host: str, tenant_name: str, admin_token: str) -> Optional[int]:
+    """
+    Resolve tenant name to tenant ID by querying VAST API
+    
+    Args:
+        vast_host: VAST cluster address
+        tenant_name: Tenant name (e.g., "default")
+        admin_token: Admin JWT token for authentication
+        
+    Returns:
+        Tenant ID if found, None otherwise
+    """
+    tenant_info = get_tenant_info_by_name(vast_host, tenant_name, admin_token)
+    return tenant_info.get("id") if tenant_info else None
+
+
+def query_user_by_username(vast_host: str, username: str, admin_token: str, tenant_id: Optional[int] = None) -> Optional[dict]:
     """
     Query VAST API to get user info by username
     Searches all providers: local, Active Directory, LDAP, NIS
@@ -72,17 +136,24 @@ def query_user_by_username(vast_host: str, username: str, admin_token: str) -> O
         vast_host: VAST cluster address
         username: Username to query
         admin_token: Admin JWT token for authentication
+        tenant_id: Optional tenant ID to search in specific tenant
         
     Returns:
         User data dict if found, None otherwise
     """
     try:
+        params = {
+            "username": username,
+            "context": "aggregated"  # Search all providers (local, AD, LDAP, NIS)
+        }
+        
+        # Add tenant_id if provided
+        if tenant_id is not None:
+            params["tenant_id"] = tenant_id
+        
         response = requests.get(
             f"https://{vast_host}/api/users/query/",
-            params={
-                "username": username,
-                "context": "aggregated"  # Search all providers (local, AD, LDAP, NIS)
-            },
+            params=params,
             headers={"Authorization": f"Bearer {admin_token}"},
             verify=False,
             timeout=10
@@ -136,23 +207,27 @@ def get_user_s3_keys(vast_host: str, user_id: int, admin_token: str) -> list:
 def validate_s3_credentials(vast_host: str, access_key: str, secret_key: str) -> bool:
     """
     Validate S3 credentials by making a test API call
-    Uses s3_endpoint from settings if configured
+    Uses configured s3_endpoint from settings
+    IMPORTANT: The s3_endpoint must be configured for the tenant that the user belongs to.
+    Access keys are tenant-scoped and will only work with their tenant's S3 endpoint.
     
     Args:
-        vast_host: VAST cluster address (fallback if s3_endpoint not configured)
-        access_key: S3 access key
-        secret_key: S3 secret key
+        vast_host: VAST cluster address (not used for S3 endpoint)
+        access_key: S3 access key (tenant-scoped)
+        secret_key: S3 secret key (tenant-scoped)
         
     Returns:
         True if credentials are valid, False otherwise
     """
-    # Get S3 endpoint from settings (preferred) or fallback to vast_host
+    # Use configured s3_endpoint from settings
     s3_endpoint = getattr(settings, 's3_endpoint', None)
     if not s3_endpoint:
-        # Fallback: construct from vast_host
-        protocol = 'http' if not getattr(settings, 's3_use_ssl', True) else 'https'
-        s3_endpoint = f'{protocol}://{vast_host}'
-        logger.warning(f"No s3_endpoint configured, using constructed endpoint: {s3_endpoint}")
+        logger.error("Cannot validate S3 credentials: s3_endpoint is not configured in backend settings. Please configure the S3 endpoint for the tenant you want to support.")
+        return False
+    
+    logger.debug(f"Using configured s3_endpoint: {s3_endpoint}")
+    
+    logger.info(f"Validating S3 credentials with endpoint: {s3_endpoint}, access_key: {access_key[:8]}...")
     
     try:
         s3_client = boto3.client(
@@ -164,31 +239,36 @@ def validate_s3_credentials(vast_host: str, access_key: str, secret_key: str) ->
             config=Config(signature_version='s3v4')
         )
         
-        s3_client.list_buckets()
+        response = s3_client.list_buckets()
+        logger.info(f"S3 validation successful with endpoint: {s3_endpoint}")
         return True
         
     except ClientError as e:
-        logger.warning(f"S3 ClientError for key {access_key}: {e.response.get('Error', {}).get('Code', 'Unknown')}")
+        error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+        error_message = e.response.get('Error', {}).get('Message', 'No message')
+        logger.error(f"S3 validation failed: Could not validate credentials with S3 endpoint '{s3_endpoint}'. Error Code: {error_code}, Message: {error_message}. Please ensure you are using the correct S3 endpoint for your tenant.")
         return False
     except Exception as e:
-        logger.error(f"Error validating S3 credentials: {type(e).__name__}: {str(e)}")
+        logger.error(f"S3 validation failed: Could not validate credentials with S3 endpoint '{s3_endpoint}'. Error: {type(e).__name__}: {str(e)}. Please ensure you are using the correct S3 endpoint for your tenant.")
         return False
 
 
-def authenticate_local_user(address: str, username: str, secret_key: str) -> Optional[dict]:
+def authenticate_local_user(address: str, username: str, secret_key: str, tenant_name: str = "default") -> Optional[dict]:
     """
     Authenticate VAST user with username + S3 secret key
     Supports users from all providers: local, Active Directory, LDAP, NIS
+    Supports both default and non-default tenants
     
     Args:
         address: VAST management hostname or IP
         username: User's username (from any provider)
         secret_key: User's S3 secret key
+        tenant_name: Tenant name (default: "default")
         
     Returns:
         User info dict if authenticated, None otherwise
     """
-    logger.info(f"Authenticating user: {username} at {address}")
+    logger.info(f"Authenticating user: {username} at {address} (tenant: {tenant_name})")
     
     # Step 1: Get admin token for API queries
     admin_token = get_admin_token(address)
@@ -196,11 +276,29 @@ def authenticate_local_user(address: str, username: str, secret_key: str) -> Opt
         logger.error("Failed to obtain admin token")
         return None
     
-    # Step 2: Query user by username
-    user_data = query_user_by_username(address, username, admin_token)
-    if not user_data:
-        logger.warning(f"User not found: {username}")
+    # Step 2: Always resolve tenant_name to tenant_id (including "default")
+    # The VAST API requires tenant_id to be specified for proper tenant context
+    tenant_info = None
+    if tenant_name:
+        tenant_info = get_tenant_info_by_name(address, tenant_name, admin_token)
+        if tenant_info is None:
+            logger.error(f"Tenant '{tenant_name}' not found. Cannot proceed without tenant_id.")
+            return None
+        tenant_id = tenant_info.get("id")
+        logger.info(f"Resolved tenant '{tenant_name}' to ID: {tenant_id}")
+    else:
+        logger.error("Tenant name is required but not provided")
         return None
+    
+    # Step 3: Query user by username with tenant_id (always required)
+    logger.info(f"Querying user '{username}' with tenant_id={tenant_id} (tenant_name='{tenant_name}')")
+    user_data = query_user_by_username(address, username, admin_token, tenant_id=tenant_id)
+    
+    if not user_data:
+        logger.warning(f"User '{username}' not found in tenant '{tenant_name}' (ID: {tenant_id})")
+        return None
+    
+    logger.info(f"User '{username}' found in tenant '{tenant_name}' (ID: {tenant_id}). User data keys: {list(user_data.keys())}")
     
     # Get VAST ID (vid) as user identifier
     user_id = user_data.get("vid") or user_data.get("uid")
@@ -208,30 +306,36 @@ def authenticate_local_user(address: str, username: str, secret_key: str) -> Opt
         logger.error(f"No vid/uid in query response. Available fields: {list(user_data.keys())}")
         return None
     
-    # Step 3: Get S3 access keys from query response (they're already included!)
+    # Step 4: Get S3 access keys from query response (they're already included!)
     access_keys_raw = user_data.get("access_keys", [])
     if not access_keys_raw:
         logger.warning(f"No S3 keys found for user: {username}")
         return None
     
-    logger.debug(f"Found {len(access_keys_raw)} S3 keys for user {username}")
+    logger.info(f"Found {len(access_keys_raw)} S3 keys for user {username} (tenant: {tenant_name}, tenant_id: {tenant_id})")
+    logger.debug(f"Access keys data: {access_keys_raw}")
     
-    # Step 4: Validate secret_key with each access_key
+    # Step 5: Validate secret_key with each access_key
     # Format: [['ACCESS_KEY', 'enabled', 'local', '2025-11-27T09:46:27+00:00'], ...]
+    validated_keys = []
     for key_data in access_keys_raw:
         if not isinstance(key_data, list) or len(key_data) < 2:
+            logger.debug(f"Skipping invalid key data format: {key_data}")
             continue
             
         access_key = key_data[0]
         status = key_data[1]
         
+        logger.debug(f"Checking access key: {access_key}, status: {status}, tenant: {tenant_name} (ID: {tenant_id})")
+        
         if status != "enabled":
             logger.debug(f"Skipping disabled key: {access_key}")
             continue
         
-        # Validate credentials
+        # Validate credentials using configured s3_endpoint (must be for the tenant)
+        logger.info(f"Validating S3 credentials for key {access_key} (tenant: {tenant_name}, tenant_id: {tenant_id})")
         if validate_s3_credentials(address, access_key, secret_key):
-            logger.info(f"Successfully authenticated {username} with S3 credentials")
+            logger.info(f"Successfully authenticated {username} with S3 credentials (tenant: {tenant_name}, tenant_id: {tenant_id}, access_key: {access_key})")
             return {
                 "user_id": user_id,
                 "username": username,
@@ -239,10 +343,15 @@ def authenticate_local_user(address: str, username: str, secret_key: str) -> Opt
                 "auth_type": "s3_local",
                 "email": user_data.get("email"),
                 "uid": user_data.get("uid"),
-                "gid": user_data.get("leading_gid")
+                "gid": user_data.get("leading_gid"),
+                "tenant_name": tenant_name,
+                "tenant_id": tenant_id
             }
+        else:
+            logger.warning(f"S3 validation failed for key {access_key} (tenant: {tenant_name}, tenant_id: {tenant_id})")
+            validated_keys.append(access_key)
     
-    logger.warning(f"Invalid secret key for user: {username}")
+    logger.warning(f"Invalid secret key for user: {username} (tenant: {tenant_name}, tenant_id: {tenant_id}). Tried {len(validated_keys)} keys: {validated_keys}")
     return None
 
 

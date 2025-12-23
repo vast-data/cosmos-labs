@@ -29,6 +29,12 @@
         <input matInput formControlName="vastHost" placeholder="VAST management endpoint">
       </mat-form-field>
 
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Tenant Name</mat-label>
+        <input matInput formControlName="tenantName" placeholder="default">
+        <mat-hint>Enter tenant name (default: "default")</mat-hint>
+      </mat-form-field>
+
       @if (authService.error()) {
         <div class="error-message">
           {{ authService.error() }}
