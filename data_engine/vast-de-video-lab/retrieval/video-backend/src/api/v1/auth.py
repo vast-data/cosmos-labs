@@ -15,32 +15,34 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 @router.post("/login", response_model=Token)
 async def login(request: VastLoginRequest):
     """
-    Login with VAST user credentials (username + S3 secret key)
+    Login with VAST user credentials (username + S3 secret key + tenant name)
     Supports users from all providers: local, Active Directory, LDAP, NIS
+    Supports both default and non-default tenants
     
     Args:
-        request: Login request with username, secret_key, and VAST host
+        request: Login request with username, secret_key, vast_host, and tenant_name
         
     Returns:
         JWT token and user information
     """
-    logger.info(f"Login attempt for user: {request.username} at host: {request.vast_host}")
+    logger.info(f"Login attempt for user: {request.username} at host: {request.vast_host} (tenant: {request.tenant_name})")
     
-    # Authenticate user with username + S3 secret key (any provider)
+    # Authenticate user with username + S3 secret key (any provider, any tenant)
     user_data = authenticate_local_user(
         address=request.vast_host,
         username=request.username,
-        secret_key=request.secret_key
+        secret_key=request.secret_key,
+        tenant_name=request.tenant_name
     )
     
     if not user_data:
         logger.warning(f"Login failed for user: {request.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username or secret key"
+            detail="Invalid username, secret key, or tenant"
         )
     
-    logger.info(f"Login successful for user: {user_data['username']}")
+    logger.info(f"Login successful for user: {user_data['username']} (tenant: {request.tenant_name})")
     
     # Create internal JWT token for our application
     internal_token = create_internal_jwt(user_data)
