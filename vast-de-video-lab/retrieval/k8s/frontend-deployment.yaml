@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: video-frontend
+  namespace: NAMESPACE
+  labels:
+    app: video-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: video-frontend
+  template:
+    metadata:
+      labels:
+        app: video-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: vastdatasolutions/vde-video-frontend:v1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+          name: http
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: video-frontend-service
+  namespace: NAMESPACE
+spec:
+  selector:
+    app: video-frontend
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: video-frontend-ingress
+  namespace: NAMESPACE
+  labels:
+    app: video-frontend
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: video-lab.CLUSTER_NAME.vastdata.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: video-frontend-service
+            port:
+              number: 80
+

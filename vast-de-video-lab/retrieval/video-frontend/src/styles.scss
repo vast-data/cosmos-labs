@@ -1,0 +1,431 @@
+/* Global Styles for Video Reasoning Lab */
+@use '@angular/material' as mat;
+
+/* Include Material theme */
+@include mat.core();
+
+/* Define VAST theme with darker space blue colors */
+$my-primary: mat.m2-define-palette(mat.$m2-blue-palette, 800, 700, 900);
+$my-accent: mat.m2-define-palette(mat.$m2-light-blue-palette, 700, 600, 800);
+$my-warn: mat.m2-define-palette(mat.$m2-red-palette);
+
+$my-theme: mat.m2-define-light-theme((
+  color: (
+    primary: $my-primary,
+    accent: $my-accent,
+    warn: $my-warn,
+  ),
+  typography: mat.m2-define-typography-config(),
+  density: 0,
+));
+
+@include mat.all-component-themes($my-theme);
+
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Roboto', sans-serif;
+  background: #0f0f1e;
+  color: #fff;
+  cursor: default;
+}
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+}
+
+/* GLOBAL: Force default cursor everywhere to prevent I-beam */
+* {
+  cursor: default !important;
+}
+
+/* Prevent text cursor on non-editable elements */
+/* Allow text selection everywhere but NO I-beam cursor */
+h1, h2, h3, h4, h5, h6, p, span, div, label, 
+.mat-mdc-radio-button label,
+.mat-mdc-checkbox label,
+.hint-chip,
+.mat-mdc-button,
+.mat-mdc-raised-button {
+  user-select: text;  // Allow selection for copy/paste
+}
+
+/* Allow text cursor (I-beam) AND selection ONLY on inputs and editable areas */
+input, textarea, 
+input *, textarea * {
+  cursor: text !important;
+  user-select: text;
+}
+
+/* Buttons should not be selectable */
+button, a[mat-button], a[mat-raised-button] {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  cursor: pointer !important;
+}
+
+/* Images should not be draggable or selectable */
+img {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  -webkit-user-drag: none !important;
+  pointer-events: none;
+}
+
+/* Clickable images should allow pointer events */
+img[role="button"], 
+img.clickable,
+button img,
+a img {
+  pointer-events: auto;
+}
+
+/* Pointer cursor for all clickable elements */
+button, 
+a, 
+mat-chip,
+mat-chip-row,
+mat-checkbox, 
+[role="button"],
+[mat-button],
+[mat-raised-button],
+[mat-flat-button],
+[mat-stroked-button],
+[mat-icon-button],
+[mat-fab],
+[mat-mini-fab],
+.mat-mdc-button,
+.mat-mdc-raised-button,
+.mat-mdc-outlined-button,
+.mat-mdc-unelevated-button,
+.mat-mdc-icon-button,
+.mdc-button,
+.mdc-icon-button,
+.mat-mdc-chip,
+.mat-mdc-chip-action,
+.mdc-evolution-chip,
+.mat-mdc-checkbox,
+.clickable {
+  cursor: pointer !important;
+  
+  * {
+    cursor: pointer !important;
+  }
+}
+
+button:disabled,
+.mat-mdc-button:disabled,
+.mdc-button:disabled {
+  cursor: not-allowed !important;
+  
+  * {
+    cursor: not-allowed !important;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 71, 171, 0.6);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 71, 171, 0.8);
+}
+
+/* Material overrides for dark theme */
+.mat-mdc-form-field {
+  color: #fff !important;
+  
+  .mat-mdc-input-element {
+    color: #fff !important;
+    caret-color: #0047AB;
+  }
+  
+  .mat-mdc-floating-label {
+    color: rgba(255, 255, 255, 0.85) !important;
+  }
+  
+  &.mat-focused .mat-mdc-floating-label {
+    color: #0047AB !important;
+  }
+  
+  .mat-mdc-form-field-hint,
+  .mat-mdc-form-field-error {
+    color: rgba(255, 255, 255, 0.85) !important;
+  }
+}
+
+.mat-mdc-input-element::placeholder {
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+
+.mat-mdc-select,
+.mat-mdc-select-value,
+.mat-mdc-select-trigger {
+  color: #fff !important;
+}
+
+.mat-mdc-option {
+  color: #fff !important;
+  
+  &:hover {
+    background: rgba(0, 71, 171, 0.15);
+  }
+}
+
+/* Utility classes */
+.full-width {
+  width: 100%;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* Animation classes */
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Streaming Dialog Global Styles */
+.streaming-dialog-container {
+  .mat-mdc-dialog-container {
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+  }
+
+  .mat-mdc-dialog-surface {
+    background: transparent !important;
+    padding: 0 !important;
+  }
+}
+
+/* Config Menu Styling - DARK BACKGROUND WITH BLUR, WHITE FONTS */
+/* ULTRA AGGRESSIVE OVERRIDES TO FORCE DARK MENU */
+
+/* Target the actual menu panel in the CDK overlay */
+.cdk-overlay-pane .mat-mdc-menu-panel.config-menu,
+.mat-mdc-menu-panel.config-menu,
+div.mat-mdc-menu-panel[role="menu"] {
+  background: rgba(10, 10, 30, 0.95) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(0, 206, 209, 0.3) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6),
+              0 0 0 1px rgba(0, 71, 171, 0.2) !important;
+  z-index: 10000 !important;
+  margin-top: 4px !important;
+  transform-origin: top right !important;
+  will-change: transform, opacity !important;
+}
+
+/* Smooth enter animation */
+.cdk-overlay-pane:not(.cdk-overlay-pane-leaving) .mat-mdc-menu-panel.config-menu {
+  animation: menuSlideIn 0.25s cubic-bezier(0.25, 0.8, 0.25, 1) forwards !important;
+}
+
+/* Smooth exit animation */
+.cdk-overlay-pane.cdk-overlay-pane-leaving .mat-mdc-menu-panel.config-menu {
+  animation: menuSlideOut 0.2s cubic-bezier(0.4, 0, 0.6, 1) forwards !important;
+}
+
+.cdk-overlay-pane .mat-mdc-menu-panel.config-menu .mat-mdc-menu-content,
+.mat-mdc-menu-panel.config-menu .mat-mdc-menu-content,
+div.mat-mdc-menu-panel[role="menu"] .mat-mdc-menu-content {
+  padding: 0.5rem !important;
+  background: transparent !important;
+}
+
+.cdk-overlay-pane .mat-mdc-menu-panel.config-menu .mat-mdc-menu-item,
+.mat-mdc-menu-panel.config-menu .mat-mdc-menu-item,
+div.mat-mdc-menu-panel[role="menu"] .mat-mdc-menu-item {
+  color: white !important;
+  transition: all 0.2s ease !important;
+  border-radius: 8px !important;
+  margin: 0.25rem 0 !important;
+  padding: 0.75rem 1rem !important;
+  font-size: 0.95rem !important;
+  background: transparent !important;
+
+  &:hover {
+    background: rgba(0, 206, 209, 0.15) !important;
+    transform: translateX(4px) !important;
+  }
+
+  .mat-icon {
+    color: #00CED1 !important;
+    margin-right: 0.75rem !important;
+  }
+
+  span, .mat-mdc-menu-item-text, .mdc-list-item__primary-text {
+    color: white !important;
+  }
+  
+  * {
+    color: white !important;
+  }
+}
+
+@keyframes slideDownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Menu open animation */
+@keyframes menuSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Menu close animation */
+@keyframes menuSlideOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+}
+
+/* Global mat-select dropdown panel styling for dark theme */
+.cdk-overlay-pane .mat-mdc-select-panel,
+.mat-mdc-select-panel {
+  background: linear-gradient(135deg, #0A0A1E 0%, #15152E 100%) !important;
+  border: 1px solid rgba(0, 206, 209, 0.3) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+
+  .mat-mdc-option {
+    color: rgba(255, 255, 255, 0.9) !important;
+    background: transparent !important;
+
+    &:hover:not(.mdc-list-item--disabled) {
+      background: rgba(0, 71, 171, 0.3) !important;
+    }
+
+    &.mdc-list-item--selected:not(.mdc-list-item--disabled),
+    &.mat-mdc-option-active {
+      background: rgba(0, 71, 171, 0.4) !important;
+      color: #00CED1 !important;
+    }
+
+    .mdc-list-item__primary-text {
+      color: inherit !important;
+    }
+  }
+}
+
+/* System Prompt Dialog Global Styles */
+.system-prompt-dialog-container {
+  .mat-mdc-dialog-container {
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+  }
+
+  .mat-mdc-dialog-surface {
+    background: transparent !important;
+    padding: 0 !important;
+  }
+}
+
+/* Advanced LLM Settings dialog container */
+.advanced-llm-settings-dialog-container {
+  .mat-mdc-dialog-container {
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+  }
+
+  .mat-mdc-dialog-surface {
+    background: transparent !important;
+    padding: 0 !important;
+  }
+}
+
+/* Snackbar styling for system prompt save feedback */
+.success-snackbar {
+  --mdc-snackbar-container-color: rgba(19, 74, 152, 0.95);
+  --mdc-snackbar-supporting-text-color: white;
+}
+
+.info-snackbar {
+  --mdc-snackbar-container-color: rgba(19, 74, 152, 0.95);
+  --mdc-snackbar-supporting-text-color: white;
+}

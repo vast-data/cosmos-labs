@@ -1,0 +1,172 @@
+#!/bin/bash
+# Quick Deployment Script for Video Reasoning Lab
+# Usage: cd k8s && ./QUICK_DEPLOY.sh <namespace> <cluster_name>
+
+set -e
+
+echo "🚀 Video Reasoning Lab - Quick Deploy"
+echo "======================================"
+echo ""
+
+# Colors for output
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+# Validate required parameters
+if [ -z "$1" ]; then
+  echo -e "${RED}Error: Namespace parameter is required${NC}"
+  echo ""
+  echo "Usage: ./QUICK_DEPLOY.sh <namespace> <cluster_name>"
+  echo "Example: ./QUICK_DEPLOY.sh vastvideo v1234"
+  echo ""
+  exit 1
+fi
+
+if [ -z "$2" ]; then
+  echo -e "${RED}Error: Cluster name parameter is required${NC}"
+  echo ""
+  echo "Usage: ./QUICK_DEPLOY.sh <namespace> <cluster_name>"
+  echo "Example: ./QUICK_DEPLOY.sh vastvideo v1234"
+  echo ""
+  exit 1
+fi
+
+# Configuration
+NAMESPACE="$1"
+CLUSTER_NAME="$2"
+
+# Check prerequisites
+echo -e "${YELLOW}Checking prerequisites...${NC}"
+command -v kubectl >/dev/null 2>&1 || { echo -e "${RED}kubectl not found${NC}"; exit 1; }
+
+# Check kubectl configuration
+echo -e "${YELLOW}Checking kubectl configuration...${NC}"
+if ! kubectl cluster-info >/dev/null 2>&1; then
+  echo -e "${RED}✗ kubectl is not configured or cannot connect to cluster${NC}"
+  echo ""
+  
+  # Show current KUBECONFIG status
+  if [ -n "$KUBECONFIG" ]; then
+    echo -e "${YELLOW}Current KUBECONFIG: $KUBECONFIG${NC}"
+    if [ ! -f "$KUBECONFIG" ]; then
+      echo -e "${RED}  ⚠ File does not exist!${NC}"
+    fi
+  else
+    echo -e "${YELLOW}KUBECONFIG environment variable is not set${NC}"
+    DEFAULT_KUBECONFIG="$HOME/.kube/config"
+    if [ -f "$DEFAULT_KUBECONFIG" ]; then
+      echo -e "${YELLOW}  Found default config at: $DEFAULT_KUBECONFIG${NC}"
+    else
+      echo -e "${RED}  No default config found at: $DEFAULT_KUBECONFIG${NC}"
+    fi
+  fi
+  echo ""
+  
+  echo -e "${YELLOW}Troubleshooting:${NC}"
+  echo "  1. Check if KUBECONFIG environment variable is set:"
+  echo "     echo \$KUBECONFIG"
+  echo ""
+  echo "  2. If not set, export your kubeconfig file:"
+  echo "     export KUBECONFIG=/path/to/your/kubeconfig.yaml"
+  echo ""
+  echo "  4. Verify kubectl can connect:"
+  echo "     kubectl cluster-info"
+  echo ""
+  echo -e "${RED}Please configure kubectl before running this script.${NC}"
+  exit 1
+fi
+echo -e "${GREEN}✓ kubectl is configured and can connect to cluster${NC}"
+echo -e "${GREEN}✓ All prerequisites found${NC}"
+echo ""
+
+echo -e "${YELLOW}Cluster Configuration:${NC}"
+echo "  Cluster Name: $CLUSTER_NAME"
+echo "  Namespace:    $NAMESPACE"
+echo ""
+
+# Step 1: Create Namespace
+echo -e "${YELLOW}Step 1/7: Creating namespace...${NC}"
+kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+kubectl label ns $NAMESPACE zarf.dev/agent=ignore
+echo -e "${GREEN}✓ Namespace ready${NC}"
+echo ""
+
+# Step 2: Create Secret
+echo -e "${YELLOW}Step 2/7: Creating backend secret...${NC}"
+sed "s/NAMESPACE/$NAMESPACE/g" backend-secret.yaml | kubectl apply -f -
+echo -e "${GREEN}✓ Secret created${NC}"
+echo ""
+
+# Step 3: Create ConfigMaps
+echo -e "${YELLOW}Step 3/7: Creating configmaps...${NC}"
+sed "s/NAMESPACE/$NAMESPACE/g" frontend-config.yaml | kubectl apply -f -
+echo -e "${GREEN}✓ ConfigMaps created${NC}"
+echo ""
+
+# Step 4: Deploy Backend (includes backend ingress)
+echo -e "${YELLOW}Step 4/7: Deploying backend...${NC}"
+sed -e "s/NAMESPACE/$NAMESPACE/g" -e "s/CLUSTER_NAME/$CLUSTER_NAME/g" backend-deployment.yaml | kubectl apply -f -
+echo -e "${GREEN}✓ Backend deployed${NC}"
+echo ""
+
+# Step 5: Deploy Frontend (includes frontend ingress)
+echo -e "${YELLOW}Step 5/7: Deploying frontend...${NC}"
+sed -e "s/NAMESPACE/$NAMESPACE/g" -e "s/CLUSTER_NAME/$CLUSTER_NAME/g" frontend-deployment.yaml | kubectl apply -f -
+echo -e "${GREEN}✓ Frontend deployed${NC}"
+echo ""
+
+# Step 6: Deploy Video Streaming
+echo -e "${YELLOW}Step 6/7: Deploying video streaming service...${NC}"
+sed -e "s/NAMESPACE/$NAMESPACE/g" -e "s/CLUSTER_NAME/$CLUSTER_NAME/g" videostreamer-deployment.yaml | kubectl apply -f -
+echo -e "${GREEN}✓ Video streaming service deployed${NC}"
+echo ""
+
+# Step 7: Verify ConfigMaps
+echo -e "${YELLOW}Step 7/7: Verifying configuration...${NC}"
+kubectl get configmap -n $NAMESPACE
+echo -e "${GREEN}✓ Configuration verified${NC}"
+echo ""
+
+# Get Ingress IP
+echo -e "${GREEN}✅ Deployment Complete!${NC}"
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "📊 Deployment Status:"
+kubectl get all -n $NAMESPACE
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "🌐 Access Information:"
+echo ""
+INGRESS_IP=$(kubectl get ingress video-frontend-ingress -n $NAMESPACE -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "pending")
+if [ "$INGRESS_IP" == "pending" ] || [ -z "$INGRESS_IP" ]; then
+  echo -e "${YELLOW}⏳ Ingress IP is still pending...${NC}"
+  echo "   Run this to check: kubectl get ingress -n $NAMESPACE"
+else
+  echo -e "${GREEN}Ingress IP: $INGRESS_IP${NC}"
+fi
+echo ""
+echo "Add to /etc/hosts:"
+echo -e "${YELLOW}  $INGRESS_IP video-lab.$CLUSTER_NAME.vastdata.com${NC}"
+echo ""
+echo "Then access:"
+echo -e "${GREEN}  http://video-lab.$CLUSTER_NAME.vastdata.com${NC} (Main Video Lab)"
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "📝 Next Steps:"
+echo "  1. Wait for pods to be ready:"
+echo "     kubectl get pods -n $NAMESPACE -w"
+echo "  2. Add Ingress IP to your local machine's /etc/hosts"
+echo "  3. Open http://video-lab.$CLUSTER_NAME.vastdata.com"
+echo "  4. Login with VAST credentials"
+echo ""
+echo "🔍 View Logs:"
+echo "  Backend:         kubectl logs -f -n $NAMESPACE -l app=video-backend"
+echo "  Frontend:        kubectl logs -f -n $NAMESPACE -l app=video-frontend"
+echo "  Video Streaming: kubectl logs -f -n $NAMESPACE -l app=video-stream-capture"
+echo ""
+
