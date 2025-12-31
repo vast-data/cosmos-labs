@@ -13,6 +13,7 @@ export interface SearchState {
   permissionFiltered: number;
   llmSynthesis: LLMSynthesis | null;
   animationPhase: 'idle' | 'embedding' | 'searching' | 'filtering' | 'synthesizing' | 'complete';
+  sqlQuery: string | null;
 }
 
 @Injectable({
@@ -31,7 +32,8 @@ export class SearchService {
     llmTimeMs: 0,
     permissionFiltered: 0,
     llmSynthesis: null,
-    animationPhase: 'idle'
+    animationPhase: 'idle',
+    sqlQuery: null
   });
 
   async search(request: SearchRequest) {
@@ -75,7 +77,8 @@ export class SearchService {
           llmTimeMs: response.llm_synthesis?.processing_time ? response.llm_synthesis.processing_time * 1000 : 0,
           permissionFiltered: response.permission_filtered,
           llmSynthesis: response.llm_synthesis || null,
-          animationPhase: 'complete'
+          animationPhase: 'complete',
+          sqlQuery: response.sql_query || null
         }));
       }
     } catch (error: any) {
@@ -98,7 +101,8 @@ export class SearchService {
       searchTimeMs: 0,
       llmTimeMs: 0,
       llmSynthesis: null,
-      animationPhase: 'idle'
+      animationPhase: 'idle',
+      sqlQuery: null
     }));
   }
 

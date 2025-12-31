@@ -7,18 +7,29 @@ Full overview: How to Deploy and Manage the Video Reasoning Lab system powered b
 ## Overview
 
 The system has two main parts:
-1. **Backend/Frontend** (Kubernetes) - User interface and API
+1. **Backend/Frontend** (Kubernetes) - User interface and API (fullstack frontend/backend application)
 2. **Ingest Pipeline** (VAST DataEngine) - Serverless video processing functions
 
 ---
+
+---
+
+## Ingest / Retrieval Flow Breakdown
+
+![Ingest/Retrieval](diag1.png)
+
+---
+
 
 ## Key Features
 
 ### 1. Configurable Video Analysis Prompts (Cosmos VLM)
 
-The `video-reasoner` function uses NVIDIA Cosmos VLM for video understanding. The analysis prompt can be configured per use case by setting the `scenario` key in the ingest secret.
+The `video-reasoner` function uses NVIDIA Cosmos VLM for video understanding.
+The analysis prompt can be configured per use case by setting the `scenario` key in the ingest secret, it is defaulted to `surveillance` for now.
+See Step 1.3 for model selection instructions.
 
-**Available scenarios:**
+**[OPTIONAL] Available scenarios:**
 | Scenario | Use Case |
 |----------|----------|
 | `surveillance` | Security cameras, safety monitoring (default) |
@@ -119,7 +130,7 @@ The **video-streaming** service captures live YouTube streams and uploads segmen
 
 ### 8. User Authentication
 
-The system authenticates users against VAST cluster credentials.
+The system authenticates users against VAST cluster credentials with support for multiple tenants.
 
 **Steps to make Authentication work**
 1. VMS > Administrators > Administrative Roles
@@ -127,27 +138,44 @@ The system authenticates users against VAST cluster credentials.
 3. VMS > Administrators > Managers > Create
 4. Create 'vssadmin' manager > Provide Password > Uncheck 'Password is temporary' Attach to 'read-only' Role
 
-**Add these creda to the Backend Secret:**
+**Add these credentials to the Backend Secret:**
 **Location:** `retrieval/k8s/backend-secret.yaml`
 ```yaml
-# vssadmin Credentials (for authenticating users via VAST API)
+# vssadmin Credentials (for authenticating tenant users via VAST API)
 vast_admin_username: "vssadmin"       # vssadmin user (readonly)
 vast_admin_password: "password"
+
+# S3 Settings - IMPORTANT: Must match the tenant you want to support
+s3_endpoint: "http://tenant-specific-endpoint.vastdata.com"  # S3 endpoint for the tenant
+s3_access_key: "YOUR_ACCESS_KEY"
+s3_secret_key: "YOUR_SECRET_KEY" 
 ```
 - The admin credentials are only used server-side for user lookups, never exposed to clients
+- **CRITICAL**: The `s3_endpoint` must be configured for the tenant you want users to authenticate with. Access keys are tenant-scoped and will only validate against their tenant's S3 endpoint.
 
 **How it works:**
-1. User enters: **Username**, **S3 Secret Key**, and **VAST Host** (VMS IP) in the login screen
-2. Backend uses a **master admin account** to query the VAST API
-3. Backend verifies the user exists and validates their S3 secret key
+1. User enters: **Username**, **S3 Secret Key**, **VAST Host** (VMS IP), and **Tenant Name** in the login screen
+2. Backend queries user in the specified tenant context using `vssadmin` read-only account
+3. Backend validates S3 credentials using the configured `s3_endpoint` (must match the tenant)
 4. On success, an internal JWT token is issued for the session
 
 **Supported user providers:**
 - Local VAST users
 - Active Directory (AD)
 - LDAP
+- NIS
 
-Users authenticate with their **username + S3 secret key** (not their password). The S3 secret key is obtained from VAST user management.
+**Tenant Support:**
+- Supports both default and non-default tenants
+- Users must specify their tenant name during login (default: "default")
+- The backend's `s3_endpoint` configuration must match the tenant's S3 endpoint
+- If users from multiple tenants need to authenticate, deploy separate backend instances with tenant-specific `s3_endpoint` configurations
+
+**Important Notes:**
+- Users authenticate with their **username + S3 secret key** (not their DataEngine password)
+- The S3 secret key is obtained from VAST user management
+- Access keys are tenant-scoped - they only work with their tenant's S3 endpoint
+- If authentication fails, check that `s3_endpoint` in `backend-secret.yaml` matches the tenant's S3 endpoint
 
 ---
 
@@ -159,12 +187,30 @@ Users authenticate with their **username + S3 secret key** (not their password).
 
 ## Prerequisites
 
-- `kubectl` configured for your cluster
-- Access to VAST DataEngine UI / CLI
-- Cluster name (Any name you pick - e.g., `v1234`) 
-- S3 buckets: `video-chunks` and `video-chunks-segments` created
-- VastDB database bucket: `processed-videos-db` created
-- NVIDIA COSMOS Modelo Endpoint & NIM Endpoints with API key for embeddings and LLM models
+Before starting, ensure you have:
+
+- **Kubernetes access:**
+  - `kubectl` installed and configured for your remote cluster
+  - `KUBECONFIG` environment variable set (or default config at `~/.kube/config`)
+  - Ability to create namespaces and deploy resources
+
+- **VAST cluster access:**
+  - Access to VAST DataEngine UI / CLI
+  - Cluster name (can be any arbitrary name you pick - e.g., `v1234`)
+    - The cluster name can be application specific or arbitrary and will be used as part of the URL for accessing the application
+  - Admin credentials for creating VMS manager user (see Authentication section)
+
+- **Storage resources:**
+  - S3 buckets created: `video-chunks` and `video-chunks-segments`
+  - VastDB database bucket created: `processed-videos-db` (or your custom name)
+
+- **AI/ML services:**
+  - NVIDIA COSMOS Modelo Endpoint (for video reasoning)
+  - NVIDIA NIM Endpoints with API key (for embeddings and LLM models)
+
+- **Network access:**
+  - Your laptop/computer must be able to reach the remote Kubernetes cluster
+  - Ability to modify `/etc/hosts` (or Windows hosts file) on your local machine
 
 ---
 
@@ -181,48 +227,77 @@ Follow these steps in order:
 
 ## Part 1: Configuration
 
+Before deploying, you need to configure secrets with your credentials. These secrets store sensitive information like API keys, database credentials, and S3 access keys.
+
 ### Step 1.1: Review and Configure Backend Secret
 
 **Location:** `retrieval/k8s/backend-secret.yaml`
 
-**Required configuration:**
-- **VastDB**: Database credentials and connection info
-  - `vdb_endpoint` - VastDB endpoint URL [ From QueryEngine Vippool ]
-  - `vdb_bucket`, `vdb_schema`, `vdb_collection` - Database path
-  - `vdb_access_key`, `vdb_secret_key` - Credentials
-- **S3**: Object storage credentials and buckets
-  - `s3_endpoint` - S3 endpoint URL
-  - `s3_upload_bucket`, `s3_segments_bucket` - Bucket names
-  - `s3_access_key`, `s3_secret_key` - Credentials
-- **NVIDIA API**: NIM embeddings and LLM API keys
-  - `nvidia_api_key` - NVIDIA API key
-  - `embedding_model` - Embedding model name - [ Tested with `nvidia/nv-embedqa-e5-v5` ]
-  - `llm_model_name` - LLM model - [ Tested with `meta/llama-3.1-8b-instruct` ]
-- **LLM Settings**: Model name, timeouts, parameters
+This file contains all the configuration needed for the backend service to connect to VastDB, S3, and NVIDIA services.
+
+**Required configuration sections:**
+
+1. **VastDB** (Database for storing video vectors):
+
+   - `vdb_endpoint` - VastDB endpoint URL (from QueryEngine VIP pool)
+      - Note for querying vectors, you will need a different endpoint than the `s3_endpoint`
+   - `vdb_bucket` - Database bucket name (e.g., `processed-videos-db`)
+   - `vdb_schema` - Database schema name (e.g., `processed-videos-schema`)
+   - `vdb_collection` - Table/collection name (e.g., `processed-videos-collection`)
+   - `vdb_access_key` - VastDB access key
+   - `vdb_secret_key` - VastDB secret key
+
+2. **S3** (Object storage for videos):
+   - `s3_endpoint` - **CRITICAL**: S3 endpoint URL for your tenant (must match tenant users will authenticate with)
+   - `s3_upload_bucket` - Bucket for uploaded videos (e.g., `video-chunks`)
+   - `s3_segments_bucket` - Bucket for processed segments (e.g., `video-chunks-segments`)
+   - `s3_access_key` - S3 access key
+   - `s3_secret_key` - S3 secret key
+
+3. **NVIDIA API** (AI/ML services):
+   - `nvidia_api_key` - NVIDIA API key for NIM endpoints
+   - `embedding_model` - Embedding model name (tested with `nvidia/nv-embedqa-e5-v5`)
+   - `llm_model_name` - LLM model for synthesis (tested with `meta/llama-3.1-8b-instruct`)
+
+4. **VAST Admin** (For user authentication):
+   - `vast_admin_username` - VMS manager username (e.g., `vssadmin`)
+   - `vast_admin_password` - VMS manager password
+   - View previous step, where we access the VMS for creating a read-only user `vssadmin`
 
 **Edit the file with your credentials:**
 ```bash
 cd retrieval/k8s
 # Edit backend-secret.yaml with your configuration
 vim backend-secret.yaml
+# or use your preferred editor
 ```
 
 ### Step 1.2: Verify Docker Images
 
-**Backend/Frontend images are prebuilt:**
-- `vastdatasolutions/vde-video-backend:v1`
-- `vastdatasolutions/vde-video-frontend:v1`
-- `vastdatasolutions/vde-video-streaming:v1`
+**Pre-built images (ready to use):**
+- `vastdatasolutions/vde-video-backend:v1` - Backend API service
+- `vastdatasolutions/vde-video-frontend:v1` - Frontend web UI
+- `vastdatasolutions/vde-video-streaming:v1` - Video streaming capture service
+- This step requires VMS access to add the container docker registry `https://hub.docker.com/u/` to the specific DataEngine tenant
 
-**If you need to rebuild and push to a different registry:**  
-**NOTE: these images are static docker servers, not a 'vast dataengine' functions**
+
+These images are available on [Docker Hub](https://hub.docker.com/u/vastdatasolutions) and ready to use. The deployment YAML files reference these images by default.
+
+**[OPTIONAL] If you need to use a different registry or rebuild images:**
+
+**NOTE:** These are standard Docker containers for running the application (frontend/backend), they are not VAST DataEngine functions. They run as Kubernetes deployments.
+
 ```bash
-# Backend
-cd retrieval/< video-backend / frontend >
+# Example: Rebuild backend image
+cd retrieval/video-backend
 docker build -t <your-registry>/vde-video-backend:<tag> . --platform linux/amd64
 docker push <your-registry>/vde-video-backend:<tag>
 ```
-Then update the image references in `backend-deployment.yaml` and `frontend-deployment.yaml`.
+
+Then update the image references in:
+- `backend-deployment.yaml` - Change `image:` field
+- `frontend-deployment.yaml` - Change `image:` field  
+- `videostreamer-deployment.yaml` - Change `image:` field
 
 ### Step 1.3: Review Ingest Secret
 
@@ -245,7 +320,16 @@ vim ingest/vde-video-ingest-secret-template.yaml
 
 ## Part 2: Deploy Backend & Frontend
 
-Now that all configuration is ready, deploy the backend and frontend services.
+Now that all configuration is ready, deploy the backend and frontend services to Kubernetes.
+
+### What Gets Deployed
+
+The deployment creates:
+- **Backend Service** (FastAPI) - REST API for search, authentication, video management
+- **Frontend Service** (Angular) - Web UI for video search and upload
+- **Video Streaming Service** - Service for capturing live video streams
+- **Ingress Resources** - Exposes services via HTTP with custom domain names
+- **Secrets & ConfigMaps** - Stores credentials and configuration
 
 ### Deployment Steps
 
@@ -254,31 +338,62 @@ Now that all configuration is ready, deploy the backend and frontend services.
 cd retrieval/k8s
 ```
 
-2. **Run the deployment script with your CLUSTER_NAME:**
-Example:
+2. **Run the deployment script with NAMESPACE and CLUSTER_NAME:**
 ```bash
-./QUICK_DEPLOY.sh v1234
+./QUICK_DEPLOY.sh <namespace> <cluster_name>
 ```
 
-3. **What the script does:**
-   - Creates `vastvideo` namespace
-   - Deploys backend secret (credentials & config)
+**Example:**
+```bash
+./QUICK_DEPLOY.sh vastvideo v1234
+```
+Replace `v1234` with your actual cluster name. This value will be used as part of the URL to accessing the frontend application.
+
+
+**Parameters:**
+   - `<namespace>` - Kubernetes namespace where resources will be deployed (e.g., `vastvideo`)
+   - `<cluster_name>` - Cluster name used for ingress hostnames (e.g., `v1234`)
+
+**Note:** Both parameters are required. The script will fail if either is missing.
+
+**What the script does:**
+   - Validates that both namespace and cluster_name parameters are provided
+   - Checks prerequisites (kubectl, cluster connectivity)
+   - Creates the specified namespace
+   - Deploys backend secret (credentials & config from `backend-secret.yaml`)
    - Deploys backend service (FastAPI)
    - Deploys frontend service (Angular)
    - Deploys video streaming service
-   - Creates ingress rules
+   - Creates ingress rules for external access
+   - All resources are deployed to the specified namespace
 
 **Note:** LLM system prompt is now configured via the GUI settings (no ConfigMap needed).
 
 4. **Wait for pods to be ready:**
 ```bash
-kubectl get pods -n vastvideo -w
+kubectl get pods -n <namespace> -w
 ```
 
-5. **Add to `/etc/hosts` the ingress dns:**
+Replace `<namespace>` with the namespace you specified in step 2.
+
+5. **Configure DNS on your local machine:**
+
+Get the Ingress IP and add it to your `/etc/hosts` file (on your laptop, not the remote cluster):
+
+```bash
+# Get the Ingress IP
+kubectl get ingress -n <namespace>
+# Look for EXTERNAL-IP or ADDRESS (may show "pending" initially - wait a few minutes)
 ```
-<k8s_node_ip> video-lab.<cluster_name>.vastdata.com video-streamer.<cluster_name>.vastdata.com
+
+Replace `<namespace>` with the namespace you specified in step 2.
+
+Add one of the listed IPs to `/etc/hosts` (macOS/Linux) or `C:\Windows\System32\drivers\etc\hosts` (Windows):
 ```
+<INGRESS_IP> video-lab.<cluster_name>.vastdata.com
+```
+
+**Note:** Each user needs to add this entry on their own machine to access the UI.
 
 6. **Access the UI:**
 ```
@@ -322,6 +437,7 @@ video-segment-land-trigger → video-reasoner → video-embedder → video-vastd
 - This step assumes you have a running Vast DataEngine cluster
 - You have a user with the right permissions and roles to setup DataEngine Pipelines (Including the Vector QueryEngine Identity-Policy.)
 - You have a pre-created Topic in Vast Event Broker (e.g. video-topic) for creating triggers
+   - It is recommended to create a new Topic and not use the default Topic, which is used by the DataEngine cluster itself
 
 Navigate to **DataEngine UI** → **Triggers** and create:
 
@@ -386,8 +502,12 @@ Now that everything is deployed, test the complete system end-to-end.
 ### Testing Steps
 
 1. **Login to the GUI:**
-   - Open `http://video-lab.<cluster_name>.vastdata.com`
-   - Enter VAST VMS IP and credentials
+   - Open `http://video-lab.<cluster_name>.vastdata.com` in your browser (replace `<cluster_name>` with the cluster name you used during deployment)
+   - Enter:
+     - **Username**: Your VAST username
+     - **S3 Secret Key**: Your S3 secret key (from VAST user management)
+     - **VAST Host**: Your VAST VMS IP address
+     - **Tenant Name**: Your tenant name (default: "default")
    - Click "Log in"
 
 2. **Upload a test video:**
@@ -415,17 +535,48 @@ Now that everything is deployed, test the complete system end-to-end.
 
 ## Troubleshooting
 
+### Common Issues
+
+**1. Cannot access the web UI:**
+- Verify pods are running: `kubectl get pods -n <namespace>` (replace with your namespace)
+- Check ingress IP: `kubectl get ingress -n <namespace>` (replace with your namespace)
+- Verify `/etc/hosts` entry on your local machine (not on cluster)
+- Try accessing by IP directly: `http://<INGRESS_IP>`
+
+**2. Authentication fails:**
+- Verify `s3_endpoint` in `backend-secret.yaml` matches your tenant's S3 endpoint
+- Check backend logs for S3 validation errors
+- Ensure tenant name is correct (case-sensitive)
+- Verify user has S3 access keys enabled in VAST
+
+**3. Search returns no results:**
+- Check if videos have been processed (DataEngine UI → Executions)
+- Verify VastDB connection in backend secret
+- Check NVIDIA API key is valid
+- Review backend logs for embedding/search errors
+
+**4. Videos not processing:**
+- Verify pipeline is Active in DataEngine UI
+- Check S3 bucket names match in ingest secret
+- Review function logs in DataEngine UI → Executions
+- Verify Cosmos VLM endpoint is accessible
 
 ### View Logs
 
 **Backend/Frontend:**
 ```bash
-kubectl logs -f -n vastvideo -l app=video-backend
-kubectl logs -f -n vastvideo -l app=video-frontend
+# Backend logs (replace <namespace> with your namespace)
+kubectl logs -f -n <namespace> -l app=video-backend
+
+# Frontend logs
+kubectl logs -f -n <namespace> -l app=video-frontend
+
+# Video streaming service logs
+kubectl logs -f -n <namespace> -l app=video-stream-capture
 ```
 
 **Ingest Functions (DataEngine UI):**
-- Navigate to **DataEngine UI** → **Pipeline Management** → **Logs & Traces** 
+- Navigate to **DataEngine UI** → **Pipelines** → Click on pipeline → **Pipeline Logs** → View logs for each function 
 
 ---
 
@@ -454,38 +605,6 @@ kubectl logs -f -n vastvideo -l app=video-frontend
 
 ---
 
-### Architecture Summary
-
-```
-                           ┌──────────────────────────────────────────────────────────────┐
-                           │                    Kubernetes Cluster                        │
-                           │                                                              │
-                           │  ┌──────────────┐    ┌──────────────┐    ┌───────────────┐   │
-                           │  │   Frontend   │◄───┤   Ingress    │───►│   Backend     │   │
-                           │  │   (Angular)  │    │              │    │   (FastAPI)   │   │
-                           │  └──────────────┘    └──────────────┘    └───────┬───────┘   │
-                           │                                                  │           │
-                           │                                                  ▼           │
-                           │                                          ┌──────────────────┐│
-                           │                                          │  VastDB / S3     ││
-                           │                                          └──────────────────┘│
-                           └──────────────────────────────────────────────────────────────┘
-
-                           ┌──────────────────────────────────────────────────────────────┐
-                           │              VAST DataEngine (Serverless)                    │
-                           │                                                              │
-                           │  S3 Upload  →  video-segmenter  →  video-reasoner            │
-                           │                       ↓                    ↓                 │
-                           │                 CloudEvent          CloudEvent               │
-                           │                       ↓                    ↓                 │
-                           │              reasoning-embedder  →  vastdb-writer            │
-                           │                                            ↓                 │
-                           │                                       VastDB (vectors)       │
-                           └──────────────────────────────────────────────────────────────┘
-```
-
----
-
 ## Need Help?
 
 - **Backend/Frontend issues**: Check Kubernetes pod logs
@@ -494,4 +613,7 @@ kubectl logs -f -n vastvideo -l app=video-frontend
 - **Database issues**: Verify VastDB connectivity and credentials in secrets
 - **Search not working**: Check NVIDIA API key in backend secret
 - **Videos not processing**: Verify pipeline is Active in DataEngine UI and S3 buckets are correct
+---
+
+- **COSMOS Community**: Reach out to us on our [Community forums](https://community.vastdata.com/) for additional help!
 

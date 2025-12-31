@@ -16,6 +16,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY src/ ./src/
 
+# Copy ADBC driver (assumes libadbc_driver_vastdb.so is in build context)
+RUN mkdir -p /opt/adbc-driver
+COPY libadbc_driver_vastdb.so /opt/adbc-driver/libadbc_driver_vastdb.so
+RUN chmod 755 /opt/adbc-driver/libadbc_driver_vastdb.so
+
 # Expose port
 EXPOSE 8000
 

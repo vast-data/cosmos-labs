@@ -95,11 +95,24 @@ class VastDBService:
         try:
             logger.info(f"Setting up ADBC connection to VastDB at {self.settings.vdb_endpoint}")
             
-            # Download VastDB ADBC driver if not already present
-            driver_path = "/tmp/libadbc_driver_vastdb.so"
-            if not os.path.exists(driver_path):
+            # Check for driver in embedded location (from Docker image), then fallback to /tmp
+            driver_paths = [
+                "/opt/adbc-driver/libadbc_driver_vastdb.so",  # Embedded in Docker image
+                "/tmp/libadbc_driver_vastdb.so"  # Fallback location
+            ]
+            
+            driver_path = None
+            for path in driver_paths:
+                if os.path.exists(path):
+                    driver_path = path
+                    logger.info(f"Found VastDB ADBC driver at {driver_path}")
+                    break
+            
+            # If not found, try to download from artifactory (fallback)
+            if not driver_path:
+                driver_path = "/tmp/libadbc_driver_vastdb.so"
                 driver_url = "https://artifactory.vastdata.com/files/vastdb-native-client/1955131/libadbc_driver_vastdb.so"
-                logger.info(f"Downloading VastDB ADBC driver from {driver_url}")
+                logger.warning(f"Driver not found in image, downloading from {driver_url}")
                 urllib.request.urlretrieve(driver_url, driver_path)
                 # Make executable
                 os.chmod(driver_path, 0o755)
@@ -131,8 +144,9 @@ class VastDBService:
         custom_start_date: Optional[str] = None,
         custom_end_date: Optional[str] = None,
         metadata_filters: dict = None,
-        min_similarity: float = 0.4
-    ) -> tuple[List[VideoSearchResult], float, int]:
+        min_similarity: float = 0.4,
+        user_query_text: Optional[str] = None
+    ) -> tuple[List[VideoSearchResult], float, int, str]:
         """
         Perform similarity search with permission filtering, time filtering, and dynamic metadata filtering
         
@@ -147,9 +161,10 @@ class VastDBService:
             custom_end_date: Custom end date (ISO 8601 string) for 'custom' filter
             metadata_filters: Dynamic metadata filters (e.g., {'camera_id': 'CAM-001', 'neighborhood': 'Midtown'})
             min_similarity: Minimum similarity score threshold (0.3-0.8 recommended, default 0.1)
+            user_query_text: Original user query text (for SQL query formatting)
             
         Returns:
-            Tuple of (results list, search time in ms, number filtered by permissions)
+            Tuple of (results list, search time in ms, number filtered by permissions, formatted SQL query)
             
         Raises:
             Exception if search fails
@@ -279,6 +294,22 @@ class VastDBService:
             query_log = sql_query.replace(f'ARRAY{query_embedding}', 'ARRAY[...embedding_vector...]')
             logger.debug(f"[SQL] Query: {query_log}")
             
+            # Create user-friendly formatted SQL query for display
+            # Replace embedding array with user query text if provided
+            formatted_sql = sql_query
+            if user_query_text:
+                # Escape single quotes in user query for SQL display
+                safe_query_text = user_query_text.replace("'", "''")
+                embedding_replacement = f"ARRAY[...embedding for query: \"{safe_query_text}\"...]"
+            else:
+                embedding_replacement = "ARRAY[...embedding_vector...]"
+            
+            # Replace the actual embedding array with user-friendly text
+            formatted_sql = formatted_sql.replace(f'ARRAY{query_embedding}', embedding_replacement)
+            
+            # Format SQL for readability (basic indentation)
+            formatted_sql = self._format_sql_for_display(formatted_sql)
+            
             # Execute query using ADBC
             with adbc_driver_manager.dbapi.connect(
                 driver=self._adbc_connection["driver_path"],
@@ -297,7 +328,7 @@ class VastDBService:
             search_time_ms = (time.time() - start_time) * 1000
             
             if df.empty:
-                return [], search_time_ms, 0
+                return [], search_time_ms, 0, formatted_sql
             
             logger.info(f"Retrieved {len(df)} results")
             
@@ -349,7 +380,7 @@ class VastDBService:
             
             logger.info(f"Filtering: {len(filtered_results)} accessible, {permission_filtered_count} permission filtered, {similarity_filtered_count} below similarity threshold ({min_similarity})")
             
-            return filtered_results[:top_k], search_time_ms, permission_filtered_count
+            return filtered_results[:top_k], search_time_ms, permission_filtered_count, formatted_sql
                 
         except Exception as e:
             logger.error(f"Error during similarity search: {str(e)}")
@@ -383,6 +414,40 @@ class VastDBService:
         
         logger.warning(f"[TIME_FILTER] Invalid time filter: {time_filter}")
         return None
+    
+    def _format_sql_for_display(self, sql: str) -> str:
+        """
+        Format SQL query for user-friendly display with basic indentation
+        
+        Args:
+            sql: Raw SQL query string
+            
+        Returns:
+            Formatted SQL string with improved readability
+        """
+        # Basic SQL formatting - add indentation for readability
+        lines = sql.strip().split('\n')
+        formatted_lines = []
+        indent_level = 0
+        
+        for line in lines:
+            stripped = line.strip()
+            if not stripped:
+                formatted_lines.append('')
+                continue
+            
+            # Decrease indent before certain keywords
+            if any(stripped.upper().startswith(kw) for kw in ['FROM', 'WHERE', 'ORDER BY', 'GROUP BY', 'HAVING']):
+                indent_level = max(0, indent_level - 1)
+            
+            # Add indented line
+            formatted_lines.append('  ' * indent_level + stripped)
+            
+            # Increase indent after certain keywords
+            if any(stripped.upper().startswith(kw) for kw in ['SELECT', 'FROM', 'WHERE', 'ORDER BY']):
+                indent_level += 1
+        
+        return '\n'.join(formatted_lines)
     
     def _user_has_access(self, row, user: User, include_public: bool = True) -> bool:
         """

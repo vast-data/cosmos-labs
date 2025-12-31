@@ -48,7 +48,7 @@ async def search_videos(
         vastdb_service = get_vastdb_service()
         logger.info(f"[SEARCH] Performing similarity search on VastDB (include_public={request.include_public})")
         
-        results, search_time_ms, permission_filtered = vastdb_service.similarity_search(
+        results, search_time_ms, permission_filtered, formatted_sql = vastdb_service.similarity_search(
             query_embedding=query_embedding,
             top_k=request.top_k,
             user=current_user,
@@ -58,7 +58,8 @@ async def search_videos(
             custom_start_date=request.custom_start_date,
             custom_end_date=request.custom_end_date,
             metadata_filters=request.metadata_filters,
-            min_similarity=request.min_similarity
+            min_similarity=request.min_similarity,
+            user_query_text=request.query
         )
         
         logger.info(f"[SEARCH] Found {len(results)} results in {search_time_ms:.2f}ms")
@@ -116,7 +117,8 @@ async def search_videos(
             embedding_time_ms=embedding_time_ms,
             search_time_ms=search_time_ms,
             permission_filtered=permission_filtered,
-            llm_synthesis=llm_synthesis
+            llm_synthesis=llm_synthesis,
+            sql_query=formatted_sql
         )
         
     except Exception as e:

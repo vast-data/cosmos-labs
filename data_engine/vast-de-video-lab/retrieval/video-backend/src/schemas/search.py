@@ -44,4 +44,5 @@ class VideoSearchResponse(BaseModel):
     search_time_ms: float
     permission_filtered: int = Field(description="Number of results filtered by permissions")
     llm_synthesis: Optional[LLMSynthesisResponse] = Field(default=None, description="AI-powered synthesis of results")
+    sql_query: Optional[str] = Field(default=None, description="Formatted SQL query executed against VastDB (user-friendly format)")
 

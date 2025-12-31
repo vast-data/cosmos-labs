@@ -11,11 +11,14 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog } from '@angular/material/dialog';
 import { HttpClient } from '@angular/common/http';
 import { SearchRequest, MetadataField, MetadataSchema } from '../../../shared/models/video.model';
 import { environment } from '../../../../environments/environment';
 import { SYSTEM_PROMPT_STORAGE_KEY, DEFAULT_SYSTEM_PROMPT } from '../../../features/settings/system-prompt-dialog.component';
 import { getLLMSettings } from '../../../features/settings/advanced-llm-settings-dialog.component';
+import { SearchService } from '../services/search.service';
+import { SqlQueryDialogComponent } from './sql-query-dialog.component';
 
 @Component({
   selector: 'app-search-bar',
@@ -252,9 +255,18 @@ import { getLLMSettings } from '../../../features/settings/advanced-llm-settings
           type="button"
           class="toggle-button"
           (click)="toggleAdvancedFilters()"
-          mat Tooltip="Discover and filter by additional metadata fields">
+          matTooltip="Discover and filter by additional metadata fields">
           <mat-icon>{{showAdvancedFilters() ? 'expand_less' : 'filter_list'}}</mat-icon>
           <span>{{showAdvancedFilters() ? 'Hide Filters' : 'Discover Metadata Filters'}}</span>
+        </button>
+        <button 
+          type="button"
+          class="toggle-button reveal-query-button"
+          (click)="revealQuery()"
+          [disabled]="!canRevealQuery()"
+          matTooltip="Show the SQL query executed for similarity search">
+          <mat-icon>code</mat-icon>
+          <span>Reveal Similarity Query</span>
         </button>
         @if (loadingSchema()) {
           <span class="loading-indicator">Loading schema...</span>
@@ -887,9 +899,14 @@ import { getLLMSettings } from '../../../features/settings/advanced-llm-settings
         cursor: pointer;
         transition: all 0.2s ease;
         
-        &:hover {
+        &:hover:not(:disabled) {
           background: rgba(0, 71, 171, 0.3);
           border-color: rgba(0, 71, 171, 0.6);
+        }
+        
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
         
         mat-icon {
@@ -897,6 +914,10 @@ import { getLLMSettings } from '../../../features/settings/advanced-llm-settings
           width: 20px;
           height: 20px;
         }
+      }
+
+      .reveal-query-button {
+        margin-left: 0.5rem;
       }
       
       .loading-indicator {
@@ -1038,6 +1059,8 @@ export class SearchBarComponent implements OnInit {
   fb = inject(FormBuilder);
   cdr = inject(ChangeDetectorRef);
   http = inject(HttpClient);
+  dialog = inject(MatDialog);
+  searchService = inject(SearchService);
   @Output() search = new EventEmitter<SearchRequest>();
 
   showCustomDatePicker = false;
@@ -1207,6 +1230,27 @@ export class SearchBarComponent implements OnInit {
 
   hasActiveFilters(): boolean {
     return Object.values(this.metadataFilterValues).some(v => v !== null && v !== undefined && v !== '');
+  }
+
+  canRevealQuery(): boolean {
+    const state = this.searchService.state();
+    return !state.loading && state.sqlQuery !== null && state.sqlQuery !== undefined && state.sqlQuery.length > 0;
+  }
+
+  revealQuery() {
+    const state = this.searchService.state();
+    if (state.sqlQuery) {
+      this.dialog.open(SqlQueryDialogComponent, {
+        width: '800px',
+        maxHeight: '85vh',
+        panelClass: 'sql-query-dialog-container',
+        disableClose: false,
+        data: {
+          sqlQuery: state.sqlQuery,
+          userQuery: state.query
+        }
+      });
+    }
   }
 
   /**

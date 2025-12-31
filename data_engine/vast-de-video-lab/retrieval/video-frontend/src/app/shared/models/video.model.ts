@@ -52,6 +52,7 @@ export interface SearchResponse {
   search_time_ms: number;
   permission_filtered: number;
   llm_synthesis?: LLMSynthesis | null;
+  sql_query?: string;
 }
 
 export interface UploadRequest {

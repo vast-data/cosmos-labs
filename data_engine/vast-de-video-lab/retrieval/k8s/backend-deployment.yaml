@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: video-backend
-  namespace: vastvideo
+  namespace: NAMESPACE
   labels:
     app: video-backend
 spec:
@@ -63,7 +63,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: video-backend-service
-  namespace: vastvideo
+  namespace: NAMESPACE
 spec:
   selector:
     app: video-backend
@@ -78,7 +78,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: video-backend-ingress
-  namespace: vastvideo
+  namespace: NAMESPACE
   labels:
     app: video-backend
   annotations:
