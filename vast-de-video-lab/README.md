@@ -12,6 +12,29 @@ The system has two main parts:
 
 ---
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Ingest / Retrieval Flow Breakdown](#ingest--retrieval-flow-breakdown)
+- [Key Features](#key-features)
+  - [Configurable Video Analysis Prompts (Cosmos VLM)](#1-configurable-video-analysis-prompts-cosmos-vlm)
+  - [Dynamic Metadata Filters](#2-dynamic-metadata-filters)
+  - [Advanced LLM & Search Settings (GUI)](#3-advanced-llm--search-settings-gui)
+  - [Custom LLM System Prompt (GUI)](#4-custom-llm-system-prompt-gui)
+  - [Time-Based Filtering](#5-time-based-filtering)
+  - [Video Streaming Service](#6-video-streaming-service)
+  - [User Authentication](#7-user-authentication)
+- [Pipeline Flow Diagram](#pipeline-flow-diagram)
+- [Prerequisites](#prerequisites)
+- [Deployment Flow](#deployment-flow)
+- [Part 1: Configuration](#part-1-configuration)
+- [Part 2: Deploy Backend & Frontend](#part-2-deploy-backend--frontend)
+- [Part 3: Deploy Ingest Pipeline Using DataEngine UI](#part-3-deploy-ingest-pipeline-using-dataengine-ui)
+- [Part 4: Testing the Deployment](#part-4-testing-the-deployment)
+- [Troubleshooting](#troubleshooting)
+- [Environment Variables Summary](#environment-variables-summary)
+- [Need Help?](#need-help)
+
 ---
 
 ## Ingest / Retrieval Flow Breakdown
@@ -25,157 +48,57 @@ The system has two main parts:
 
 ### 1. Configurable Video Analysis Prompts (Cosmos VLM)
 
-The `video-reasoner` function uses NVIDIA Cosmos VLM for video understanding.
-The analysis prompt can be configured per use case by setting the `scenario` key in the ingest secret, it is defaulted to `surveillance` for now.
-See Step 1.3 for model selection instructions.
+The `video-reasoner` function uses NVIDIA Cosmos VLM for video understanding. The analysis prompt can be configured per use case by setting the `scenario` key in the ingest secret, it is defaulted to `surveillance` for now.
 
-**[OPTIONAL] Available scenarios:**
-| Scenario | Use Case |
-|----------|----------|
-| `surveillance` | Security cameras, safety monitoring (default) |
-| `traffic` | Traffic cameras, vehicle detection, violations |
-| `nhl` | Hockey game analysis, plays, penalties |
-| `sports` | General sports footage analysis |
-| `retail` | Store cameras, customer behavior, theft detection |
-| `warehouse` | Industrial safety, forklift operations, PPE compliance |
-| `nyc_control` | Urban command & control, license plates, anomalies |
-| `general` | Generic video description |
-
-**To change the scenario**, edit `ingest/vde-video-ingest-secret-template.yaml`:
-```yaml
-scenario: traffic  # Change to your use case
-```
-
-**To add a custom scenario**, edit `ingest/video-reasoner/common/prompts.py` and add your prompt to `SCENARIO_PROMPTS`.
+**For complete documentation, see:** [ingest/video-reasoner/README.md#available-scenarios](ingest/video-reasoner/README.md#available-scenarios)
 
 ---
 
 ### 2. Dynamic Metadata Filters
 
-The system supports customizable metadata fields that flow through the entire pipeline:
+The system supports customizable metadata fields that flow through the entire pipeline, enabling powerful filtering and organization of video content.
 
-**Current metadata fields:**
-- `camera_id` - Camera identifier (e.g., "cam-01", "intersection-5th-ave")
-- `capture_type` - Type of capture (e.g., "traffic", "streets", "crowds", "malls")
-- `neighborhood` - Location/area (e.g., "manhattan", "downtown", "warehouse-a")
-
-**How it works:**
-1. **Ingest**: Metadata is set when uploading videos (via GUI upload or streaming service)
-2. **Pipeline**: Metadata propagates through all functions (segmenter → reasoner → embedder → writer)
-3. **VastDB**: Stored as columns alongside vectors and reasoning content
-4. **Backend**: Auto-discovers available metadata columns dynamically from VastDB schema
-5. **Frontend**: Displays discovered filters as dropdowns with actual values from the database
-
-**To add custom metadata fields:**
-1. Add the field to `ingest/*/common/models.py` (all functions)
-2. Pass the field through each function's handler
-3. Add to VastDB schema in `vastdb-writer/common/vastdb_client.py`
-4. Backend will auto-discover the new column on next restart
+**For complete documentation, see:** [ingest/README.md#current-metadata-fields](ingest/README.md#current-metadata-fields)
 
 ---
 
 ### 3. Advanced LLM & Search Settings (GUI)
 
-The GUI provides fine-grained control over search and LLM behavior via **Settings → Advanced LLM Settings**:
+The GUI provides fine-grained control over search and LLM behavior via **Settings → Advanced LLM Settings**. Settings are persisted in browser localStorage and apply to all subsequent searches.
 
-| Setting | Description | Options | Default |
-|---------|-------------|---------|---------|
-| **LLM Analysis Count** | Number of top results sent to LLM for synthesis | 3, 5, 10 | 3 |
-| **Max Search Results** | Maximum video segments returned from search | 5, 10, 15 | 15 |
-| **Minimum Similarity** | Threshold for vector similarity (lower = broader) | 0.1 - 0.8 slider | 0.1 |
-
-Settings are persisted in browser localStorage and apply to all subsequent searches.
+**For complete documentation, see:** [retrieval/video-backend/README.md#advanced-llm--search-settings-gui](retrieval/video-backend/README.md#advanced-llm--search-settings-gui)
 
 ---
 
 ### 4. Custom LLM System Prompt (GUI)
 
-The LLM system prompt (used for synthesizing search results) can be customized via **Settings → System Prompt**:
+The LLM system prompt (used for synthesizing search results) can be customized via **Settings → System Prompt**. This allows tailoring the LLM response style without backend redeployment.
 
-- **Default prompt**: Built into the frontend, used when no custom prompt is set
-- **Custom prompt**: Override via the settings dialog - persisted in localStorage
-- **Reset**: Return to default at any time
-
-This allows tailoring the LLM response style without backend redeployment.
+**For complete documentation, see:** [retrieval/video-backend/README.md#custom-llm-system-prompt-gui](retrieval/video-backend/README.md#custom-llm-system-prompt-gui)
 
 ---
 
 ### 5. Time-Based Filtering
 
-Search results can be filtered by time:
-- **Presets**: Last 5 min, 15 min, 1 hour, 24 hours, 1 week
-- **Custom Date**: Select specific date/time range with picker
+Search results can be filtered by time using presets or custom date ranges. Time filter applies to `upload_timestamp` column in VastDB.
 
-Time filter applies to `upload_timestamp` column in VastDB.
+**For complete documentation, see:** [retrieval/video-backend/README.md#time-based-filtering](retrieval/video-backend/README.md#time-based-filtering)
 
 ---
 
-### 6. Live Video Streaming Capture
+### 6. Video Streaming Service
 
-The **video-streaming** service captures live YouTube streams and uploads segments to S3:
-- Access via GUI → Settings → "Start Video Stream"
-- Configure: YouTube URL, S3 credentials, segment duration
-- Set metadata: `camera_id`, `capture_type`, `neighborhood` (optional)
-- Segments automatically trigger the ingest pipeline
+The **video-streaming** service is a REST API application that captures video streams (primarily YouTube) and automatically uploads segments to S3, which then triggers the ingest pipeline for processing. This Video Streaming to S3 is **Simulating** a realtime video streaming, and is used to demo the pipeline E2E.
+
+**For complete documentation, see:** [video-streaming/README.md](video-streaming/README.md)
 
 ---
 
-### 7. MP4 Video Format Requirement
+### 7. User Authentication
 
-**Important:** NVIDIA Cosmos Reason VLM requires MP4 (H.264) format. The system:
-- Restricts GUI uploads to MP4 only
-- Automatically converts non-MP4 formats during segmentation (if uploaded via CLI/tools)
+The system authenticates users against VAST cluster credentials with support for multiple tenants. Users authenticate using their VAST username and S3 secret key, which are validated against the VAST cluster.
 
----
-
-### 8. User Authentication
-
-The system authenticates users against VAST cluster credentials with support for multiple tenants.
-
-**Steps to make Authentication work**
-1. VMS > Administrators > Administrative Roles
-2. Create New Role > Provide Name 'read-only' > Choose Read-only (View) Permissions > Create
-3. VMS > Administrators > Managers > Create
-4. Create 'vssadmin' manager > Provide Password > Uncheck 'Password is temporary' Attach to 'read-only' Role
-
-**Add these credentials to the Backend Secret:**
-**Location:** `retrieval/k8s/backend-secret.yaml`
-```yaml
-# vssadmin Credentials (for authenticating tenant users via VAST API)
-vast_admin_username: "vssadmin"       # vssadmin user (readonly)
-vast_admin_password: "password"
-
-# S3 Settings - IMPORTANT: Must match the tenant you want to support
-s3_endpoint: "http://tenant-specific-endpoint.vastdata.com"  # S3 endpoint for the tenant
-s3_access_key: "YOUR_ACCESS_KEY"
-s3_secret_key: "YOUR_SECRET_KEY" 
-```
-- The admin credentials are only used server-side for user lookups, never exposed to clients
-- **CRITICAL**: The `s3_endpoint` must be configured for the tenant you want users to authenticate with. Access keys are tenant-scoped and will only validate against their tenant's S3 endpoint.
-
-**How it works:**
-1. User enters: **Username**, **S3 Secret Key**, **VAST Host** (VMS IP), and **Tenant Name** in the login screen
-2. Backend queries user in the specified tenant context using `vssadmin` read-only account
-3. Backend validates S3 credentials using the configured `s3_endpoint` (must match the tenant)
-4. On success, an internal JWT token is issued for the session
-
-**Supported user providers:**
-- Local VAST users
-- Active Directory (AD)
-- LDAP
-- NIS
-
-**Tenant Support:**
-- Supports both default and non-default tenants
-- Users must specify their tenant name during login (default: "default")
-- The backend's `s3_endpoint` configuration must match the tenant's S3 endpoint
-- If users from multiple tenants need to authenticate, deploy separate backend instances with tenant-specific `s3_endpoint` configurations
-
-**Important Notes:**
-- Users authenticate with their **username + S3 secret key** (not their DataEngine password)
-- The S3 secret key is obtained from VAST user management
-- Access keys are tenant-scoped - they only work with their tenant's S3 endpoint
-- If authentication fails, check that `s3_endpoint` in `backend-secret.yaml` matches the tenant's S3 endpoint
+**For complete documentation, see:** [retrieval/video-backend/README.md](retrieval/video-backend/README.md)
 
 ---
 
@@ -198,7 +121,7 @@ Before starting, ensure you have:
   - Access to VAST DataEngine UI / CLI
   - Cluster name (can be any arbitrary name you pick - e.g., `v1234`)
     - The cluster name can be application specific or arbitrary and will be used as part of the URL for accessing the application
-  - Admin credentials for creating VMS manager user (see Authentication section)
+  - Admin credentials for creating VMS manager user (see [User Authentication](retrieval/video-backend/README.md#user-authentication))
 
 - **Storage resources:**
   - S3 buckets created: `video-chunks` and `video-chunks-segments`
@@ -262,7 +185,7 @@ This file contains all the configuration needed for the backend service to conne
 4. **VAST Admin** (For user authentication):
    - `vast_admin_username` - VMS manager username (e.g., `vssadmin`)
    - `vast_admin_password` - VMS manager password
-   - View previous step, where we access the VMS for creating a read-only user `vssadmin`
+   - See [User Authentication Setup](retrieval/video-backend/README.md#setup-steps) for detailed instructions on creating the `vssadmin` user
 
 **Edit the file with your credentials:**
 ```bash
@@ -309,6 +232,7 @@ Then update the image references in:
 - **NVIDIA NIM**: Embedding model API keys
 - **VastDB**: Database credentials
 - **Video Processing**: Segment duration, codec, format
+- **Scenario**: Video analysis prompt scenario (default: `surveillance`) - See [Configurable Video Analysis Prompts](ingest/video-reasoner/README.md) for available scenarios and customization
 
 **Edit the file with your credentials:**
 ```bash
@@ -325,9 +249,9 @@ Now that all configuration is ready, deploy the backend and frontend services to
 ### What Gets Deployed
 
 The deployment creates:
-- **Backend Service** (FastAPI) - REST API for search, authentication, video management
-- **Frontend Service** (Angular) - Web UI for video search and upload
-- **Video Streaming Service** - Service for capturing live video streams
+- **Backend Service** (FastAPI) - REST API for search, authentication, video management (see [video-backend/README.md](retrieval/video-backend/README.md))
+- **Frontend Service** (Angular) - Web UI for video search and upload (see [video-frontend/README.md](retrieval/video-frontend/README.md))
+- **Video Streaming Service** - Service for capturing live video streams (see [video-streaming/README.md](video-streaming/README.md))
 - **Ingress Resources** - Exposes services via HTTP with custom domain names
 - **Secrets & ConfigMaps** - Stores credentials and configuration
 
@@ -404,30 +328,30 @@ http://video-lab.<cluster_name>.vastdata.com
 
 ## Part 3: Deploy Ingest Pipeline Using DataEngine UI
 
-Now that you've configured the ingest secrets (Step 1.4 and 1.5), deploy the serverless video processing pipeline using the **VAST DataEngine UI**.
+Now that you've configured the ingest secret (Step 1.3), deploy the serverless video processing pipeline using the **VAST DataEngine UI**.
 
 ### Pipeline Overview (Just an Overview - Read It - NOT a deployment yet.)
 
 **Pipeline Name:** `video-realtime-processing-pipeline`
 
-The pipeline has 3 trigger-to-function flows:
+The pipeline has 2 trigger-to-function flows:
 
 #### Flow 1: Video Segmentation
 ```
 video-chunk-land-trigger → video-segmenter
 ```
-- **Trigger**: S3 bucket - `video-chunks` (when video is uploaded)
-- **Function Purpose**: Splits video into 5-second segments
+- **Trigger**: S3 bucket `video-chunks` (when video is uploaded)
+- **Function**: [video-segmenter](ingest/video-segmenter/README.md) - Splits videos into segments
 
 #### Flow 2: Video Analysis & Storage
 ```
 video-segment-land-trigger → video-reasoner → video-embedder → video-vastdb-writer
 ```
 - **Trigger**: S3 bucket `video-chunks-segments` (when segment is created)
-- **Functions Purpose**: 
-  - `video-reasoner` - AI analysis using Cosmos VLM
-  - `video-embedder` - Convert reasoning to embeddings
-  - `video-vastdb-writer` - Store vectors and metadata in VastDB
+- **Functions**: 
+  - [video-reasoner](ingest/video-reasoner/README.md) - Analyzes video content with AI
+  - [video-embedder](ingest/video-embedder/README.md) - Converts reasoning to embeddings
+  - [video-vastdb-writer](ingest/vastdb-writer/README.md) - Stores vectors in VastDB
 
 ---
 
@@ -452,12 +376,12 @@ Navigate to **DataEngine UI** → **Triggers** and create:
 
 Navigate to **DataEngine UI** → **Functions** and create:
 
-| Function Name | Public Image |
-|---------------|-----------------|
-| `video-segmenter` | `vastdatasolutions/vde-video-segmenter:v1`|
-| `video-reasoner` | `vastdatasolutions/vde-video-reasoner:v1` |
-| `video-embedder` | `vastdatasolutions/vde-video-embedder:v1` |
-| `video-vastdb-writer` | `vastdatasolutions/vde-vastdb-writer:v1` |
+| Function Name | Public Image | Documentation |
+|---------------|-----------------|---------------|
+| `video-segmenter` | `vastdatasolutions/vde-video-segmenter:v1` | [video-segmenter/README.md](ingest/video-segmenter/README.md) |
+| `video-reasoner` | `vastdatasolutions/vde-video-reasoner:v1` | [video-reasoner/README.md](ingest/video-reasoner/README.md) |
+| `video-embedder` | `vastdatasolutions/vde-video-embedder:v1` | [video-embedder/README.md](ingest/video-embedder/README.md) |
+| `video-vastdb-writer` | `vastdatasolutions/vde-vastdb-writer:v1` | [vastdb-writer/README.md](ingest/vastdb-writer/README.md) |
 
 **Note:** Docker images are prebuilt and available on Docker Hub. If you need to push to a different registry, rebuild the images:
 ```bash
@@ -503,11 +427,7 @@ Now that everything is deployed, test the complete system end-to-end.
 
 1. **Login to the GUI:**
    - Open `http://video-lab.<cluster_name>.vastdata.com` in your browser (replace `<cluster_name>` with the cluster name you used during deployment)
-   - Enter:
-     - **Username**: Your VAST username
-     - **S3 Secret Key**: Your S3 secret key (from VAST user management)
-     - **VAST Host**: Your VAST VMS IP address
-     - **Tenant Name**: Your tenant name (default: "default")
+   - Enter your authentication credentials (see [User Authentication](retrieval/video-backend/README.md#how-authentication-works) for details)
    - Click "Log in"
 
 2. **Upload a test video:**
@@ -544,10 +464,7 @@ Now that everything is deployed, test the complete system end-to-end.
 - Try accessing by IP directly: `http://<INGRESS_IP>`
 
 **2. Authentication fails:**
-- Verify `s3_endpoint` in `backend-secret.yaml` matches your tenant's S3 endpoint
-- Check backend logs for S3 validation errors
-- Ensure tenant name is correct (case-sensitive)
-- Verify user has S3 access keys enabled in VAST
+- See [Authentication Troubleshooting](retrieval/video-backend/README.md#troubleshooting) in the backend documentation for detailed steps
 
 **3. Search returns no results:**
 - Check if videos have been processed (DataEngine UI → Executions)
