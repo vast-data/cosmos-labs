@@ -533,4 +533,3 @@ kubectl logs -f -n <namespace> -l app=video-stream-capture
 ---
 
 - **COSMOS Community**: Reach out to us on our [Community forums](https://community.vastdata.com/) for additional help!
-
