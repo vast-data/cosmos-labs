@@ -2,7 +2,7 @@ from opentelemetry import trace
 from vast_runtime.vast_event import VastEvent  # type: ignore
 
 from common.models import Settings, VideoReasoningResult
-from common.clients import S3Client, CosmosReasoningClient
+from common.clients import S3Client, CosmosReasoningClient, NemotronReasoningClient
 from common.handler_utils import parse_s3_event, should_process_event
 
 
@@ -11,7 +11,27 @@ def init(ctx):
     with ctx.tracer.start_as_current_span("Video Reasoner Initialization"):
         settings = Settings.from_ctx_secrets(ctx.secrets)
         ctx.s3_client = S3Client(settings)
-        ctx.cosmos_client = CosmosReasoningClient(settings)
+        
+        # Select reasoning client based on provider
+        provider = settings.reasoning_provider.lower()
+        if provider == "nemotron":
+            # Verify opencv-python is available for Nemotron
+            try:
+                import cv2
+                import numpy as np
+            except ImportError as e:
+                raise RuntimeError(
+                    f"opencv-python is required for Nemotron provider but is not installed. "
+                    f"Please rebuild the function to install dependencies. Error: {e}"
+                )
+            ctx.reasoning_client = NemotronReasoningClient(settings)
+            ctx.logger.info(f"[INIT] Using Nemotron provider: {settings.nemotron_model}")
+        else:
+            # Default to Cosmos
+            ctx.reasoning_client = CosmosReasoningClient(settings)
+            ctx.logger.info(f"[INIT] Using Cosmos provider: {settings.cosmos_model}")
+        
+        ctx.settings = settings
 
 
 def handler(ctx, event: VastEvent):
@@ -61,23 +81,32 @@ def handler(ctx, event: VastEvent):
                 })
 
             with ctx.tracer.start_as_current_span("Video Reasoning Analysis") as reasoning_span:
-                ctx.logger.info(f"[COSMOS] Starting analysis → {ctx.cosmos_client.settings.cosmos_host}")
-                reasoning_result = ctx.cosmos_client.analyze_video(video_content, filename)
+                provider = ctx.settings.reasoning_provider.lower()
+                provider_name = "NEMOTRON" if provider == "nemotron" else "COSMOS"
+                
+                if provider == "nemotron":
+                    ctx.logger.info(f"[{provider_name}] Starting analysis → {ctx.settings.nemotron_model}")
+                else:
+                    ctx.logger.info(f"[{provider_name}] Starting analysis → {ctx.reasoning_client.settings.cosmos_host}")
+                
+                reasoning_result = ctx.reasoning_client.analyze_video(video_content, filename)
                 
                 content_length = len(reasoning_result.get("reasoning_content", ""))
                 tokens_used = reasoning_result.get("tokens_used", 0)
                 processing_time = reasoning_result.get("processing_time", 0)
+                model_name = reasoning_result.get("cosmos_model", "")
                 
                 reasoning_span.set_attributes({
                     "source": source,
                     "filename": filename,
+                    "reasoning_provider": provider,
                     "reasoning_content_length": content_length,
                     "tokens_used": tokens_used,
                     "processing_time_seconds": processing_time,
-                    "cosmos_model": reasoning_result.get("cosmos_model", "")
+                    "model": model_name
                 })
                 
-                ctx.logger.info(f"[COSMOS] Complete | {content_length} chars | {tokens_used} tokens | {processing_time:.2f}s")
+                ctx.logger.info(f"[{provider_name}] Complete | {content_length} chars | {tokens_used} tokens | {processing_time:.2f}s")
 
             with ctx.tracer.start_as_current_span("Metadata Extraction") as metadata_span:
                 try:
@@ -134,8 +163,9 @@ def handler(ctx, event: VastEvent):
                 "cosmos_model": reasoning_result["cosmos_model"],
                 "tokens_used": reasoning_result["tokens_used"],
                 "processing_time": reasoning_result["processing_time"],
-                "video_url": reasoning_result["video_url"],
+                "video_url": reasoning_result.get("video_url", ""),  # May be empty for Nemotron
                 "status": "success",
+                "reasoning_provider": ctx.settings.reasoning_provider.lower(),
                 "is_public": is_public,
                 "allowed_users": allowed_users,
                 "tags": tags,
@@ -149,7 +179,8 @@ def handler(ctx, event: VastEvent):
                 "neighborhood": neighborhood
             }
             
-            ctx.logger.info(f"[COMPLETE] {filename} | segment {segment_number}/{total_segments} | video_url={reasoning_result['video_url']}")
+            video_url_info = f" | video_url={reasoning_result.get('video_url', 'N/A')}" if reasoning_result.get("video_url") else ""
+            ctx.logger.info(f"[COMPLETE] {filename} | segment {segment_number}/{total_segments} | provider={ctx.settings.reasoning_provider}{video_url_info}")
             return result
             
         except Exception as e:
