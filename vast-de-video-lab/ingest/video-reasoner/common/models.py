@@ -15,13 +15,12 @@ class Settings(BaseModel):
     reasoning_provider: str = Field(default="cosmos", description="Reasoning provider: 'cosmos' or 'nemotron'")
     
     # Cosmos settings (used when reasoning_provider == "cosmos")
+    # Hosted Reason2 API - no SFTP needed, sends base64-encoded video directly
     cosmos_host: str = ""
-    cosmos_port: int = 8800
-    cosmos_username: str = ""
-    cosmos_password: str = ""
-    cosmos_upload_path: str = ""
-    cosmos_video_port: int = 8888
+    cosmos_port: int = 8001
     cosmos_model: str = ""
+    cosmos_max_tokens: int = Field(default=4000, description="Maximum tokens in response for Cosmos (higher for detailed video analysis)")
+    cosmos_temperature: float = Field(default=0.2, description="Sampling temperature for Cosmos")
     
     # Nemotron settings (used when reasoning_provider == "nemotron")
     nvidia_api_key: str = Field(default="", description="NVIDIA API key from build.nvidia.com")
@@ -43,12 +42,6 @@ class Settings(BaseModel):
     def cosmos_url(self) -> str:
         """Compute Cosmos API URL"""
         return f"http://{self.cosmos_host}:{self.cosmos_port}/v1/chat/completions"
-    
-    @computed_field
-    @property
-    def cosmos_ssh_host(self) -> str:
-        """Compute Cosmos SSH host (same as cosmos_host)"""
-        return self.cosmos_host
     
     @classmethod
     def from_ctx_secrets(cls, secrets: Dict[str, str]) -> 'Settings':
