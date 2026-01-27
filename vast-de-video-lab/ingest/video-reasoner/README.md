@@ -14,7 +14,7 @@ A VAST DataEngine serverless function that analyzes video segments using NVIDIA 
 
 The function supports two reasoning providers:
 
-- **`cosmos`**: Uses local Cosmos VLM server (uploads video via SFTP)
+- **`cosmos`**: Uses hosted Reason API (sends base64-encoded video directly)
 - **`nemotron`**: Uses NVIDIA Build Cloud API (extracts frames, sends as images)
 
 Configure the provider in `ingest/vde-video-ingest-secret-template.yaml`:
@@ -37,13 +37,11 @@ Configure in `ingest/vde-video-ingest-secret-template.yaml`:
 
 ### Cosmos Settings (when `reasoning_provider == "cosmos"`)
 
-- **`cosmos_host`**: Cosmos VLM server IP address
-- **`cosmos_port`**: Cosmos VLM server port
-- **`cosmos_username`**: Cosmos VLM authentication username
-- **`cosmos_password`**: Cosmos VLM authentication password
-- **`cosmos_model`**: Cosmos VLM model name
-- **`cosmos_upload_path`**: SFTP upload path on Cosmos server
-- **`cosmos_video_port`**: Port for video URL access
+- **`cosmos_host`**: Reason API server IP address (default: empty)
+- **`cosmos_port`**: Reason API server port (default: `8001`)
+- **`cosmos_model`**: Model identifier (default: `"./Cosmos-Reason2-8B"`)
+- **`cosmos_max_tokens`**: Maximum tokens in response (default: `4000`)
+- **`cosmos_temperature`**: Sampling temperature (default: `0.2`)
 
 ### Nemotron Settings (when `reasoning_provider == "nemotron"`)
 
@@ -62,7 +60,7 @@ Configure in `ingest/vde-video-ingest-secret-template.yaml`:
 - **Input**: Video segment file from S3
 - **Output**: Reasoning text, metadata, and analysis results
 - **Processing**: 
-  - **Cosmos**: Uploads video to Cosmos VLM server via SFTP, receives text analysis
+  - **Cosmos**: Encodes video to base64, sends directly to hosted Reason2 OR Reason1 API
   - **Nemotron**: Extracts frames from video, sends to NVIDIA Build Cloud API as images
 - **Validation**: Skips non-MP4 files and invalid events
 
@@ -72,10 +70,10 @@ Configure in `ingest/vde-video-ingest-secret-template.yaml`:
 - **Image**: `vastdatasolutions/vde-video-reasoner:v1`
 - **Resources**: Configure CPU/Memory in DataEngine UI pipeline settings
 - **Dependencies**: 
-  - Python 3.11
+  - Python 3.12
   - boto3 for S3 access
-  - For Cosmos: Cosmos VLM server access, paramiko for SFTP
-  - For Nemotron: opencv-python for frame extraction, NVIDIA API key
+  - For Cosmos: Hosted Reason API access (no additional dependencies)
+  - For Nemotron: opencv-python-headless for frame extraction, NVIDIA API key
 
 ---
 
@@ -152,7 +150,7 @@ When creating custom prompts, follow these guidelines:
 1. The `scenario` value from the ingest secret is passed to the `video-reasoner` function
 2. The function looks up the corresponding prompt in `SCENARIO_PROMPTS`
 3. Based on `reasoning_provider`:
-   - **Cosmos**: Video is uploaded to Cosmos VLM server via SFTP, prompt is sent with video URL
+   - **Cosmos**: Video is encoded to base64, prompt and video are sent directly to hosted Reason API
    - **Nemotron**: Frames are extracted from video, prompt and frames are sent to NVIDIA Build Cloud API
 4. The VLM analyzes the video/frames and returns a text description based on the prompt
 5. The description is then embedded and stored in VastDB for search
@@ -161,11 +159,11 @@ When creating custom prompts, follow these guidelines:
 
 | Feature | Cosmos | Nemotron |
 |---------|--------|----------|
-| **Video Support** | Full video files | Frame extraction (images only) |
-| **Deployment** | Local server required | Cloud API (no server needed) |
-| **Authentication** | SSH/SFTP credentials | NVIDIA API key |
+| **Video Support** | Full video files (base64-encoded) | Frame extraction (images only) |
+| **Deployment** | Hosted Reason API server | Cloud API (no server needed) |
+| **Authentication** | None (API endpoint only) | NVIDIA API key |
 | **Frame Extraction** | Not needed | Automatic (configurable) |
-| **Best For** | Self-hosted, full video analysis | Cloud-based, quick setup |
+| **Best For** | Hosted Reason server, full video analysis | Cloud-based, quick setup |
 
 ## Model Selection
 
@@ -173,4 +171,3 @@ When creating custom prompts, follow these guidelines:
 - **Nemotron**: Configure `nemotron_model` in the ingest secret (default: `nvidia/nemotron-nano-12b-v2-vl`)
 
 For more information, see [Part 1: Configuration - Step 1.3: Review Ingest Secret](../README.md#step-13-review-ingest-secret) in the main README.
-
