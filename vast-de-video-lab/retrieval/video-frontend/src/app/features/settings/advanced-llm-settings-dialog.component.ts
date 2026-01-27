@@ -336,6 +336,11 @@ export function getLLMSettings(): LLMSettings {
           background: #00CED1 !important;
           border-color: #00CED1 !important;
           box-shadow: 0 0 10px rgba(0, 206, 209, 0.5);
+          cursor: pointer !important;
+        }
+        
+        .mdc-slider__thumb {
+          cursor: pointer !important;
         }
       }
     }

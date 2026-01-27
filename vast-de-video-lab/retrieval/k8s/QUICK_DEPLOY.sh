@@ -118,13 +118,19 @@ echo -e "${GREEN}✓ Frontend deployed${NC}"
 echo ""
 
 # Step 6: Deploy Video Streaming
-echo -e "${YELLOW}Step 6/7: Deploying video streaming service...${NC}"
+echo -e "${YELLOW}Step 6/8: Deploying video streaming service...${NC}"
 sed -e "s/NAMESPACE/$NAMESPACE/g" -e "s/CLUSTER_NAME/$CLUSTER_NAME/g" videostreamer-deployment.yaml | kubectl apply -f -
 echo -e "${GREEN}✓ Video streaming service deployed${NC}"
 echo ""
 
-# Step 7: Verify ConfigMaps
-echo -e "${YELLOW}Step 7/7: Verifying configuration...${NC}"
+# Step 7: Deploy Video Batch Sync
+echo -e "${YELLOW}Step 7/8: Deploying video batch sync service...${NC}"
+sed -e "s/NAMESPACE/$NAMESPACE/g" -e "s/CLUSTER_NAME/$CLUSTER_NAME/g" video-batch-sync-deployment.yaml | kubectl apply -f -
+echo -e "${GREEN}✓ Video batch sync service deployed${NC}"
+echo ""
+
+# Step 8: Verify ConfigMaps
+echo -e "${YELLOW}Step 8/8: Verifying configuration...${NC}"
 kubectl get configmap -n $NAMESPACE
 echo -e "${GREEN}✓ Configuration verified${NC}"
 echo ""
@@ -168,5 +174,6 @@ echo "🔍 View Logs:"
 echo "  Backend:         kubectl logs -f -n $NAMESPACE -l app=video-backend"
 echo "  Frontend:        kubectl logs -f -n $NAMESPACE -l app=video-frontend"
 echo "  Video Streaming: kubectl logs -f -n $NAMESPACE -l app=video-stream-capture"
+echo "  Batch Sync:      kubectl logs -f -n $NAMESPACE -l app=video-batch-sync"
 echo ""
 
