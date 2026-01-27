@@ -1,9 +1,9 @@
-# Repository Overview
+# VAST Code Labs and Code Samples Overview
 
-This repo is a collection of hands-on labs, examples, and projects designed to help you build on VAST:
-*   **Orbital Dynamics Labs (`/lab1`, `/lab2`, etc.):** The core of this repository focused on programmatically managing VAST Infrastructure using the vastpy and vastdb SDKs. A series of story-driven, in-depth labs that guide you through real-world challenges. Start here for a structured learning experience.
-*   **DataEngine Video Lab (`/vast-de-video-lab`):** A reference application to build a video ingestion and retrieval. It demonstrates how to use VAST data pipeline and vector database for AI applications.
-*   **Code Examples (`/examples`):** A collection of standalone Python scripts that demonstrate specific, common tasks using the VAST SDKs, such as listing views or checking quotas.
+Welcome! This repo is a collection of hands-on labs, examples, and projects designed to help you build on VAST:
+*   **[Orbital Dynamics Labs](https://github.com/vast-data/cosmos-labs?tab=readme-ov-file#orbital-dynamics-hands-on-labs-with-vast-sdks) (`/lab1`, `/lab2`, etc.):** The core of this repository focused on programmatically managing VAST Infrastructure using the vastpy and vastdb SDKs. A series of story-driven, in-depth labs that guide you through real-world challenges. Start [below](https://github.com/vast-data/cosmos-labs?tab=readme-ov-file#orbital-dynamics-hands-on-labs-with-vast-sdks) for a structured learning experience.
+*   **[DataEngine Video Lab](https://github.com/vast-data/cosmos-labs/tree/main/vast-de-video-lab#vast-dataengine---video-reasoning-lab) (`/vast-de-video-lab`):** A reference application to build a video ingestion and retrieval. It demonstrates how to use VAST data pipeline and vector database for AI applications.
+*   **[Code Examples](https://github.com/vast-data/cosmos-labs/tree/main/examples#vast-sdk-examples) (`/examples`):** A collection of standalone Python scripts that demonstrate specific, common tasks using the VAST SDKs, such as listing views or checking quotas.
 
 # Support and Resources
 - **Community Support** - Join VAST's [Cosmos community](https://community.vastdata.com) for additional help and examples

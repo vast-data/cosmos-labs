@@ -6,6 +6,11 @@
 
 A complete metadata infrastructure system that processes Swift satellite data and provides search capabilities using VAST Database and S3 storage. This solution demonstrates how to use `vastpy` for storage management and `vastdb` for metadata catalog functionality to create a comprehensive metadata system for Orbital Dynamics' satellite data.
 
+## Build our Infrastructure: Code Lab Server Access
+The VAST Data Labs gives our entire community remote access to our data infrastructure platform for hands-on exploration and testing. The lab environment is a practical way to get familiar with VAST systems, try out different configurations, and build automation workflows - all without needing your own hardware setup.
+
+If you do not have access to a VAST cluster, complete this lab using our data infrastructure platform, [join our Community to get Code Lab Server access](https://community.vastdata.com/t/official-vast-data-labs-user-guide/1774#p-2216-infrastructure-automation-with-python-and-the-vast-api-3).
+
 **Key Features:**
 - Creates VAST views using `vastpy` for raw data and metadata storage
 - Uploads Swift datasets to S3 using `boto3`
