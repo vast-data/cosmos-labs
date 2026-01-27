@@ -2,14 +2,14 @@
 
 > 📖 **Hey, remember to read the [story](STORY.md) to understand what we're doing and why!** This will help you understand the business context and challenges the Orbital Dynamics team is facing.
 
-## 🎯 Overview
-
-This Lab 4 solution demonstrates how to implement systematic version control for research datasets using VAST's protection policies and snapshot capabilities. We'll build a comprehensive system that automatically creates snapshots at key milestones and provides researchers with easy tools to browse, search, and restore from previous dataset versions.
-
 ## Build On VAST: Code Lab Server Access
 The VAST Data Labs gives our entire community remote access to our data infrastructure platform for hands-on exploration and testing. The lab environment is a practical way to get familiar with VAST systems, try out different configurations, and build automation workflows - all without needing your own hardware setup.
 
 If you do not have access to a VAST cluster, complete this lab using our data infrastructure platform, [join our Community to get Code Lab Server access](https://community.vastdata.com/t/official-vast-data-labs-user-guide/1774#p-2216-infrastructure-automation-with-python-and-the-vast-api-3).
+
+## 🎯 Overview
+
+This Lab 4 solution demonstrates how to implement systematic version control for research datasets using VAST's protection policies and snapshot capabilities. We'll build a comprehensive system that automatically creates snapshots at key milestones and provides researchers with easy tools to browse, search, and restore from previous dataset versions.
 
 **Key Features:**
 - Automated protection policies with configurable schedules and retention

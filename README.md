@@ -1,8 +1,11 @@
 # VAST Code Labs and Code Samples Overview
 
 Welcome! This repo is a collection of hands-on labs, examples, and projects designed to help you build on VAST:
-*   **[Orbital Dynamics Labs](https://github.com/vast-data/cosmos-labs?tab=readme-ov-file#orbital-dynamics-hands-on-labs-with-vast-sdks) (`/lab1`, `/lab2`, etc.):** The core of this repository focused on programmatically managing VAST Infrastructure using the vastpy and vastdb SDKs. A series of story-driven, in-depth labs that guide you through real-world challenges. Start [below](https://github.com/vast-data/cosmos-labs?tab=readme-ov-file#orbital-dynamics-hands-on-labs-with-vast-sdks) for a structured learning experience.
+*   **[Orbital Dynamics Labs](https://github.com/vast-data/cosmos-labs?tab=readme-ov-file#orbital-dynamics-hands-on-labs-with-vast-sdks) (`/lab1`, `/lab2`, etc.):** The core of this repository focused on programmatically managing VAST Infrastructure using the vastpy and vastdb SDKs. A series of story-driven, in-depth labs that guide you through real-world challenges. Start [below](https://github.com/vast-data/cosmos-labs?tab=readme-ov-file#orbital-dynamics-hands-on-labs-with-vast-sdks) for a structured learning experience. Complete all labs using our data infrastructure platform, [join our Community to get Code Lab Server access](https://community.vastdata.com/t/official-vast-data-labs-user-guide/1774#p-2216-infrastructure-automation-with-python-and-the-vast-api-3).
+
+
 *   **[DataEngine Video Lab](https://github.com/vast-data/cosmos-labs/tree/main/vast-de-video-lab#vast-dataengine---video-reasoning-lab) (`/vast-de-video-lab`):** A reference application to build a video ingestion and retrieval. It demonstrates how to use VAST data pipeline and vector database for AI applications.
+
 *   **[Code Examples](https://github.com/vast-data/cosmos-labs/tree/main/examples#vast-sdk-examples) (`/examples`):** A collection of standalone Python scripts that demonstrate specific, common tasks using the VAST SDKs, such as listing views or checking quotas.
 
 # Support and Resources
