@@ -312,16 +312,15 @@ Be factual and based only on the provided summaries. Flag any high-severity situ
       }
 
       .save-btn {
-        background: linear-gradient(135deg, #00CED1 0%, #00A5A8 100%);
-        color: #0A0A1E;
-        font-weight: 600;
+        background: linear-gradient(135deg, #0047AB 0%, #002766 100%);
+        color: white;
         
         mat-icon {
           margin-right: 0.5rem;
         }
 
         &:hover {
-          background: linear-gradient(135deg, #00E5E8 0%, #00BFC2 100%);
+          box-shadow: 0 4px 12px rgba(0, 71, 171, 0.6);
         }
       }
     }

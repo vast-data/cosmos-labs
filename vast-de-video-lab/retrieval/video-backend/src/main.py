@@ -5,7 +5,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.config import get_settings
-from src.api.v1 import auth, search, videos, config, streaming, frontend_config, metadata
+from src.api.v1 import auth, search, videos, config, streaming, frontend_config, metadata, batch_sync
 
 # Configure logging
 logging.basicConfig(
@@ -40,6 +40,7 @@ app.include_router(search.router, prefix="/api/v1")
 app.include_router(videos.router, prefix="/api/v1")
 app.include_router(config.router, prefix="/api/v1")
 app.include_router(streaming.router, prefix="/api/v1/streaming", tags=["streaming"])
+app.include_router(batch_sync.router, prefix="/api/v1/batch-sync", tags=["batch-sync"])
 app.include_router(frontend_config.router, prefix="/api/v1/frontend", tags=["frontend"])
 app.include_router(metadata.router, prefix="/api/v1/metadata", tags=["metadata"])
 

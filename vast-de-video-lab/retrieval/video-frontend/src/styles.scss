@@ -46,6 +46,23 @@ body {
   cursor: default !important;
 }
 
+/* Exceptions for interactive elements */
+button, a, input[type="button"], input[type="submit"], .mat-mdc-button, .mat-mdc-raised-button, .mat-mdc-icon-button {
+  cursor: pointer !important;
+  
+  &[disabled] {
+    cursor: not-allowed !important;
+  }
+  
+  * {
+    cursor: pointer !important;
+  }
+  
+  &[disabled] * {
+    cursor: not-allowed !important;
+  }
+}
+
 /* Prevent text cursor on non-editable elements */
 /* Allow text selection everywhere but NO I-beam cursor */
 h1, h2, h3, h4, h5, h6, p, span, div, label, 
@@ -277,6 +294,20 @@ div.mat-mdc-menu-panel[role="menu"] {
   will-change: transform, opacity !important;
 }
 
+/* Ensure CDK overlay for menu is above toolbar */
+.cdk-overlay-container {
+  z-index: 10001 !important;
+  
+  .cdk-overlay-pane[data-mat-menu-panel] {
+    z-index: 10001 !important;
+  }
+}
+
+/* Ensure dialog overlays are above toolbar */
+.cdk-overlay-container .cdk-overlay-pane[data-mat-dialog-panel] {
+  z-index: 10002 !important;
+}
+
 /* Smooth enter animation */
 .cdk-overlay-pane:not(.cdk-overlay-pane-leaving) .mat-mdc-menu-panel.config-menu {
   animation: menuSlideIn 0.25s cubic-bezier(0.25, 0.8, 0.25, 1) forwards !important;
@@ -416,6 +447,70 @@ div.mat-mdc-menu-panel[role="menu"] .mat-mdc-menu-item {
   .mat-mdc-dialog-surface {
     background: transparent !important;
     padding: 0 !important;
+  }
+}
+
+/* Batch Sync Dialog Global Styles */
+.batch-sync-dialog-container {
+  .mat-mdc-dialog-container {
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    border: 1px solid rgba(0, 71, 171, 0.3) !important;
+  }
+
+  .mat-mdc-dialog-surface {
+    background: linear-gradient(135deg, rgba(10, 20, 40, 0.98) 0%, rgba(0, 10, 30, 0.98) 100%) !important;
+    backdrop-filter: blur(20px) !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+  }
+
+  .mat-mdc-dialog-title {
+    padding: 1.5rem 1.5rem 1rem 1.5rem !important;
+    margin: 0 !important;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+  }
+}
+
+/* Batch Sync Progress Dialog Global Styles */
+.batch-sync-progress-dialog-container {
+  .mat-mdc-dialog-container {
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    border: 1px solid rgba(0, 71, 171, 0.3) !important;
+  }
+
+  .mat-mdc-dialog-surface {
+    background: linear-gradient(135deg, rgba(10, 20, 40, 0.98) 0%, rgba(0, 10, 30, 0.98) 100%) !important;
+    backdrop-filter: blur(20px) !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+  }
+}
+
+/* Streaming Progress Dialog Global Styles */
+.streaming-progress-dialog-container {
+  .mat-mdc-dialog-container {
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    border: 1px solid rgba(255, 107, 107, 0.3) !important;
+  }
+
+  .mat-mdc-dialog-surface {
+    background: linear-gradient(135deg, rgba(10, 20, 40, 0.98) 0%, rgba(0, 10, 30, 0.98) 100%) !important;
+    backdrop-filter: blur(20px) !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
   }
 }
 

@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: video-batch-sync
+  namespace: NAMESPACE
+  labels:
+    app: video-batch-sync
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: video-batch-sync
+  template:
+    metadata:
+      labels:
+        app: video-batch-sync
+    spec:
+      containers:
+      - name: video-batch-sync
+        image: vastdatasolutions/vde-video-batch-sync:v1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ping
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: video-batch-sync-service
+  namespace: NAMESPACE
+  labels:
+    app: video-batch-sync
+spec:
+  selector:
+    app: video-batch-sync
+  ports:
+  - port: 5000
+    targetPort: 5000
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: video-batch-sync-ingress
+  namespace: NAMESPACE
+  labels:
+    app: video-batch-sync
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: video-batch-sync.CLUSTER_NAME.vastdata.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: video-batch-sync-service
+            port:
+              number: 5000
+
