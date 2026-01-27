@@ -2,14 +2,14 @@
 
 > 📖 **Hey, remember to read the [story](STORY.md) to understand what we're doing and why!** This will help you understand the business context and challenges the Orbital Dynamics team is facing.
 
-## 🎯 Overview
-
-This solution demonstrates how to use `vastpy` to monitor existing storage infrastructure and automatically expand quotas when needed. We'll build a system that monitors storage utilization across multiple views and provides proactive quota expansion with comprehensive safety checks to prevent storage crises.
-
 ## Build On VAST: Code Lab Server Access
 The VAST Data Labs gives our entire community remote access to our data infrastructure platform for hands-on exploration and testing. The lab environment is a practical way to get familiar with VAST systems, try out different configurations, and build automation workflows - all without needing your own hardware setup.
 
 If you do not have access to a VAST cluster, complete this lab using our data infrastructure platform, [join our Community to get Code Lab Server access](https://community.vastdata.com/t/official-vast-data-labs-user-guide/1774#p-2216-infrastructure-automation-with-python-and-the-vast-api-3).
+
+## 🎯 Overview
+
+This solution demonstrates how to use `vastpy` to monitor existing storage infrastructure and automatically expand quotas when needed. We'll build a system that monitors storage utilization across multiple views and provides proactive quota expansion with comprehensive safety checks to prevent storage crises.
 
 **Key Features:**
 - Automated storage provisioning and quota management
