@@ -1,4 +1,4 @@
-# VAST Code Labs and Code Samples Overview
+# VAST Code Labs and Code Samples
 
 Welcome! This repo is a collection of hands-on labs, examples, and projects designed to help you build on VAST:
 *   **[Orbital Dynamics Labs](https://github.com/vast-data/cosmos-labs?tab=readme-ov-file#orbital-dynamics-hands-on-labs-with-vast-sdks) (`/lab1`, `/lab2`, etc.):** The core of this repository focused on programmatically managing VAST Infrastructure using the vastpy and vastdb SDKs. A series of story-driven, in-depth labs that guide you through real-world challenges. Start [below](https://github.com/vast-data/cosmos-labs?tab=readme-ov-file#orbital-dynamics-hands-on-labs-with-vast-sdks) for a structured learning experience. Complete all labs using our data infrastructure platform, [join our Community to get Code Lab Server access](https://community.vastdata.com/t/official-vast-data-labs-user-guide/1774#p-2216-infrastructure-automation-with-python-and-the-vast-api-3).
