@@ -82,8 +82,16 @@ export class AuthService {
   }
 
   logout() {
+    // Clear auth state
     this.state.update((state) => ({ ...state, status: 'pending', token: null, user: null, error: null }));
-    this.router.navigate(['/login']);
+    
+    // Clear localStorage
+    localStorage.removeItem(SETTINGS.LS_KEY_TOKEN);
+    localStorage.removeItem(SETTINGS.USER_KEY_TOKEN);
+    
+    // Full page reload to clear all application state (search results, cached data, etc.)
+    // This ensures a clean slate for the next user
+    window.location.href = '/login';
   }
 }
 
