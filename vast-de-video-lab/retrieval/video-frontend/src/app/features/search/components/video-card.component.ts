@@ -67,6 +67,24 @@ import { VideoService } from '../../../shared/services/video.service';
             <mat-icon>star</mat-icon>
             {{ (video.similarity_score * 100).toFixed(1) }}%
           </span>
+          @if (video.camera_id && video.camera_id.trim()) {
+            <span class="metadata-item">
+              <mat-icon>videocam</mat-icon>
+              {{ video.camera_id }}
+            </span>
+          }
+          @if (video.capture_type && video.capture_type.trim()) {
+            <span class="metadata-item">
+              <mat-icon>category</mat-icon>
+              {{ video.capture_type }}
+            </span>
+          }
+          @if (video.neighborhood && video.neighborhood.trim()) {
+            <span class="metadata-item">
+              <mat-icon>location_on</mat-icon>
+              {{ video.neighborhood }}
+            </span>
+          }
         </div>
 
         @if (video.tags && video.tags.length > 0) {
@@ -374,4 +392,3 @@ export class VideoCardComponent implements OnInit {
     }
   }
 }
-
