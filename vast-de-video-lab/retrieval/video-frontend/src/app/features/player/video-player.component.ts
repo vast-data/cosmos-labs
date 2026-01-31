@@ -127,6 +127,24 @@ import { VideoService } from '../../shared/services/video.service';
               <mat-icon>{{ data.video.is_public ? 'public' : 'lock' }}</mat-icon>
               <span>{{ data.video.is_public ? 'Public' : 'Private' }}</span>
             </div>
+            @if (data.video.camera_id && data.video.camera_id.trim()) {
+              <div class="meta-chip">
+                <mat-icon>videocam</mat-icon>
+                <span>{{ data.video.camera_id }}</span>
+              </div>
+            }
+            @if (data.video.capture_type && data.video.capture_type.trim()) {
+              <div class="meta-chip">
+                <mat-icon>category</mat-icon>
+                <span>{{ data.video.capture_type }}</span>
+              </div>
+            }
+            @if (data.video.neighborhood && data.video.neighborhood.trim()) {
+              <div class="meta-chip">
+                <mat-icon>location_on</mat-icon>
+                <span>{{ data.video.neighborhood }}</span>
+              </div>
+            }
           </div>
           
           @if (data.video.tags && data.video.tags.length > 0) {
@@ -640,4 +658,3 @@ export class VideoPlayerComponent implements OnInit {
     this.dialogRef.close();
   }
 }
-
