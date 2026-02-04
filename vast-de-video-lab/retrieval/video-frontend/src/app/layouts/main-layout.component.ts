@@ -17,6 +17,7 @@ import { SystemPromptDialogComponent } from '../features/settings/system-prompt-
 import { AdvancedLLMSettingsDialogComponent } from '../features/settings/advanced-llm-settings-dialog.component';
 import { BatchSyncService } from '../shared/services/batch-sync.service';
 import { StreamingService } from '../shared/services/streaming.service';
+import { ThemeService } from '../shared/services/theme.service';
 import { interval } from 'rxjs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
@@ -53,6 +54,12 @@ import { MatTooltipModule } from '@angular/material/tooltip';
           <span class="sync-badge">{{ batchSyncProgress()?.completed_files || 0 }}/{{ batchSyncProgress()?.total_files || 0 }}</span>
         </button>
       }
+      <button mat-icon-button 
+              class="theme-toggle-button" 
+              [matTooltip]="themeService.isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
+              (click)="themeService.toggleTheme()">
+        <mat-icon>{{ themeService.isDark() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+      </button>
       <button mat-icon-button class="config-button" [matMenuTriggerFor]="configMenu">
         <mat-icon>settings</mat-icon>
       </button>
@@ -93,8 +100,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
   `,
   styles: [`
     .app-toolbar {
-      background: rgb(14 26 53);
-      color: white;
+      background: var(--bg-toolbar);
+      color: var(--text-primary);
+      transition: background 0.3s ease, color 0.3s ease;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
       position: sticky;
       top: 0;
@@ -138,6 +146,13 @@ import { MatTooltipModule } from '@angular/material/tooltip';
       cursor: default !important;
       user-select: none !important;
       pointer-events: none !important;
+      filter: brightness(0) invert(1);
+      transition: filter 0.3s ease;
+    }
+    
+    :host-context([data-theme="light"]) .logo,
+    [data-theme="light"] .logo {
+      filter: brightness(0) invert(0);
     }
 
     .title-container {
@@ -153,7 +168,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     .main-title {
       font-size: 1.47rem;
       font-weight: 700;
-      color: #00CED1;
+      color: var(--accent-primary);
       white-space: nowrap;
       line-height: 1.2;
       letter-spacing: 0.5px;
@@ -165,7 +180,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     .subtitle {
       font-size: 0.86rem;
       font-weight: 400;
-      color: rgba(255, 255, 255, 0.85);
+      color: var(--text-secondary);
       white-space: nowrap;
       line-height: 1;
       letter-spacing: 0.3px;
@@ -190,7 +205,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
         font-size: 20px;
         width: 20px;
         height: 20px;
-        color: rgba(255, 255, 255, 0.9);
+        color: var(--text-secondary);
       }
     }
 
@@ -202,7 +217,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
       cursor: pointer !important;
 
       .sync-icon {
-        color: #00CED1 !important;
+        color: var(--accent-primary) !important;
         animation: spin 2s linear infinite;
       }
 
@@ -210,8 +225,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
         position: absolute;
         top: -4px;
         right: -4px;
-        background: #00CED1;
-        color: #0A0A1E;
+        background: var(--accent-primary);
+        color: var(--bg-primary);
         font-size: 0.65rem;
         font-weight: 600;
         padding: 2px 6px;
@@ -251,10 +266,56 @@ import { MatTooltipModule } from '@angular/material/tooltip';
       }
     }
 
+    .theme-toggle-button {
+      background: rgba(0, 206, 209, 0.1) !important;
+      color: var(--accent-primary) !important;
+      border: 1px solid var(--border-color) !important;
+      border-radius: 50% !important;
+      width: 38px !important;
+      height: 38px !important;
+      min-width: 38px !important;
+      cursor: pointer !important;
+      transition: all 0.3s ease;
+      margin-right: 0.5rem;
+      padding: 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      
+      ::ng-deep .mat-mdc-button-touch-target {
+        display: none !important;
+      }
+      
+      ::ng-deep .mat-icon {
+        font-size: 20px !important;
+        width: 20px !important;
+        height: 20px !important;
+        line-height: 20px !important;
+        color: var(--accent-primary) !important;
+        cursor: pointer !important;
+        transition: transform 0.3s ease;
+        margin: 0 !important;
+      }
+      
+      &:hover {
+        background: rgba(0, 206, 209, 0.2) !important;
+        border-color: var(--border-hover) !important;
+        transform: scale(1.05);
+        
+        ::ng-deep .mat-icon {
+          transform: rotate(15deg);
+        }
+      }
+      
+      &:active {
+        transform: scale(0.95);
+      }
+    }
+
     .config-button {
-      background: rgba(255, 255, 255, 0.1) !important;
-      color: white !important;
-      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      background: var(--bg-card) !important;
+      color: var(--text-primary) !important;
+      border: 1px solid var(--border-color) !important;
       border-radius: 50% !important;
       width: 38px !important;
       height: 38px !important;
@@ -276,15 +337,15 @@ import { MatTooltipModule } from '@angular/material/tooltip';
         width: 20px !important;
         height: 20px !important;
         line-height: 20px !important;
-        color: white !important;
+        color: var(--text-primary) !important;
         cursor: pointer !important;
         transition: transform 0.3s ease;
         margin: 0 !important;
       }
       
       &:hover {
-        background: rgba(255, 255, 255, 0.2) !important;
-        border-color: rgba(255, 255, 255, 0.4) !important;
+        background: var(--bg-card-hover) !important;
+        border-color: var(--border-hover) !important;
         
         ::ng-deep .mat-icon {
           transform: rotate(90deg);
@@ -293,9 +354,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     }
 
     .logout-button {
-      background: rgba(255, 255, 255, 0.2) !important;
-      color: white !important;
-      border: 1px solid rgba(255, 255, 255, 0.4) !important;
+      background: var(--bg-card) !important;
+      color: var(--text-primary) !important;
+      border: 1px solid var(--border-color) !important;
       border-radius: 4px !important;
       display: flex !important;
       align-items: center;
@@ -311,8 +372,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
       }
       
       &:hover {
-        background: rgba(255, 255, 255, 0.3) !important;
-        border-color: rgba(255, 255, 255, 0.6) !important;
+        background: var(--bg-card-hover) !important;
+        border-color: var(--border-hover) !important;
       }
       
       mat-icon {
@@ -335,6 +396,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   dialog = inject(MatDialog);
   batchSyncService = inject(BatchSyncService);
   streamingService = inject(StreamingService);
+  themeService = inject(ThemeService);
   
   @ViewChild('configPopover') configPopover!: ConfigPopoverComponent;
 
@@ -484,6 +546,8 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   }
 
   logout() {
+    // Switch to dark mode before logout to ensure login screen displays correctly
+    this.themeService.setTheme('dark');
     this.authService.logout();
   }
 }

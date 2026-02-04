@@ -166,20 +166,21 @@ import { MatIconModule } from '@angular/material/icon';
       padding: 1.25rem;
       margin-bottom: 0.75rem;
       border-radius: 14px;
-      background: rgba(255, 255, 255, 0.02);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
       opacity: 0.3;
       transition: all 0.3s ease;
       
       &.active {
         opacity: 1;
-        background: rgba(0, 206, 209, 0.08);
-        border: 1px solid rgba(0, 206, 209, 0.3);
+        background: var(--bg-card-hover);
+        border: 1px solid var(--accent-primary);
       }
       
       &.complete {
         opacity: 0.6;
-        background: rgba(6, 255, 165, 0.05);
-        border: 1px solid rgba(6, 255, 165, 0.2);
+        background: var(--bg-card);
+        border: 1px solid var(--accent-success);
       }
     }
 
@@ -211,13 +212,13 @@ import { MatIconModule } from '@angular/material/icon';
       flex: 1;
       
       h3 {
-        color: #fff;
+        color: var(--text-primary);
         font-size: 1.1rem;
         margin: 0 0 0.4rem 0;
       }
       
       p {
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--text-secondary);
         margin: 0 0 0.4rem 0;
         font-size: 0.9rem;
       }

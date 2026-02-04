@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { ThemeService } from './shared/services/theme.service';
 
 @Component({
   selector: 'app-root',
@@ -8,9 +9,13 @@ import { RouterOutlet } from '@angular/router';
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })
-export class AppComponent {
-  // Root component - just a router outlet
-  // Login page is standalone
-  // Authenticated pages use MainLayoutComponent with toolbar
+export class AppComponent implements OnInit {
+  // Initialize theme service early to apply theme before any components render
+  private themeService = inject(ThemeService);
+
+  ngOnInit() {
+    // Theme service initializes automatically via constructor
+    // This injection ensures it's created early in the app lifecycle
+  }
 }
 

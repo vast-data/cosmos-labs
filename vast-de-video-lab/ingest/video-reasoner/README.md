@@ -30,9 +30,10 @@ Configure in `ingest/vde-video-ingest-secret-template.yaml`:
 ### Common Settings
 
 - **`reasoning_provider`**: Provider selection - `"cosmos"` or `"nemotron"` (default: `"cosmos"`)
-- **`scenario`**: Analysis prompt scenario (default: `surveillance`)
-  - Available scenarios: `surveillance`, `traffic`, `nhl`, `sports`, `retail`, `warehouse`, `nyc_control`, `general`
+- **`scenario`**: Analysis prompt scenario (default: `general`)
+  - Available scenarios: `surveillance`, `traffic`, `nhl`, `sports`, `retail`, `warehouse`, `nyc_control`, `egocentric`, `general`
   - See [Available Scenarios](#available-scenarios) below for details
+  - **Per-video override**: You can also set `scenario` in S3 object metadata when uploading videos. If present, it will override the default from settings for that specific video.
 - **`max_video_size_mb`**: Maximum video size in MB (default: `100`)
 
 ### Cosmos Settings (when `reasoning_provider == "cosmos"`)
@@ -79,7 +80,7 @@ Configure in `ingest/vde-video-ingest-secret-template.yaml`:
 
 # Configurable Video Analysis Prompts
 
-The analysis prompt can be configured per use case by setting the `scenario` key in the ingest secret, it is defaulted to `surveillance` for now. Works with both Cosmos and Nemotron providers.
+The analysis prompt can be configured per use case by setting the `scenario` key in the ingest secret, it is defaulted to `general` for now. Works with both Cosmos and Nemotron providers.
 
 ## Available Scenarios
 
@@ -94,11 +95,32 @@ The system comes with pre-configured prompts optimized for different use cases:
 | `retail` | Store cameras, customer behavior, theft detection |
 | `warehouse` | Industrial safety, forklift operations, PPE compliance |
 | `nyc_control` | Urban command & control, license plates, anomalies |
+| `egocentric` | First-person perspective: kitchen work, barista tasks, sports activities, object finding |
 | `general` | Generic video description |
 
 ## How to Change the Scenario
 
-### Method 1: Edit the Ingest Secret
+### Method 1: Per-Video Scenario (Recommended)
+
+Set the `scenario` field in S3 object metadata when uploading videos. This allows different videos to use different prompts:
+
+```python
+# Example: Upload video with egocentric scenario
+s3_client.put_object(
+    Bucket=bucket,
+    Key=key,
+    Body=video_content,
+    Metadata={
+        "scenario": "egocentric",  # Override default scenario for this video
+        "camera-id": "kitchen-cam-1",
+        # ... other metadata
+    }
+)
+```
+
+If `scenario` is present in the video's S3 metadata, it will be used for that video. Otherwise, the function falls back to the default scenario from the ingest secret.
+
+### Method 2: Edit the Ingest Secret (Global Default)
 
 Edit `ingest/vde-video-ingest-secret-template.yaml` and set the `scenario` field:
 
@@ -106,9 +128,9 @@ Edit `ingest/vde-video-ingest-secret-template.yaml` and set the `scenario` field
 scenario: traffic  # Change to your use case
 ```
 
-After updating the secret in the DataEngine UI, the pipeline will use the new scenario for all subsequent video processing.
+After updating the secret in the DataEngine UI, the pipeline will use this scenario as the default for all videos that don't have a scenario in their metadata.
 
-### Method 2: Add a Custom Scenario
+### Method 3: Add a Custom Scenario
 
 To create a custom scenario with your own prompt:
 
@@ -147,9 +169,10 @@ When creating custom prompts, follow these guidelines:
 
 ## How It Works
 
-1. The `scenario` value from the ingest secret is passed to the `video-reasoner` function
-2. The function looks up the corresponding prompt in `SCENARIO_PROMPTS`
-3. Based on `reasoning_provider`:
+1. The function extracts S3 metadata from the uploaded video
+2. If `scenario` is present in the video's S3 metadata, it uses that; otherwise, it falls back to the default from the ingest secret
+3. The function looks up the corresponding prompt in `SCENARIO_PROMPTS` based on the selected scenario
+4. Based on `reasoning_provider`:
    - **Cosmos**: Video is encoded to base64, prompt and video are sent directly to hosted Reason API
    - **Nemotron**: Frames are extracted from video, prompt and frames are sent to NVIDIA Build Cloud API
 4. The VLM analyzes the video/frames and returns a text description based on the prompt

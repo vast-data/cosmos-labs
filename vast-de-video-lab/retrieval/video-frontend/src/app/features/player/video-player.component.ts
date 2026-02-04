@@ -165,9 +165,10 @@ import { VideoService } from '../../shared/services/video.service';
       flex-direction: column;
       height: 100%;
       max-height: 90vh;
-      background: linear-gradient(180deg, #0a0a1a 0%, #12122a 100%);
-      color: #fff;
+      background: var(--bg-primary);
+      color: var(--text-primary);
       overflow: hidden;
+      transition: background 0.3s ease, color 0.3s ease;
     }
 
     /* Header */
@@ -176,9 +177,10 @@ import { VideoService } from '../../shared/services/video.service';
       justify-content: space-between;
       align-items: center;
       padding: 0.75rem 1.25rem;
-      background: rgba(0, 0, 0, 0.3);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
       flex-shrink: 0;
+      transition: background 0.3s ease, border-color 0.3s ease;
       
       .header-info {
         display: flex;
@@ -186,7 +188,7 @@ import { VideoService } from '../../shared/services/video.service';
         gap: 0.75rem;
         
         .video-icon {
-          color: #00CED1;
+          color: var(--accent-primary);
           font-size: 1.5rem;
         }
         
@@ -194,7 +196,7 @@ import { VideoService } from '../../shared/services/video.service';
           margin: 0;
           font-size: 1rem;
           font-weight: 500;
-          color: rgba(255, 255, 255, 0.9);
+          color: var(--text-primary);
           max-width: 500px;
           white-space: nowrap;
           overflow: hidden;
@@ -203,12 +205,12 @@ import { VideoService } from '../../shared/services/video.service';
       }
       
       .close-btn {
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--text-secondary);
         transition: all 0.2s;
         
         &:hover {
-          color: #fff;
-          background: rgba(255, 255, 255, 0.1);
+          color: var(--text-primary);
+          background: var(--bg-card-hover);
         }
       }
     }
@@ -225,12 +227,14 @@ import { VideoService } from '../../shared/services/video.service';
       flex-shrink: 0;
       
       .nav-btn {
-        color: #fff;
-        background: rgba(102, 126, 234, 0.2);
+        color: var(--text-primary);
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
         transition: all 0.2s;
         
         &:hover:not(:disabled) {
-          background: rgba(102, 126, 234, 0.4);
+          background: var(--bg-card-hover);
+          border-color: var(--border-hover);
           transform: scale(1.1);
         }
         
@@ -246,24 +250,24 @@ import { VideoService } from '../../shared/services/video.service';
         font-size: 0.9rem;
         
         .segment-label {
-          color: rgba(255, 255, 255, 0.6);
+          color: var(--text-muted);
         }
         
         .segment-number {
           font-weight: 700;
           font-size: 1.25rem;
-          color: #00CED1;
+          color: var(--accent-primary);
           min-width: 2rem;
           text-align: center;
         }
         
         .segment-separator {
-          color: rgba(255, 255, 255, 0.4);
+          color: var(--text-muted);
         }
         
         .segment-total {
           font-weight: 600;
-          color: rgba(255, 255, 255, 0.8);
+          color: var(--text-secondary);
         }
       }
     }
@@ -296,7 +300,7 @@ import { VideoService } from '../../shared/services/video.service';
         gap: 1rem;
         
         p {
-          color: rgba(255, 255, 255, 0.7);
+          color: var(--text-secondary);
           font-size: 0.9rem;
         }
       }
@@ -317,7 +321,7 @@ import { VideoService } from '../../shared/services/video.service';
         }
         
         p {
-          color: rgba(255, 255, 255, 0.7);
+          color: var(--text-secondary);
           text-align: center;
         }
       }
@@ -363,19 +367,20 @@ import { VideoService } from '../../shared/services/video.service';
       
       .reasoning-text {
         margin: 0;
-        color: rgba(255, 255, 255, 0.9);
+        color: var(--text-primary);
         line-height: 1.7;
         font-size: 0.95rem;
         max-height: 150px;
         overflow-y: auto;
         padding-right: 0.5rem;
+        transition: color 0.3s ease;
         
         &::-webkit-scrollbar {
           width: 4px;
         }
         
         &::-webkit-scrollbar-thumb {
-          background: rgba(6, 255, 165, 0.3);
+          background: var(--accent-success);
           border-radius: 2px;
         }
       }
@@ -398,17 +403,18 @@ import { VideoService } from '../../shared/services/video.service';
         align-items: center;
         gap: 0.4rem;
         padding: 0.4rem 0.75rem;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
         border-radius: 20px;
         font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.8);
+        color: var(--text-secondary);
+        transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
         
         mat-icon {
           font-size: 1rem;
           width: 1rem;
           height: 1rem;
-          color: rgba(255, 255, 255, 0.5);
+          color: var(--text-muted);
         }
         
         &.public {
@@ -463,7 +469,7 @@ import { VideoService } from '../../shared/services/video.service';
     }
     
     .info-section::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.15);
+      background: var(--scrollbar-thumb);
       border-radius: 3px;
     }
 
@@ -658,3 +664,4 @@ export class VideoPlayerComponent implements OnInit {
     this.dialogRef.close();
   }
 }
+

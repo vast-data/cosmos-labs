@@ -20,6 +20,7 @@ async def upload_video(
     is_public: bool = Form(False),
     tags: str = Form(""),
     allowed_users: str = Form(""),
+    scenario: str = Form(""),
     current_user: CurrentUser = None
 ):
     """
@@ -67,6 +68,7 @@ async def upload_video(
         # Parse tags and allowed_users
         tags_list = [t.strip() for t in tags.split(',') if t.strip()] if tags else []
         allowed_users_list = [u.strip() for u in allowed_users.split(',') if u.strip()] if allowed_users else []
+        scenario_value = scenario.strip() if scenario else ""
         
         # Upload to S3
         object_key = await s3_service.upload_file(
@@ -74,7 +76,8 @@ async def upload_video(
             user=current_user,
             is_public=is_public,
             tags=tags_list,
-            allowed_users=allowed_users_list
+            allowed_users=allowed_users_list,
+            scenario=scenario_value
         )
         
         logger.info(f"Video uploaded: {object_key}")

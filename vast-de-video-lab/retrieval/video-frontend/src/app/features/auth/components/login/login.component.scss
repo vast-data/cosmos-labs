@@ -1,3 +1,4 @@
+// Override theme variables for login screen - always use dark theme regardless of global theme
 .login-container {
   position: relative;
   width: 100vw;
@@ -6,6 +7,17 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  
+  // Force dark theme variables for login screen
+  --bg-primary: #0a0a1e;
+  --bg-secondary: rgba(10, 10, 30, 0.8);
+  --bg-card: rgba(15, 15, 30, 0.98);
+  --bg-card-hover: rgba(20, 20, 40, 0.98);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.85);
+  --text-muted: rgba(255, 255, 255, 0.65);
+  --border-color: rgba(255, 255, 255, 0.15);
+  --border-hover: rgba(255, 255, 255, 0.3);
 }
 
 .login-background {
@@ -449,15 +461,28 @@ h1 {
     }
     
     .mat-mdc-input-element {
-      color: #fff;
+      color: #fff !important;
     }
     
     .mat-mdc-floating-label {
-      color: rgba(255, 255, 255, 0.7);
+      color: rgba(255, 255, 255, 0.7) !important;
     }
     
     &.mat-focused .mat-mdc-floating-label {
-      color: #0066cc;
+      color: #0066cc !important;
+    }
+    
+    // Override any theme-based text colors
+    input {
+      color: #fff !important;
+      &::placeholder {
+        color: rgba(255, 255, 255, 0.5) !important;
+      }
+    }
+    
+    // Override hint text
+    .mat-mdc-form-field-hint {
+      color: rgba(255, 255, 255, 0.6) !important;
     }
     
     // Password toggle button styling

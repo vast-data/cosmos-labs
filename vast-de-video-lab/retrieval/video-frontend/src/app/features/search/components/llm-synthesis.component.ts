@@ -58,16 +58,15 @@ import { LLMSynthesis } from '../../../shared/models/video.model';
   `,
   styles: [`
     .synthesis-container {
-      background: linear-gradient(135deg, rgba(0, 71, 171, 0.15) 0%, rgba(0, 51, 128, 0.15) 100%);
-      border: 1px solid rgba(0, 217, 255, 0.3);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
       border-radius: 16px;
       padding: 1.5rem;
       margin-bottom: 2rem;
       backdrop-filter: blur(10px);
-      box-shadow: 
-        0 8px 32px rgba(0, 71, 171, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      box-shadow: var(--shadow);
       animation: slideIn 0.3s ease-out;
+      transition: background 0.3s ease, border-color 0.3s ease;
     }
 
     @keyframes slideIn {
@@ -104,19 +103,20 @@ import { LLMSynthesis } from '../../../shared/models/video.model';
 
         h3 {
           margin: 0;
-          color: #ffffff;
+          color: var(--text-primary);
           font-size: 1.25rem;
           font-weight: 600;
         }
 
         .badge {
-          background: rgba(0, 71, 171, 0.3);
-          color: rgba(255, 255, 255, 0.9);
+          background: var(--bg-secondary);
+          color: var(--text-primary);
           padding: 0.25rem 0.75rem;
           border-radius: 12px;
           font-size: 0.75rem;
           font-weight: 500;
-          border: 1px solid rgba(0, 71, 171, 0.5);
+          border: 1px solid var(--border-color);
+          transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
       }
 
@@ -129,7 +129,7 @@ import { LLMSynthesis } from '../../../shared/models/video.model';
           display: flex;
           align-items: center;
           gap: 0.25rem;
-          color: rgba(255, 255, 255, 0.7);
+          color: var(--text-secondary);
           font-size: 0.875rem;
           cursor: help;
 
@@ -137,29 +137,30 @@ import { LLMSynthesis } from '../../../shared/models/video.model';
             font-size: 16px;
             width: 16px;
             height: 16px;
-            color: #00d9ff;
+            color: var(--accent-primary);
           }
 
           &:hover {
-            color: rgba(255, 255, 255, 0.9);
+            color: var(--text-primary);
           }
         }
       }
     }
 
     .synthesis-content {
-      background: rgba(10, 10, 30, 0.5);
+      background: var(--bg-secondary);
       border-radius: 12px;
       padding: 1.25rem;
-      border: 1px solid rgba(0, 217, 255, 0.15);
+      border: 1px solid var(--border-color);
+      transition: background 0.3s ease, border-color 0.3s ease;
 
       &.error {
-        border-color: rgba(255, 82, 82, 0.5);
+        border-color: var(--accent-danger);
         background: rgba(255, 82, 82, 0.1);
       }
 
       .response-text {
-        color: rgba(255, 255, 255, 0.95);
+        color: var(--text-primary);
         font-size: 1rem;
         line-height: 1.6;
         white-space: pre-wrap;
@@ -170,13 +171,14 @@ import { LLMSynthesis } from '../../../shared/models/video.model';
       .segments-list {
         margin-top: 1rem;
         padding-top: 1rem;
-        border-top: 1px solid rgba(0, 217, 255, 0.2);
+        border-top: 1px solid var(--border-color);
+        transition: border-color 0.3s ease;
 
         .segments-header {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          color: rgba(0, 217, 255, 0.9);
+          color: var(--accent-primary);
           font-size: 0.875rem;
           font-weight: 500;
           margin-bottom: 0.75rem;
@@ -194,13 +196,14 @@ import { LLMSynthesis } from '../../../shared/models/video.model';
           gap: 0.5rem;
 
           .segment-chip {
-            background: rgba(0, 71, 171, 0.3);
-            color: rgba(255, 255, 255, 0.9);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
             padding: 0.4rem 0.75rem;
             border-radius: 8px;
             font-size: 0.8rem;
-            border: 1px solid rgba(0, 217, 255, 0.3);
+            border: 1px solid var(--border-color);
             font-family: 'Roboto Mono', monospace;
+            transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
           }
         }
       }

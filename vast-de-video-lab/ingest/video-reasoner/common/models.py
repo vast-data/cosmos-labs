@@ -35,7 +35,7 @@ class Settings(BaseModel):
     max_video_size_mb: int = 100
     # Scenario for prompt selection
     # Options: surveillance, traffic, nhl, sports, retail, warehouse, general
-    scenario: str = "surveillance"
+    scenario: str = "general"
     
     @computed_field
     @property

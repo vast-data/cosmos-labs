@@ -132,7 +132,8 @@ class S3Service:
         user: User,
         is_public: bool,
         tags: list[str],
-        allowed_users: list[str]
+        allowed_users: list[str],
+        scenario: str = ""
     ) -> str:
         """
         Upload file directly to S3 (backend proxy)
@@ -179,6 +180,10 @@ class S3Service:
             # Add tags if present
             if tags:
                 metadata['tags'] = ','.join(tags)
+            
+            # Add scenario if present
+            if scenario:
+                metadata['scenario'] = scenario
             
             logger.info(f"Uploading {file.filename} to s3://{self.settings.s3_upload_bucket}/{object_key}")
             logger.info(f"Metadata to set: {metadata}")

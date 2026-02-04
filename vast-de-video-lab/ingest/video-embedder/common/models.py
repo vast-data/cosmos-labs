@@ -48,6 +48,9 @@ class ReasoningEvent(BaseModel):
     camera_id: str | None = None
     capture_type: str | None = None
     neighborhood: str | None = None
+    
+    # Analysis scenario metadata
+    scenario: str | None = None
 
 
 class EmbeddingResult(BaseModel):
@@ -78,4 +81,7 @@ class EmbeddingResult(BaseModel):
     camera_id: str | None = None
     capture_type: str | None = None
     neighborhood: str | None = None
+    
+    # Analysis scenario metadata
+    scenario: str | None = None
 

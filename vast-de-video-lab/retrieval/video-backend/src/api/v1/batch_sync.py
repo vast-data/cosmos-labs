@@ -68,6 +68,7 @@ class BatchSyncStartRequest(BaseModel):
     camera_id: Optional[str] = Field(default=None, description="Camera identifier")
     capture_type: Optional[str] = Field(default=None, description="Capture type: traffic, streets, crowds, malls")
     neighborhood: Optional[str] = Field(default=None, description="Geographic area/neighborhood")
+    scenario: Optional[str] = Field(default=None, description="Analysis scenario: surveillance, traffic, egocentric, etc.")
 
 
 class BatchSyncStatusResponse(BaseModel):
@@ -239,12 +240,13 @@ async def start_batch_sync(
             "allowed_users": request.allowed_users or [],
             "camera_id": request.camera_id or "",
             "capture_type": request.capture_type or "",
-            "neighborhood": request.neighborhood or ""
+            "neighborhood": request.neighborhood or "",
+            "scenario": request.scenario or ""
         }
         
         logger.info(f"[BATCH_SYNC] Destination: s3://{dest_bucket}")
         logger.info(f"[BATCH_SYNC] Delay between files: {request.batch_size} seconds")
-        logger.info(f"[BATCH_SYNC] Metadata: camera_id={request.camera_id}, capture_type={request.capture_type}, neighborhood={request.neighborhood}")
+        logger.info(f"[BATCH_SYNC] Metadata: camera_id={request.camera_id}, capture_type={request.capture_type}, neighborhood={request.neighborhood}, scenario={request.scenario}")
         
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(

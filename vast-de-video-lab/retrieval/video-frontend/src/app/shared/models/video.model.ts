@@ -17,6 +17,7 @@ export interface VideoSearchResult {
   camera_id?: string;
   capture_type?: string;
   neighborhood?: string;
+  scenario?: string;  // Analysis scenario (surveillance, traffic, egocentric, etc.)
 }
 
 export interface SearchRequest {

@@ -127,8 +127,8 @@ import { environment } from '../../../environments/environment';
       margin-bottom: 2rem;
       
       .upload-button {
-        background: linear-gradient(135deg, #0047AB 0%, #002766 100%) !important;
-        color: white !important;
+        background: var(--button-bg-primary) !important;
+        color: var(--button-text) !important;
         font-weight: 500;
         border-radius: 4px !important;
         padding: 0 1.5rem !important;
@@ -137,10 +137,12 @@ import { environment } from '../../../environments/environment';
         
         * {
           cursor: pointer !important;
+          color: var(--button-text) !important;
         }
         
         &:hover {
-          box-shadow: 0 4px 12px rgba(0, 71, 171, 0.6);
+          background: var(--button-bg-hover) !important;
+          box-shadow: var(--shadow-hover);
         }
       }
     }
@@ -164,26 +166,32 @@ import { environment } from '../../../environments/environment';
     .empty-state {
       text-align: center;
       padding: 4rem 2rem;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px dashed rgba(255, 255, 255, 0.2);
+      background: var(--bg-card);
+      border: 1px dashed var(--border-color);
       border-radius: 20px;
+      transition: background 0.3s ease, border-color 0.3s ease;
       
       .vast-logo-glow {
         height: 30px;
         width: auto;
         margin-bottom: 2rem;
-        filter: drop-shadow(0 0 15px rgba(0, 217, 255, 0.7));
+        filter: brightness(0) invert(1) drop-shadow(0 0 15px rgba(0, 217, 255, 0.7));
         animation: glow-pulse 1.2s ease-in-out infinite;
+        transition: filter 0.3s ease;
+      }
+      
+      [data-theme="light"] & .vast-logo-glow {
+        filter: none drop-shadow(0 0 15px rgba(0, 206, 209, 0.5));
       }
       
       h2 {
-        color: #fff;
+        color: var(--text-primary);
         font-size: 2rem;
         margin-bottom: 0.5rem;
       }
       
       p {
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--text-secondary);
         font-size: 1.1rem;
         margin-bottom: 2rem;
       }
@@ -192,13 +200,14 @@ import { environment } from '../../../environments/environment';
         text-align: left;
         max-width: 600px;
         margin: 0 auto;
-        background: rgba(0, 71, 171, 0.08);
+        background: var(--bg-secondary);
         padding: 1.5rem;
         border-radius: 12px;
-        border: 1px solid rgba(0, 71, 171, 0.2);
+        border: 1px solid var(--border-color);
+        transition: background 0.3s ease, border-color 0.3s ease;
         
         h3 {
-          color: rgba(0, 217, 255, 0.9);
+          color: var(--accent-primary);
           margin-bottom: 0.75rem;
           font-size: 1rem;
         }
@@ -211,11 +220,11 @@ import { environment } from '../../../environments/environment';
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            color: rgba(255, 255, 255, 0.85);
+            color: var(--text-secondary);
             padding: 0.5rem 0;
             
             mat-icon {
-              color: #00d9ff;
+              color: var(--accent-primary);
               font-size: 1.25rem;
               width: 1.25rem;
               height: 1.25rem;
@@ -228,12 +237,10 @@ import { environment } from '../../../environments/environment';
     
     @keyframes glow-pulse {
       0%, 100% {
-        filter: drop-shadow(0 0 15px rgba(0, 217, 255, 0.7));
         opacity: 1;
         transform: scale(1);
       }
       50% {
-        filter: drop-shadow(0 0 40px rgba(0, 217, 255, 1));
         opacity: 0.7;
         transform: scale(1.05);
       }
@@ -245,10 +252,11 @@ import { environment } from '../../../environments/environment';
       align-items: center;
       margin-bottom: 1.5rem;
       padding-bottom: 1rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom: 1px solid var(--border-color);
+      transition: border-color 0.3s ease;
       
       h2 {
-        color: #fff;
+        color: var(--text-primary);
         font-size: 1.5rem;
         margin: 0;
       }
@@ -259,15 +267,15 @@ import { environment } from '../../../environments/environment';
         align-items: flex-end;
         gap: 0.25rem;
         font-size: 0.9rem;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--text-secondary);
         
         .filtered-info {
-          color: rgba(255, 193, 7, 0.8);
+          color: var(--accent-warning);
         }
         
         .timing-info {
           font-family: 'Courier New', monospace;
-          color: rgba(6, 255, 165, 0.7);
+          color: var(--accent-success);
         }
       }
     }
@@ -298,18 +306,23 @@ import { environment } from '../../../environments/environment';
         height: 30px;
         width: auto;
         margin-bottom: 2rem;
-        filter: drop-shadow(0 0 15px rgba(0, 217, 255, 0.7));
+        filter: brightness(0) invert(1) drop-shadow(0 0 15px rgba(0, 217, 255, 0.7));
         animation: glow-pulse 1.2s ease-in-out infinite;
+        transition: filter 0.3s ease;
+      }
+      
+      [data-theme="light"] & .vast-logo-glow {
+        filter: none drop-shadow(0 0 15px rgba(0, 206, 209, 0.5));
       }
       
       h2 {
-        color: #fff;
+        color: var(--text-primary);
         font-size: 1.75rem;
         margin-bottom: 0.5rem;
       }
       
       p {
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--text-muted);
       }
     }
   `]

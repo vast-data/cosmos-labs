@@ -67,6 +67,18 @@ IMPORTANT: Keep your response concise (under 150 words) and always write complet
 Be specific about equipment types, locations, and timing.
 IMPORTANT: Keep your response concise (under 150 words) and always write complete sentences.""",
 
+    "egocentric": """Analyze this first-person (egocentric) video footage and describe:
+1) Hand movements, gestures, and object manipulations (cooking, tool usage, item handling)
+2) Kitchen activities: food preparation, cooking techniques, ingredient usage, and kitchen tool interactions
+3) Barista work: coffee preparation steps, equipment usage, drink assembly, and customer service actions
+4) Sports activities: athletic movements, techniques, equipment handling, and performance actions from first-person perspective
+5) Object finding and searching: what items are being located, search patterns, and object interactions
+6) Tool and equipment usage: specific tools being used, how they are manipulated, and task execution
+7) Environmental context: workspace layout, objects in view, and spatial relationships
+8) Task progression: step-by-step actions and workflow sequences
+Be specific about hand positions, object locations, and the sequence of actions from the wearer's perspective.
+IMPORTANT: Keep your response concise (under 150 words) and always write complete sentences.""",
+
     "general": """Analyze this video footage and describe:
 1) All people visible and their actions
 2) Objects and items of interest
@@ -105,7 +117,7 @@ IMPORTANT: Keep your response concise (under 150 words) and always write complet
 
 
 
-DEFAULT_SCENARIO = "surveillance"
+DEFAULT_SCENARIO = "general"
 
 
 def get_prompt_for_scenario(scenario: str) -> str:

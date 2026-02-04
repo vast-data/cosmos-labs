@@ -112,10 +112,11 @@ Be factual and based only on the provided summaries. Flag any high-severity situ
     .dialog-container {
       display: flex;
       flex-direction: column;
-      background: linear-gradient(135deg, #0A0A1E 0%, #15152E 100%);
-      color: white;
+      background: var(--bg-card);
+      color: var(--text-primary);
       min-width: 550px;
       max-width: 700px;
+      transition: background 0.3s ease, color 0.3s ease;
     }
 
     .dialog-header {
@@ -123,8 +124,9 @@ Be factual and based only on the provided summaries. Flag any high-severity situ
       justify-content: space-between;
       align-items: center;
       padding: 1.25rem 1.5rem;
-      background: rgba(0, 0, 0, 0.2);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      transition: background 0.3s ease, border-color 0.3s ease;
 
       .header-title {
         display: flex;
@@ -132,7 +134,7 @@ Be factual and based only on the provided summaries. Flag any high-severity situ
         gap: 0.75rem;
 
         mat-icon {
-          color: #00CED1;
+          color: var(--accent-primary);
           font-size: 1.5rem;
           width: 1.5rem;
           height: 1.5rem;
@@ -142,14 +144,15 @@ Be factual and based only on the provided summaries. Flag any high-severity situ
           margin: 0;
           font-size: 1.2rem;
           font-weight: 600;
+          color: var(--text-primary);
         }
       }
 
       .close-btn {
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--text-secondary);
         &:hover {
-          color: white;
-          background: rgba(255, 255, 255, 0.1);
+          color: var(--text-primary);
+          background: var(--bg-card-hover);
         }
       }
     }
@@ -162,7 +165,7 @@ Be factual and based only on the provided summaries. Flag any high-severity situ
 
       .description {
         margin: 0;
-        color: rgba(255, 255, 255, 0.8);
+        color: var(--text-secondary);
         font-size: 0.9rem;
         line-height: 1.5;
       }
@@ -180,7 +183,7 @@ Be factual and based only on the provided summaries. Flag any high-severity situ
 
         .label {
           font-weight: 600;
-          color: #00CED1;
+          color: var(--accent-primary);
           font-size: 0.9rem;
           text-transform: uppercase;
           letter-spacing: 0.5px;
@@ -191,11 +194,12 @@ Be factual and based only on the provided summaries. Flag any high-severity situ
           gap: 0.5rem;
 
           .action-btn {
-            color: rgba(255, 255, 255, 0.7);
-            border-color: rgba(255, 255, 255, 0.2);
+            color: var(--text-secondary);
+            border-color: var(--border-color);
             font-size: 0.8rem;
             padding: 0 0.75rem;
             height: 32px;
+            transition: all 0.3s ease;
             
             mat-icon {
               font-size: 1rem;
@@ -205,9 +209,9 @@ Be factual and based only on the provided summaries. Flag any high-severity situ
             }
 
             &:hover {
-              color: white;
-              border-color: rgba(255, 255, 255, 0.4);
-              background: rgba(255, 255, 255, 0.1);
+              color: var(--text-primary);
+              border-color: var(--border-hover);
+              background: var(--bg-card-hover);
             }
             
           }
@@ -219,7 +223,7 @@ Be factual and based only on the provided summaries. Flag any high-severity situ
 
         ::ng-deep {
           .mat-mdc-form-field-flex {
-            background: rgba(0, 0, 0, 0.3) !important;
+            background: var(--bg-secondary) !important;
           }
           
           .mat-mdc-text-field-wrapper {
@@ -229,7 +233,7 @@ Be factual and based only on the provided summaries. Flag any high-severity situ
           .mdc-notched-outline__leading,
           .mdc-notched-outline__notch,
           .mdc-notched-outline__trailing {
-            border-color: rgba(255, 255, 255, 0.2) !important;
+            border-color: var(--border-color) !important;
           }
           
           .mat-mdc-form-field-focus-overlay {
@@ -240,19 +244,19 @@ Be factual and based only on the provided summaries. Flag any high-severity situ
             .mdc-notched-outline__leading,
             .mdc-notched-outline__notch,
             .mdc-notched-outline__trailing {
-              border-color: #00CED1 !important;
+              border-color: var(--accent-primary) !important;
             }
           }
 
           textarea {
-            color: white !important;
+            color: var(--text-primary) !important;
             font-family: 'JetBrains Mono', 'Fira Code', monospace;
             font-size: 0.85rem;
             line-height: 1.5;
           }
 
           .mat-mdc-form-field-hint {
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--text-muted);
           }
         }
       }
@@ -266,18 +270,19 @@ Be factual and based only on the provided summaries. Flag any high-severity situ
       display: flex;
       gap: 0.75rem;
       padding: 1rem;
-      background: rgba(0, 206, 209, 0.1);
-      border: 1px solid rgba(0, 206, 209, 0.3);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
+      transition: background 0.3s ease, border-color 0.3s ease;
 
       mat-icon {
-        color: #00CED1;
+        color: var(--accent-primary);
         flex-shrink: 0;
       }
 
       .info-content {
         font-size: 0.85rem;
-        color: rgba(255, 255, 255, 0.85);
+        color: var(--text-primary);
 
         strong {
           display: block;
@@ -301,26 +306,32 @@ Be factual and based only on the provided summaries. Flag any high-severity situ
       justify-content: flex-end;
       gap: 1rem;
       padding: 1rem 1.5rem;
-      background: rgba(0, 0, 0, 0.2);
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+      transition: background 0.3s ease, border-color 0.3s ease;
 
       .cancel-btn {
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--text-secondary);
         &:hover {
-          background: rgba(255, 255, 255, 0.1);
+          background: var(--bg-card-hover);
         }
       }
 
       .save-btn {
-        background: linear-gradient(135deg, #0047AB 0%, #002766 100%);
-        color: white;
+        background: var(--button-bg-primary) !important;
+        color: var(--button-text) !important;
+        
+        * {
+          color: var(--button-text) !important;
+        }
         
         mat-icon {
           margin-right: 0.5rem;
         }
 
         &:hover {
-          box-shadow: 0 4px 12px rgba(0, 71, 171, 0.6);
+          background: var(--button-bg-hover) !important;
+          box-shadow: var(--shadow-hover);
         }
       }
     }

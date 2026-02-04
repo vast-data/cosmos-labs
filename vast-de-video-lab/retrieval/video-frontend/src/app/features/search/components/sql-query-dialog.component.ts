@@ -64,11 +64,12 @@ export interface SqlQueryDialogData {
     .dialog-container {
       display: flex;
       flex-direction: column;
-      background: linear-gradient(135deg, #0A0A1E 0%, #15152E 100%);
-      color: white;
+      background: var(--bg-card);
+      color: var(--text-primary);
       min-width: 600px;
       max-width: 900px;
       max-height: 85vh;
+      transition: background 0.3s ease, color 0.3s ease;
     }
 
     .dialog-header {
@@ -76,8 +77,9 @@ export interface SqlQueryDialogData {
       justify-content: space-between;
       align-items: center;
       padding: 1.25rem 1.5rem;
-      background: rgba(0, 0, 0, 0.2);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      transition: background 0.3s ease, border-color 0.3s ease;
 
       .header-title {
         display: flex;
@@ -85,7 +87,7 @@ export interface SqlQueryDialogData {
         gap: 0.75rem;
 
         mat-icon {
-          color: #00CED1;
+          color: var(--accent-primary);
           font-size: 1.5rem;
           width: 1.5rem;
           height: 1.5rem;
@@ -95,14 +97,15 @@ export interface SqlQueryDialogData {
           margin: 0;
           font-size: 1.2rem;
           font-weight: 600;
+          color: var(--text-primary);
         }
       }
 
       .close-btn {
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--text-secondary);
         &:hover {
-          color: white;
-          background: rgba(255, 255, 255, 0.1);
+          color: var(--text-primary);
+          background: var(--bg-card-hover);
         }
       }
     }
@@ -117,12 +120,12 @@ export interface SqlQueryDialogData {
 
       .description {
         margin: 0;
-        color: rgba(255, 255, 255, 0.8);
+        color: var(--text-secondary);
         font-size: 0.9rem;
         line-height: 1.5;
 
         strong {
-          color: #00CED1;
+          color: var(--accent-primary);
         }
       }
     }
@@ -139,7 +142,7 @@ export interface SqlQueryDialogData {
 
         .label {
           font-weight: 600;
-          color: #00CED1;
+          color: var(--accent-primary);
           font-size: 0.9rem;
           text-transform: uppercase;
           letter-spacing: 0.5px;
@@ -147,13 +150,14 @@ export interface SqlQueryDialogData {
       }
 
       .sql-display {
-        background: rgba(0, 0, 0, 0.4);
-        border: 1px solid rgba(0, 206, 209, 0.3);
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
         border-radius: 8px;
         padding: 1rem;
         overflow-x: auto;
         max-height: 400px;
         overflow-y: auto;
+        transition: background 0.3s ease, border-color 0.3s ease;
 
         pre {
           margin: 0;
@@ -161,9 +165,10 @@ export interface SqlQueryDialogData {
           font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
           font-size: 0.85rem;
           line-height: 1.6;
-          color: rgba(255, 255, 255, 0.9);
+          color: var(--text-primary);
           white-space: pre-wrap;
           word-wrap: break-word;
+          transition: color 0.3s ease;
 
           code {
             font-family: inherit;
@@ -177,22 +182,24 @@ export interface SqlQueryDialogData {
       display: flex;
       gap: 0.75rem;
       padding: 1rem;
-      background: rgba(0, 206, 209, 0.1);
-      border: 1px solid rgba(0, 206, 209, 0.3);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
+      transition: background 0.3s ease, border-color 0.3s ease;
 
       mat-icon {
-        color: #00CED1;
+        color: var(--accent-primary);
         flex-shrink: 0;
       }
 
       .info-content {
         font-size: 0.85rem;
-        color: rgba(255, 255, 255, 0.85);
+        color: var(--text-secondary);
 
         strong {
           display: block;
           margin-bottom: 0.5rem;
+          color: var(--text-primary);
         }
 
         ul {
@@ -204,12 +211,13 @@ export interface SqlQueryDialogData {
             line-height: 1.4;
 
             code {
-              background: rgba(0, 0, 0, 0.3);
+              background: var(--bg-secondary);
               padding: 0.125rem 0.375rem;
               border-radius: 4px;
               font-family: 'JetBrains Mono', 'Fira Code', monospace;
               font-size: 0.9em;
-              color: #00CED1;
+              color: var(--accent-primary);
+              border: 1px solid var(--border-color);
             }
           }
         }

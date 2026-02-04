@@ -80,34 +80,6 @@ def handler(ctx, event: VastEvent):
                     "file_size": len(video_content)
                 })
 
-            with ctx.tracer.start_as_current_span("Video Reasoning Analysis") as reasoning_span:
-                provider = ctx.settings.reasoning_provider.lower()
-                provider_name = "NEMOTRON" if provider == "nemotron" else "COSMOS"
-                
-                if provider == "nemotron":
-                    ctx.logger.info(f"[{provider_name}] Starting analysis → {ctx.settings.nemotron_model}")
-                else:
-                    ctx.logger.info(f"[{provider_name}] Starting analysis → {ctx.reasoning_client.settings.cosmos_host}")
-                
-                reasoning_result = ctx.reasoning_client.analyze_video(video_content, filename)
-                
-                content_length = len(reasoning_result.get("reasoning_content", ""))
-                tokens_used = reasoning_result.get("tokens_used", 0)
-                processing_time = reasoning_result.get("processing_time", 0)
-                model_name = reasoning_result.get("cosmos_model", "")
-                
-                reasoning_span.set_attributes({
-                    "source": source,
-                    "filename": filename,
-                    "reasoning_provider": provider,
-                    "reasoning_content_length": content_length,
-                    "tokens_used": tokens_used,
-                    "processing_time_seconds": processing_time,
-                    "model": model_name
-                })
-                
-                ctx.logger.info(f"[{provider_name}] Complete | {content_length} chars | {tokens_used} tokens | {processing_time:.2f}s")
-
             with ctx.tracer.start_as_current_span("Metadata Extraction") as metadata_span:
                 try:
                     head_response = ctx.s3_client.head_object(bucket=bucket, key=key)
@@ -127,11 +99,16 @@ def handler(ctx, event: VastEvent):
                     capture_type = s3_metadata.get("capture-type", "")
                     neighborhood = s3_metadata.get("neighborhood", "")
                     
+                    # Extract scenario from metadata, fall back to settings default
+                    scenario = s3_metadata.get("scenario", "").strip()
+                    if not scenario:
+                        scenario = ctx.settings.scenario
+                    
                     segment_number = int(segment_number_str) if segment_number_str else 0
                     total_segments = int(total_segments_str) if total_segments_str else 1
                     segment_duration = float(segment_duration_str) if segment_duration_str else 5.0
                     
-                    ctx.logger.info(f"[METADATA] segment {segment_number}/{total_segments} | camera={camera_id or 'none'} | type={capture_type or 'none'} | area={neighborhood or 'none'}")
+                    ctx.logger.info(f"[METADATA] segment {segment_number}/{total_segments} | camera={camera_id or 'none'} | type={capture_type or 'none'} | area={neighborhood or 'none'} | scenario={scenario}")
                     
                     metadata_span.set_attributes({
                         "is_public": str(is_public),
@@ -140,7 +117,8 @@ def handler(ctx, event: VastEvent):
                         "original_video": original_video,
                         "camera_id": camera_id,
                         "capture_type": capture_type,
-                        "neighborhood": neighborhood
+                        "neighborhood": neighborhood,
+                        "scenario": scenario
                     })
                 except Exception as e:
                     ctx.logger.warning(f"[METADATA] Extraction failed, using defaults: {e}")
@@ -155,6 +133,36 @@ def handler(ctx, event: VastEvent):
                     camera_id = ""
                     capture_type = ""
                     neighborhood = ""
+                    scenario = ctx.settings.scenario  # Fall back to default from settings
+
+            with ctx.tracer.start_as_current_span("Video Reasoning Analysis") as reasoning_span:
+                provider = ctx.settings.reasoning_provider.lower()
+                provider_name = "NEMOTRON" if provider == "nemotron" else "COSMOS"
+                
+                if provider == "nemotron":
+                    ctx.logger.info(f"[{provider_name}] Starting analysis → {ctx.settings.nemotron_model} | scenario={scenario}")
+                else:
+                    ctx.logger.info(f"[{provider_name}] Starting analysis → {ctx.reasoning_client.settings.cosmos_host} | scenario={scenario}")
+                
+                reasoning_result = ctx.reasoning_client.analyze_video(video_content, filename, scenario=scenario)
+                
+                content_length = len(reasoning_result.get("reasoning_content", ""))
+                tokens_used = reasoning_result.get("tokens_used", 0)
+                processing_time = reasoning_result.get("processing_time", 0)
+                model_name = reasoning_result.get("cosmos_model", "")
+                
+                reasoning_span.set_attributes({
+                    "source": source,
+                    "filename": filename,
+                    "reasoning_provider": provider,
+                    "reasoning_content_length": content_length,
+                    "tokens_used": tokens_used,
+                    "processing_time_seconds": processing_time,
+                    "model": model_name,
+                    "scenario": scenario
+                })
+                
+                ctx.logger.info(f"[{provider_name}] Complete | {content_length} chars | {tokens_used} tokens | {processing_time:.2f}s")
 
             result = {
                 "source": source,
@@ -176,7 +184,8 @@ def handler(ctx, event: VastEvent):
                 "original_video": original_video,
                 "camera_id": camera_id,
                 "capture_type": capture_type,
-                "neighborhood": neighborhood
+                "neighborhood": neighborhood,
+                "scenario": scenario
             }
             
             video_url_info = f" | video_url={reasoning_result.get('video_url', 'N/A')}" if reasoning_result.get("video_url") else ""

@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSliderModule } from '@angular/material/slider';
+import { MatSelectModule } from '@angular/material/select';
 import { BatchSyncService, BatchSyncStartRequest, BatchSyncCheckObjectsRequest } from '../../shared/services/batch-sync.service';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
@@ -26,7 +27,8 @@ import { environment } from '../../../environments/environment';
     MatInputModule,
     MatCheckboxModule,
     MatProgressSpinnerModule,
-    MatSliderModule
+    MatSliderModule,
+    MatSelectModule
   ],
   template: `
     <div class="batch-sync-dialog">
@@ -194,6 +196,23 @@ import { environment } from '../../../environments/environment';
             <mat-icon matSuffix>location_on</mat-icon>
           </mat-form-field>
 
+          <mat-form-field appearance="outline">
+            <mat-label>Analysis Scenario</mat-label>
+            <mat-select formControlName="scenario">
+              <mat-option [value]="">-- Use Default (from settings) --</mat-option>
+              <mat-option value="surveillance">Surveillance</mat-option>
+              <mat-option value="traffic">Traffic</mat-option>
+              <mat-option value="nhl">NHL</mat-option>
+              <mat-option value="sports">Sports</mat-option>
+              <mat-option value="retail">Retail</mat-option>
+              <mat-option value="warehouse">Warehouse</mat-option>
+              <mat-option value="nyc_control">NYC Control</mat-option>
+              <mat-option value="egocentric">Egocentric (Kitchen/Barista/Sports/Finding)</mat-option>
+              <mat-option value="general">General</mat-option>
+            </mat-select>
+            <mat-icon matSuffix>psychology</mat-icon>
+          </mat-form-field>
+
           @if (error()) {
             <div class="error-message">
               <mat-icon>error_outline</mat-icon>
@@ -222,12 +241,13 @@ import { environment } from '../../../environments/environment';
     .batch-sync-dialog {
       width: 700px;
       max-height: 90vh;
-      background: linear-gradient(135deg, #0A0A1E 0%, #15152E 100%);
-      color: white;
+      background: var(--bg-card);
+      color: var(--text-primary);
       display: flex;
       flex-direction: column;
       overflow: hidden;
       border-radius: 12px;
+      transition: background 0.3s ease, color 0.3s ease;
       
       // Ensure buttons are clickable
       button {
@@ -253,16 +273,17 @@ import { environment } from '../../../environments/environment';
       gap: 0.75rem;
       padding: 1.5rem 1.5rem 1rem 1.5rem;
       background: transparent;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom: 1px solid var(--border-color);
       margin: 0;
       border-top-left-radius: 12px;
       border-top-right-radius: 12px;
+      transition: border-color 0.3s ease;
 
       .header-icon {
         font-size: 28px;
         width: 28px;
         height: 28px;
-        color: #00CED1;
+        color: var(--accent-primary);
       }
 
       h2 {
@@ -270,17 +291,17 @@ import { environment } from '../../../environments/environment';
         margin: 0;
         font-size: 1.25rem;
         font-weight: 500;
-        color: rgba(255, 255, 255, 0.95);
+        color: var(--text-primary);
       }
 
       .close-btn {
         background: transparent !important;
         border: none;
         cursor: pointer;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--text-secondary);
         &:hover {
-          color: white;
-          background: rgba(255, 255, 255, 0.1) !important;
+          color: var(--text-primary);
+          background: var(--bg-card-hover) !important;
         }
       }
     }
@@ -292,7 +313,7 @@ import { environment } from '../../../environments/environment';
     }
 
     .description {
-      color: rgba(255, 255, 255, 0.7);
+      color: var(--text-secondary);
       margin-bottom: 1.5rem;
       font-size: 0.95rem;
       line-height: 1.5;
@@ -309,7 +330,7 @@ import { environment } from '../../../environments/environment';
       align-items: center;
       gap: 0.5rem;
       margin: 1.5rem 0 0.75rem 0;
-      color: #00CED1;
+      color: var(--accent-primary);
       font-size: 1rem;
       font-weight: 500;
 
@@ -317,7 +338,7 @@ import { environment } from '../../../environments/environment';
         font-size: 20px;
         width: 20px;
         height: 20px;
-        color: #00CED1;
+        color: var(--accent-primary);
       }
     }
 
@@ -331,18 +352,23 @@ import { environment } from '../../../environments/environment';
       }
 
       .check-btn {
-        background: linear-gradient(135deg, #0047AB 0%, #002766 100%) !important;
-        color: white !important;
+        background: var(--button-bg-primary) !important;
+        color: var(--button-text) !important;
         white-space: nowrap;
         height: 48px;
         min-width: 140px;
         margin-top: 0;
         align-self: flex-start;
         cursor: pointer !important;
+        transition: all 0.3s ease;
+        
+        * {
+          color: var(--button-text) !important;
+        }
         
         &:hover:not([disabled]) {
-          background: linear-gradient(135deg, #0056D6 0%, #0047AB 100%) !important;
-          box-shadow: 0 4px 12px rgba(0, 71, 171, 0.4);
+          background: var(--button-bg-hover) !important;
+          box-shadow: var(--shadow-hover);
         }
         
         &[disabled] {
@@ -387,12 +413,12 @@ import { environment } from '../../../environments/environment';
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        color: rgba(255, 255, 255, 0.9);
+        color: var(--text-primary);
         font-size: 0.95rem;
         cursor: pointer;
         
         .checkbox-icon {
-          color: #00d9ff;
+          color: var(--accent-primary);
           font-size: 1.5rem;
           width: 1.5rem;
           height: 1.5rem;
@@ -435,13 +461,14 @@ import { environment } from '../../../environments/environment';
       gap: 0.75rem;
       padding: 0.75rem 1rem;
       margin-top: 0.5rem;
-      background: rgba(0, 206, 209, 0.1);
-      border: 1px solid rgba(0, 206, 209, 0.3);
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
       border-radius: 8px;
-      color: rgba(255, 255, 255, 0.9);
+        color: var(--text-primary);
+        transition: background 0.3s ease, border-color 0.3s ease;
 
       mat-icon {
-        color: #00CED1;
+          color: var(--accent-primary);
         font-size: 20px;
         width: 20px;
         height: 20px;
@@ -454,14 +481,14 @@ import { environment } from '../../../environments/environment';
 
         .destination-label {
           font-size: 0.75rem;
-          color: rgba(255, 255, 255, 0.6);
+            color: var(--text-muted);
         }
 
         .destination-value {
           font-family: 'JetBrains Mono', monospace;
           font-size: 0.9rem;
           font-weight: 600;
-          color: #00CED1;
+            color: var(--accent-primary);
         }
       }
     }
@@ -485,7 +512,7 @@ import { environment } from '../../../environments/environment';
     .field-hint {
       display: block;
       font-size: 0.75rem;
-      color: rgba(255, 255, 255, 0.5);
+      color: var(--text-muted);
       margin-top: 0.25rem;
       margin-bottom: 0.5rem;
       font-style: italic;
@@ -504,15 +531,15 @@ import { environment } from '../../../environments/environment';
       
       .slider-label {
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--text-muted);
       }
       
       .slider-value {
         font-family: 'JetBrains Mono', monospace;
         font-size: 1.1rem;
         font-weight: 600;
-        color: #00CED1;
-        background: rgba(0, 206, 209, 0.1);
+        color: var(--accent-primary);
+        background: var(--bg-secondary);
         padding: 0.25rem 0.75rem;
         border-radius: 4px;
       }
@@ -550,14 +577,15 @@ import { environment } from '../../../environments/environment';
       gap: 1rem;
       margin-top: 1.5rem;
       padding-top: 1.5rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid var(--border-color);
+      transition: border-color 0.3s ease;
 
       .cancel-btn {
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--text-secondary);
         cursor: pointer !important;
         
         &:hover {
-          background: rgba(255, 255, 255, 0.1);
+          background: var(--bg-card-hover);
         }
         
         * {
@@ -566,16 +594,21 @@ import { environment } from '../../../environments/environment';
       }
 
       .start-btn {
-        background: linear-gradient(135deg, #0047AB 0%, #002766 100%) !important;
-        color: white !important;
+        background: var(--button-bg-primary) !important;
+        color: var(--button-text) !important;
         display: flex;
         align-items: center;
         gap: 0.5rem;
         cursor: pointer !important;
+        transition: all 0.3s ease;
+        
+        * {
+          color: var(--button-text) !important;
+        }
         
         &:hover:not([disabled]) {
-          background: linear-gradient(135deg, #0056D6 0%, #0047AB 100%) !important;
-          box-shadow: 0 4px 12px rgba(0, 71, 171, 0.4);
+          background: var(--button-bg-hover) !important;
+          box-shadow: var(--shadow-hover);
         }
         
         &[disabled] {
@@ -595,34 +628,34 @@ import { environment } from '../../../environments/environment';
 
     ::ng-deep .mat-mdc-form-field {
       .mat-mdc-text-field-wrapper {
-        background: rgba(0, 71, 171, 0.1);
+        background: var(--bg-secondary);
       }
 
       .mat-mdc-form-field-flex {
-        background: rgba(0, 71, 171, 0.1);
+        background: var(--bg-secondary);
       }
 
       input {
-        color: #00CED1 !important;
-        caret-color: #00CED1 !important;
+        color: var(--text-primary) !important;
+        caret-color: var(--accent-primary) !important;
       }
 
       input::placeholder {
-        color: rgba(0, 206, 209, 0.5) !important;
+        color: var(--text-muted) !important;
       }
 
       .mat-mdc-form-field-label {
-        color: rgba(0, 206, 209, 0.7) !important;
+        color: var(--text-secondary) !important;
       }
 
       .mat-icon {
-        color: #00CED1 !important;
+        color: var(--accent-primary) !important;
       }
 
       .mdc-notched-outline__leading,
       .mdc-notched-outline__notch,
       .mdc-notched-outline__trailing {
-        border-color: rgba(255, 255, 255, 0.2) !important;
+        border-color: var(--border-color) !important;
       }
     }
   `]
@@ -657,7 +690,8 @@ export class BatchSyncDialogComponent implements OnInit {
       // Streaming metadata
       camera_id: [''],
       capture_type: [''],
-      neighborhood: ['']
+      neighborhood: [''],
+      scenario: ['']
     });
   }
 
@@ -851,7 +885,8 @@ export class BatchSyncDialogComponent implements OnInit {
       allowed_users: allowedUsers.length > 0 ? allowedUsers : undefined,
       camera_id: formValue.camera_id || undefined,
       capture_type: formValue.capture_type || undefined,
-      neighborhood: formValue.neighborhood || undefined
+      neighborhood: formValue.neighborhood || undefined,
+      scenario: formValue.scenario || undefined
     };
 
     this.batchSyncService.start(request).subscribe({

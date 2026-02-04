@@ -123,8 +123,9 @@ import { interval } from 'rxjs';
   styles: [`
     .progress-dialog {
       width: 500px;
-      background: linear-gradient(135deg, #0A0A1E 0%, #15152E 100%);
-      color: white;
+      background: var(--bg-card);
+      color: var(--text-primary);
+      transition: background 0.3s ease, color 0.3s ease;
     }
 
     .dialog-header {
@@ -132,7 +133,8 @@ import { interval } from 'rxjs';
       align-items: center;
       gap: 0.75rem;
       padding: 1.5rem 1.5rem 1rem 1.5rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom: 1px solid var(--border-color);
+      transition: border-color 0.3s ease;
 
       .header-icon {
         font-size: 28px;
@@ -146,14 +148,14 @@ import { interval } from 'rxjs';
         margin: 0;
         font-size: 1.25rem;
         font-weight: 500;
-        color: rgba(255, 255, 255, 0.95);
+        color: var(--text-primary);
       }
 
       .close-btn {
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--text-secondary);
         &:hover {
-          color: white;
-          background: rgba(255, 255, 255, 0.1);
+          color: var(--text-primary);
+          background: var(--bg-card-hover);
         }
       }
     }
@@ -174,19 +176,19 @@ import { interval } from 'rxjs';
       align-items: center;
 
       .label {
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--text-secondary);
       }
 
       .value {
         font-weight: 600;
-        color: #00CED1;
+        color: var(--accent-primary);
         text-align: right;
         word-break: break-word;
         max-width: 60%;
 
         &.url {
           font-size: 0.85rem;
-          color: rgba(255, 255, 255, 0.8);
+          color: var(--text-secondary);
         }
 
         &.running {
@@ -194,7 +196,7 @@ import { interval } from 'rxjs';
         }
 
         &.stopped {
-          color: rgba(255, 255, 255, 0.5);
+          color: var(--text-muted);
         }
       }
     }
@@ -202,19 +204,21 @@ import { interval } from 'rxjs';
     .config-info {
       margin-top: 1rem;
       padding: 1rem;
-      background: rgba(0, 71, 171, 0.1);
-      border: 1px solid rgba(0, 71, 171, 0.3);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
+      transition: background 0.3s ease, border-color 0.3s ease;
     }
 
     .metadata-section {
       margin-top: 1rem;
       padding-top: 1rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid var(--border-color);
+      transition: border-color 0.3s ease;
 
       h4 {
         margin: 0 0 0.75rem 0;
-        color: rgba(255, 255, 255, 0.9);
+        color: var(--text-primary);
         font-size: 0.9rem;
         font-weight: 500;
       }
@@ -223,13 +227,13 @@ import { interval } from 'rxjs';
     .no-streaming, .no-status {
       text-align: center;
       padding: 2rem;
-      color: rgba(255, 255, 255, 0.7);
+      color: var(--text-secondary);
 
       mat-icon {
         font-size: 48px;
         width: 48px;
         height: 48px;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--text-muted);
         margin-bottom: 1rem;
       }
     }
@@ -240,18 +244,19 @@ import { interval } from 'rxjs';
       gap: 0.5rem;
       margin-top: 1rem;
       padding-top: 1rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid var(--border-color);
+      transition: border-color 0.3s ease;
 
       .time-item {
         display: flex;
         justify-content: space-between;
 
         .label {
-          color: rgba(255, 255, 255, 0.7);
+          color: var(--text-secondary);
         }
 
         .value {
-          color: rgba(255, 255, 255, 0.9);
+          color: var(--text-primary);
         }
       }
     }
@@ -261,7 +266,8 @@ import { interval } from 'rxjs';
       justify-content: flex-end;
       gap: 1rem;
       padding: 1rem 1.5rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid var(--border-color);
+      transition: border-color 0.3s ease;
 
       button {
         display: flex;
@@ -271,12 +277,12 @@ import { interval } from 'rxjs';
       }
 
       .mat-mdc-raised-button:not([color="warn"]) {
-        background: linear-gradient(135deg, #0047AB 0%, #002766 100%) !important;
-        color: white !important;
+        background: linear-gradient(135deg, var(--accent-secondary) 0%, #002766 100%) !important;
+        color: var(--text-primary) !important;
         
         &:hover:not([disabled]) {
-          background: linear-gradient(135deg, #0056D6 0%, #0047AB 100%) !important;
-          box-shadow: 0 4px 12px rgba(0, 71, 171, 0.4);
+          background: linear-gradient(135deg, #0056D6 0%, var(--accent-secondary) 100%) !important;
+          box-shadow: var(--shadow-hover);
         }
       }
     }
