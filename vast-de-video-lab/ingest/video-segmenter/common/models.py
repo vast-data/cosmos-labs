@@ -41,6 +41,9 @@ class S3ObjectMetadataModel(BaseModel):
     neighborhood: str | None = Field(None, alias="neighborhood")  # Geographic area
     capture_timestamp: str | None = Field(None, alias="capture-timestamp")  # When captured
     
+    # Analysis scenario metadata
+    scenario: str | None = None  # Analysis prompt scenario (egocentric, surveillance, etc.)
+    
     class Config:
         extra = "allow"
         populate_by_name = True

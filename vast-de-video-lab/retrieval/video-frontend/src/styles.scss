@@ -21,6 +21,76 @@ $my-theme: mat.m2-define-light-theme((
 
 @include mat.all-component-themes($my-theme);
 
+/* Theme CSS Variables - Dark theme (default) */
+:root {
+  --bg-primary: #0f0f1e;
+  --bg-secondary: #15152e;
+  --bg-card: rgba(10, 10, 30, 0.8);
+  --bg-card-hover: rgba(10, 10, 40, 0.9);
+  --bg-header: rgb(14 26 53);
+  --bg-toolbar: rgb(14 26 53);
+  --border-color: rgba(0, 206, 209, 0.3);
+  --border-hover: rgba(0, 206, 209, 0.5);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.85);
+  --text-muted: rgba(255, 255, 255, 0.65);
+  --accent-primary: #00CED1;
+  --accent-secondary: #0047AB;
+  --accent-success: #06FFA5;
+  --accent-warning: #fbbf24;
+  --accent-danger: #ef4444;
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-hover: 0 12px 48px rgba(0, 0, 0, 0.6);
+  --scrollbar-track: rgba(255, 255, 255, 0.05);
+  --scrollbar-thumb: rgba(0, 71, 171, 0.6);
+  --scrollbar-thumb-hover: rgba(0, 71, 171, 0.8);
+  --button-bg-primary: linear-gradient(135deg, var(--accent-secondary) 0%, #002766 100%);
+  --button-bg-hover: linear-gradient(135deg, #0056D6 0%, var(--accent-secondary) 100%);
+  --button-text: var(--text-primary);
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --bg-primary: #f7f5f2;
+  --bg-secondary: #faf9f6;
+  --bg-card: rgba(255, 253, 250, 0.95);
+  --bg-card-hover: rgba(255, 255, 255, 1);
+  --bg-header: linear-gradient(135deg, rgba(250, 249, 246, 0.98) 0%, rgba(247, 245, 242, 0.98) 100%);
+  --bg-toolbar: linear-gradient(135deg, #e0f2f1 0%, #b2dfdb 100%); /* Light blue/teal gradient for header */
+  --border-color: rgba(0, 206, 209, 0.2);
+  --border-hover: rgba(0, 206, 209, 0.4);
+  --text-primary: #1a1a1a;
+  --text-secondary: rgba(26, 26, 26, 0.85);
+  --text-muted: rgba(26, 26, 26, 0.65);
+  --accent-primary: #008B8B;
+  --accent-secondary: #003d7a;
+  --accent-success: #00cc7a;
+  --accent-warning: #d4a017;
+  --accent-danger: #dc2626;
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  --shadow-hover: 0 12px 48px rgba(0, 0, 0, 0.15);
+  --scrollbar-track: rgba(0, 0, 0, 0.05);
+  --scrollbar-thumb: rgba(0, 206, 209, 0.3);
+  --scrollbar-thumb-hover: rgba(0, 206, 209, 0.5);
+  --button-bg-primary: linear-gradient(135deg, #e0f2f1 0%, #b2dfdb 100%);
+  --button-bg-hover: linear-gradient(135deg, #b2dfdb 0%, #80cbc4 100%);
+  --button-text: var(--accent-secondary);
+}
+
+/* Login screen theme isolation - always use dark theme regardless of global theme */
+app-login,
+app-login * {
+  --bg-primary: #0a0a1e !important;
+  --bg-secondary: rgba(10, 10, 30, 0.8) !important;
+  --bg-card: rgba(15, 15, 30, 0.98) !important;
+  --bg-card-hover: rgba(20, 20, 40, 0.98) !important;
+  --text-primary: #ffffff !important;
+  --text-secondary: rgba(255, 255, 255, 0.85) !important;
+  --text-muted: rgba(255, 255, 255, 0.65) !important;
+  --border-color: rgba(255, 255, 255, 0.15) !important;
+  --border-hover: rgba(255, 255, 255, 0.3) !important;
+}
+
 /* Reset and base styles */
 * {
   margin: 0;
@@ -31,9 +101,10 @@ $my-theme: mat.m2-define-light-theme((
 html, body {
   height: 100%;
   font-family: 'Roboto', sans-serif;
-  background: #0f0f1e;
-  color: #fff;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   cursor: default;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 body {
@@ -157,56 +228,56 @@ button:disabled,
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 71, 171, 0.6);
+  background: var(--scrollbar-thumb);
   border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 71, 171, 0.8);
+  background: var(--scrollbar-thumb-hover);
 }
 
-/* Material overrides for dark theme */
+/* Material overrides - theme-aware */
 .mat-mdc-form-field {
-  color: #fff !important;
+  color: var(--text-primary) !important;
   
   .mat-mdc-input-element {
-    color: #fff !important;
-    caret-color: #0047AB;
+    color: var(--text-primary) !important;
+    caret-color: var(--accent-secondary);
   }
   
   .mat-mdc-floating-label {
-    color: rgba(255, 255, 255, 0.85) !important;
+    color: var(--text-secondary) !important;
   }
   
   &.mat-focused .mat-mdc-floating-label {
-    color: #0047AB !important;
+    color: var(--accent-secondary) !important;
   }
   
   .mat-mdc-form-field-hint,
   .mat-mdc-form-field-error {
-    color: rgba(255, 255, 255, 0.85) !important;
+    color: var(--text-secondary) !important;
   }
 }
 
 .mat-mdc-input-element::placeholder {
-  color: rgba(255, 255, 255, 0.65) !important;
+  color: var(--text-muted) !important;
 }
 
 .mat-mdc-select,
 .mat-mdc-select-value,
 .mat-mdc-select-trigger {
-  color: #fff !important;
+  color: var(--text-primary) !important;
 }
 
 .mat-mdc-option {
-  color: #fff !important;
+  color: var(--text-primary) !important;
   
   &:hover {
-    background: rgba(0, 71, 171, 0.15);
+    background: rgba(var(--accent-secondary-rgb, 0, 71, 171), 0.15) !important;
   }
 }
 
@@ -281,17 +352,17 @@ button:disabled,
 .cdk-overlay-pane .mat-mdc-menu-panel.config-menu,
 .mat-mdc-menu-panel.config-menu,
 div.mat-mdc-menu-panel[role="menu"] {
-  background: rgba(10, 10, 30, 0.95) !important;
+  background: var(--bg-card) !important;
   backdrop-filter: blur(20px) !important;
   -webkit-backdrop-filter: blur(20px) !important;
-  border: 1px solid rgba(0, 206, 209, 0.3) !important;
+  border: 1px solid var(--border-color) !important;
   border-radius: 12px !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6),
-              0 0 0 1px rgba(0, 71, 171, 0.2) !important;
+  box-shadow: var(--shadow) !important;
   z-index: 10000 !important;
   margin-top: 4px !important;
   transform-origin: top right !important;
   will-change: transform, opacity !important;
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 /* Ensure CDK overlay for menu is above toolbar */
@@ -328,7 +399,7 @@ div.mat-mdc-menu-panel[role="menu"] .mat-mdc-menu-content {
 .cdk-overlay-pane .mat-mdc-menu-panel.config-menu .mat-mdc-menu-item,
 .mat-mdc-menu-panel.config-menu .mat-mdc-menu-item,
 div.mat-mdc-menu-panel[role="menu"] .mat-mdc-menu-item {
-  color: white !important;
+  color: var(--text-primary) !important;
   transition: all 0.2s ease !important;
   border-radius: 8px !important;
   margin: 0.25rem 0 !important;
@@ -342,16 +413,16 @@ div.mat-mdc-menu-panel[role="menu"] .mat-mdc-menu-item {
   }
 
   .mat-icon {
-    color: #00CED1 !important;
+    color: var(--accent-primary) !important;
     margin-right: 0.75rem !important;
   }
 
   span, .mat-mdc-menu-item-text, .mdc-list-item__primary-text {
-    color: white !important;
+    color: var(--text-primary) !important;
   }
   
   * {
-    color: white !important;
+    color: var(--text-primary) !important;
   }
 }
 
@@ -390,16 +461,17 @@ div.mat-mdc-menu-panel[role="menu"] .mat-mdc-menu-item {
   }
 }
 
-/* Global mat-select dropdown panel styling for dark theme */
+/* Global mat-select dropdown panel styling - theme-aware */
 .cdk-overlay-pane .mat-mdc-select-panel,
 .mat-mdc-select-panel {
-  background: linear-gradient(135deg, #0A0A1E 0%, #15152E 100%) !important;
-  border: 1px solid rgba(0, 206, 209, 0.3) !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
   border-radius: 8px !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: var(--shadow) !important;
+  transition: background 0.3s ease, border-color 0.3s ease;
 
   .mat-mdc-option {
-    color: rgba(255, 255, 255, 0.9) !important;
+    color: var(--text-secondary) !important;
     background: transparent !important;
 
     &:hover:not(.mdc-list-item--disabled) {
@@ -409,7 +481,7 @@ div.mat-mdc-menu-panel[role="menu"] .mat-mdc-menu-item {
     &.mdc-list-item--selected:not(.mdc-list-item--disabled),
     &.mat-mdc-option-active {
       background: rgba(0, 71, 171, 0.4) !important;
-      color: #00CED1 !important;
+      color: var(--accent-primary) !important;
     }
 
     .mdc-list-item__primary-text {
@@ -462,10 +534,11 @@ div.mat-mdc-menu-panel[role="menu"] .mat-mdc-menu-item {
   }
 
   .mat-mdc-dialog-surface {
-    background: linear-gradient(135deg, rgba(10, 20, 40, 0.98) 0%, rgba(0, 10, 30, 0.98) 100%) !important;
+    background: var(--bg-card) !important;
     backdrop-filter: blur(20px) !important;
     padding: 0 !important;
     border-radius: 12px !important;
+    transition: background 0.3s ease;
   }
 
   .mat-mdc-dialog-title {
@@ -488,10 +561,11 @@ div.mat-mdc-menu-panel[role="menu"] .mat-mdc-menu-item {
   }
 
   .mat-mdc-dialog-surface {
-    background: linear-gradient(135deg, rgba(10, 20, 40, 0.98) 0%, rgba(0, 10, 30, 0.98) 100%) !important;
+    background: var(--bg-card) !important;
     backdrop-filter: blur(20px) !important;
     padding: 0 !important;
     border-radius: 12px !important;
+    transition: background 0.3s ease;
   }
 }
 
@@ -507,10 +581,11 @@ div.mat-mdc-menu-panel[role="menu"] .mat-mdc-menu-item {
   }
 
   .mat-mdc-dialog-surface {
-    background: linear-gradient(135deg, rgba(10, 20, 40, 0.98) 0%, rgba(0, 10, 30, 0.98) 100%) !important;
+    background: var(--bg-card) !important;
     backdrop-filter: blur(20px) !important;
     padding: 0 !important;
     border-radius: 12px !important;
+    transition: background 0.3s ease;
   }
 }
 
@@ -523,4 +598,16 @@ div.mat-mdc-menu-panel[role="menu"] .mat-mdc-menu-item {
 .info-snackbar {
   --mdc-snackbar-container-color: rgba(19, 74, 152, 0.95);
   --mdc-snackbar-supporting-text-color: white;
+}
+
+/* Logo theme adaptation */
+.app-toolbar .logo,
+.logo {
+  filter: brightness(0) invert(1);
+  transition: filter 0.3s ease;
+}
+
+[data-theme="light"] .app-toolbar .logo,
+[data-theme="light"] .logo {
+  filter: brightness(0) invert(0);
 }

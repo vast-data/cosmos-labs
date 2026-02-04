@@ -152,6 +152,23 @@ import { StreamingService, StreamingStartRequest } from '../../shared/services/s
                   <input matInput formControlName="neighborhood" placeholder="e.g., Midtown, Downtown, Times Square">
                   <mat-icon matSuffix>location_on</mat-icon>
                 </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Analysis Scenario</mat-label>
+                  <mat-select formControlName="scenario">
+                    <mat-option [value]="">-- Use Default (from settings) --</mat-option>
+                    <mat-option value="surveillance">Surveillance</mat-option>
+                    <mat-option value="traffic">Traffic</mat-option>
+                    <mat-option value="nhl">NHL</mat-option>
+                    <mat-option value="sports">Sports</mat-option>
+                    <mat-option value="retail">Retail</mat-option>
+                    <mat-option value="warehouse">Warehouse</mat-option>
+                    <mat-option value="nyc_control">NYC Control</mat-option>
+                    <mat-option value="egocentric">Egocentric (Kitchen/Barista/Sports/Finding)</mat-option>
+                    <mat-option value="general">General</mat-option>
+                  </mat-select>
+                  <mat-icon matSuffix>psychology</mat-icon>
+                </mat-form-field>
               </div>
 
               <button mat-raised-button class="action-btn" (click)="startCapture()" 
@@ -213,10 +230,11 @@ import { StreamingService, StreamingStartRequest } from '../../shared/services/s
     .streaming-dialog {
       width: 600px;
       max-height: 80vh;
-      background: linear-gradient(135deg, #0A0A1E 0%, #15152E 100%);
-      color: white;
+      background: var(--bg-card);
+      color: var(--text-primary);
       display: flex;
       flex-direction: column;
+      transition: background 0.3s ease, color 0.3s ease;
     }
 
     .dialog-header {
@@ -230,7 +248,7 @@ import { StreamingService, StreamingStartRequest } from '../../shared/services/s
         font-size: 28px;
         width: 28px;
         height: 28px;
-        color: #00CED1;
+        color: var(--accent-primary);
       }
 
       h2 {
@@ -238,7 +256,7 @@ import { StreamingService, StreamingStartRequest } from '../../shared/services/s
         margin: 0;
         font-size: 1.25rem;
         font-weight: 500;
-        color: rgba(255, 255, 255, 0.95);
+        color: var(--text-primary);
       }
 
       .close-btn {
@@ -257,17 +275,17 @@ import { StreamingService, StreamingStartRequest } from '../../shared/services/s
         transition: all 0.2s ease;
         
         mat-icon {
-          color: rgba(255, 255, 255, 0.7);
+          color: var(--text-secondary);
           font-size: 24px;
           width: 24px;
           height: 24px;
         }
 
         &:hover {
-          background: rgba(255, 255, 255, 0.1) !important;
+          background: var(--bg-card-hover) !important;
           
           mat-icon {
-            color: white;
+            color: var(--text-primary);
           }
         }
       }
@@ -288,39 +306,39 @@ import { StreamingService, StreamingStartRequest } from '../../shared/services/s
       }
 
       .mat-mdc-tab-label {
-        color: white !important;
+        color: var(--text-primary) !important;
         opacity: 1 !important;
 
         mat-icon {
           margin-right: 0.5rem;
-          color: white !important;
+          color: var(--text-primary) !important;
         }
 
         &.mdc-tab--active {
-          color: #00CED1 !important;
+          color: var(--accent-primary) !important;
           
           mat-icon {
-            color: #00CED1 !important;
+            color: var(--accent-primary) !important;
           }
         }
         
         .mdc-tab__text-label, .mat-mdc-tab-label-content, span {
-          color: white !important;
+          color: var(--text-primary) !important;
         }
         
         &.mdc-tab--active .mdc-tab__text-label,
         &.mdc-tab--active .mat-mdc-tab-label-content,
         &.mdc-tab--active span {
-          color: #00CED1 !important;
+          color: var(--accent-primary) !important;
         }
       }
       
       .mat-mdc-tab .mdc-tab__text-label {
-        color: white !important;
+        color: var(--text-primary) !important;
       }
       
       .mat-mdc-tab.mdc-tab--active .mdc-tab__text-label {
-        color: #00CED1 !important;
+        color: var(--accent-primary) !important;
       }
 
       .mat-mdc-tab-body-wrapper {
@@ -335,7 +353,7 @@ import { StreamingService, StreamingStartRequest } from '../../shared/services/s
     }
 
     .tab-description {
-      color: rgba(255, 255, 255, 0.7);
+      color: var(--text-secondary);
       margin-bottom: 1.5rem;
       font-size: 0.95rem;
     }
@@ -347,48 +365,48 @@ import { StreamingService, StreamingStartRequest } from '../../shared/services/s
 
       ::ng-deep .mat-mdc-form-field {
         .mat-mdc-text-field-wrapper {
-          background: rgba(0, 71, 171, 0.1);
+          background: var(--bg-secondary);
         }
 
         .mat-mdc-form-field-flex {
-          background: rgba(0, 71, 171, 0.1);
+          background: var(--bg-secondary);
         }
 
         input {
-          color: #00CED1 !important;
-          caret-color: #00CED1 !important;
+          color: var(--text-primary) !important;
+          caret-color: var(--accent-primary) !important;
         }
 
         input::placeholder {
-          color: rgba(0, 206, 209, 0.5) !important;
+          color: var(--text-muted) !important;
         }
 
         .mat-mdc-form-field-label {
-          color: rgba(0, 206, 209, 0.7) !important;
+          color: var(--text-secondary) !important;
         }
 
         .mat-mdc-floating-label {
-          color: rgba(0, 206, 209, 0.7) !important;
+          color: var(--text-secondary) !important;
         }
 
         .mat-icon {
-          color: #00CED1 !important;
+          color: var(--accent-primary) !important;
         }
 
         .mdc-text-field--filled {
-          background-color: rgba(0, 71, 171, 0.1) !important;
+          background-color: var(--bg-secondary) !important;
         }
 
         .mat-mdc-input-element {
-          color: #00CED1 !important;
+          color: var(--text-primary) !important;
         }
 
         .mat-mdc-select-value {
-          color: #00CED1 !important;
+          color: var(--text-primary) !important;
         }
 
         .mat-mdc-select-arrow {
-          color: #00CED1 !important;
+          color: var(--text-secondary) !important;
         }
       }
     }
@@ -419,7 +437,7 @@ import { StreamingService, StreamingStartRequest } from '../../shared/services/s
 
       .section-description {
         margin: 0 0 1rem 0;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--text-secondary);
         font-size: 0.875rem;
         line-height: 1.5;
       }
@@ -430,9 +448,9 @@ import { StreamingService, StreamingStartRequest } from '../../shared/services/s
     }
 
     .action-btn {
-      background: linear-gradient(135deg, #0047AB 0%, #002766 100%) !important;
-      color: white !important;
-      border: 1px solid rgba(0, 206, 209, 0.4) !important;
+      background: var(--button-bg-primary) !important;
+      color: var(--button-text) !important;
+      border: 1px solid var(--border-color) !important;
       padding: 0.75rem 1.5rem !important;
       font-size: 1rem !important;
       display: flex !important;
@@ -445,6 +463,11 @@ import { StreamingService, StreamingStartRequest } from '../../shared/services/s
       -webkit-user-select: none !important;
       -moz-user-select: none !important;
       -ms-user-select: none !important;
+      transition: all 0.3s ease;
+
+      * {
+        color: var(--button-text) !important;
+      }
 
       mat-icon {
         font-size: 20px;
@@ -473,8 +496,8 @@ import { StreamingService, StreamingStartRequest } from '../../shared/services/s
       }
 
       &:hover:not([disabled]) {
-        background: linear-gradient(135deg, #005BBB 0%, #003876 100%) !important;
-        border-color: rgba(0, 206, 209, 0.6) !important;
+        background: var(--button-bg-hover) !important;
+        border-color: var(--border-hover) !important;
       }
 
       &[disabled] {
@@ -552,7 +575,7 @@ import { StreamingService, StreamingStartRequest } from '../../shared/services/s
         margin: 0;
         font-family: 'Roboto Mono', monospace;
         font-size: 0.85rem;
-        color: rgba(255, 255, 255, 0.9);
+        color: var(--text-primary);
         white-space: pre-wrap;
         word-wrap: break-word;
         overflow-x: auto;
@@ -570,16 +593,16 @@ import { StreamingService, StreamingStartRequest } from '../../shared/services/s
       border-radius: 8px !important;
 
       .mat-mdc-option {
-        color: rgba(255, 255, 255, 0.9) !important;
+        color: var(--text-primary) !important;
         background: transparent !important;
 
         &:hover:not(.mdc-list-item--disabled) {
-          background: rgba(0, 71, 171, 0.3) !important;
+          background: var(--bg-card-hover) !important;
         }
 
         &.mdc-list-item--selected:not(.mdc-list-item--disabled) {
-          background: rgba(0, 71, 171, 0.4) !important;
-          color: #00CED1 !important;
+          background: var(--bg-card) !important;
+          color: var(--accent-primary) !important;
         }
 
         .mdc-list-item__primary-text {
@@ -619,7 +642,8 @@ export class StreamingConfigComponent {
       // Stream capture metadata (optional)
       camera_id: [''],
       capture_type: [''],
-      neighborhood: ['']
+      neighborhood: [''],
+      scenario: ['']
     });
 
     // Load streaming prefill config from backend (includes actual credentials)

@@ -49,13 +49,14 @@ export class VideoService {
   /**
    * Upload video file directly to backend (backend proxies to S3)
    */
-  uploadVideo(file: File, is_public: boolean, tags: string[], allowed_users: string[]): Observable<any> {
+  uploadVideo(file: File, is_public: boolean, tags: string[], allowed_users: string[], scenario: string = ''): Observable<any> {
     console.log('uploadVideo called:', { 
       fileName: file.name, 
       size: file.size, 
       is_public, 
       tags, 
-      allowed_users 
+      allowed_users,
+      scenario
     });
     
     const formData = new FormData();
@@ -68,6 +69,10 @@ export class VideoService {
     
     if (allowed_users && allowed_users.length > 0) {
       formData.append('allowed_users', allowed_users.join(','));
+    }
+    
+    if (scenario) {
+      formData.append('scenario', scenario);
     }
     
     console.log('Uploading to backend...');

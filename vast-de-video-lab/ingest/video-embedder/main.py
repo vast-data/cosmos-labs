@@ -47,6 +47,7 @@ def handler(ctx, event: VastEvent):
                 camera_id = reasoning_event.get("camera_id", "")
                 capture_type = reasoning_event.get("capture_type", "")
                 neighborhood = reasoning_event.get("neighborhood", "")
+                scenario = reasoning_event.get("scenario", "")
                 
                 allowed_users_count = len(allowed_users.split(",")) if allowed_users else 0
                 
@@ -68,7 +69,8 @@ def handler(ctx, event: VastEvent):
                     "original_video": original_video,
                     "camera_id": camera_id,
                     "capture_type": capture_type,
-                    "neighborhood": neighborhood
+                    "neighborhood": neighborhood,
+                    "scenario": scenario
                 })
 
             with ctx.tracer.start_as_current_span("Content Validation") as validation_span:
@@ -116,7 +118,8 @@ def handler(ctx, event: VastEvent):
                 "original_video": original_video,
                 "camera_id": camera_id,
                 "capture_type": capture_type,
-                "neighborhood": neighborhood
+                "neighborhood": neighborhood,
+                "scenario": scenario
             }
             
             ctx.logger.info(f"[COMPLETE] {filename} | segment {segment_number}/{total_segments} | {len(embedding)} dims | metadata: camera={camera_id or 'none'}, type={capture_type or 'none'}")

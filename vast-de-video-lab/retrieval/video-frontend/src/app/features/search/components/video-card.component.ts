@@ -101,8 +101,8 @@ import { VideoService } from '../../../shared/services/video.service';
   `,
   styles: [`
     .video-card {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
       border-radius: 16px;
       cursor: pointer;
       transition: all 0.3s ease;
@@ -111,8 +111,9 @@ import { VideoService } from '../../../shared/services/video.service';
       
       &:hover {
         transform: translateY(-5px);
-        box-shadow: 0 15px 40px rgba(102, 126, 234, 0.3);
-        border-color: rgba(102, 126, 234, 0.5);
+        box-shadow: var(--shadow-hover);
+        border-color: var(--border-hover);
+        background: var(--bg-card-hover);
       }
     }
 
@@ -153,7 +154,7 @@ import { VideoService } from '../../../shared/services/video.service';
         font-size: 4rem;
         width: 4rem;
         height: 4rem;
-        color: rgba(255, 255, 255, 0.9);
+        color: var(--text-primary);
         filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
       }
     }
@@ -163,7 +164,7 @@ import { VideoService } from '../../../shared/services/video.service';
     }
 
     .video-title {
-      color: #fff;
+      color: var(--text-primary);
       font-size: 1rem;
       font-weight: 600;
       margin: 0 0 1rem 0;
@@ -190,7 +191,7 @@ import { VideoService } from '../../../shared/services/video.service';
       
       p {
         margin: 0;
-        color: rgba(255, 255, 255, 0.8);
+        color: var(--text-secondary);
         font-size: 0.9rem;
         line-height: 1.5;
         display: -webkit-box;
@@ -252,8 +253,8 @@ import { VideoService } from '../../../shared/services/video.service';
         align-items: center;
         gap: 0.25rem;
         font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.7);
-        background: rgba(255, 255, 255, 0.03);
+        color: var(--text-secondary);
+        background: var(--bg-card);
         padding: 0.25rem 0.6rem;
         border-radius: 8px;
         white-space: nowrap;
@@ -267,24 +268,24 @@ import { VideoService } from '../../../shared/services/video.service';
         
         &.public {
           background: rgba(6, 255, 165, 0.1);
-          color: rgba(6, 255, 165, 0.9);
-          border: 1px solid rgba(6, 255, 165, 0.3);
+          color: var(--accent-success);
+          border: 1px solid var(--accent-success);
         }
         
         &.private {
           background: rgba(255, 193, 7, 0.1);
-          color: rgba(255, 193, 7, 0.9);
-          border: 1px solid rgba(255, 193, 7, 0.3);
+          color: var(--accent-warning);
+          border: 1px solid var(--accent-warning);
         }
         
         &.similarity-score {
           background: rgba(102, 126, 234, 0.15);
-          color: rgba(102, 126, 234, 1);
-          border: 1px solid rgba(102, 126, 234, 0.4);
+          color: var(--accent-secondary);
+          border: 1px solid var(--accent-secondary);
           font-weight: 600;
           
           mat-icon {
-            color: rgba(102, 126, 234, 1);
+            color: var(--accent-secondary);
           }
         }
       }
@@ -296,10 +297,11 @@ import { VideoService } from '../../../shared/services/video.service';
 
     .tags {
       ::ng-deep mat-chip {
-        background: rgba(102, 126, 234, 0.1);
-        color: rgba(102, 126, 234, 0.9);
-        border: 1px solid rgba(102, 126, 234, 0.2);
+        background: var(--bg-secondary);
+        color: var(--accent-secondary);
+        border: 1px solid var(--border-color);
         font-size: 0.75rem;
+        transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
       }
     }
 
@@ -392,3 +394,4 @@ export class VideoCardComponent implements OnInit {
     }
   }
 }
+

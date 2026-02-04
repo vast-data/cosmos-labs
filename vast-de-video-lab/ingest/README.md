@@ -4,11 +4,12 @@ The system supports customizable metadata fields that flow through the entire pi
 
 ## Current Metadata Fields
 
-The system currently supports three metadata fields:
+The system currently supports four metadata fields:
 
 - **`camera_id`** - Camera identifier (e.g., "cam-01", "intersection-5th-ave")
 - **`capture_type`** - Type of capture (e.g., "traffic", "streets", "crowds", "malls")
 - **`neighborhood`** - Location/area (e.g., "manhattan", "downtown", "warehouse-a")
+- **`scenario`** - Analysis prompt scenario (e.g., "surveillance", "traffic", "egocentric", "general")
 
 ## How It Works
 

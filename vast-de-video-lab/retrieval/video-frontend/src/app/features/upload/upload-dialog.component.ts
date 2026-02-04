@@ -56,6 +56,23 @@ import { UploadRequest } from '../../shared/models/video.model';
               <span class="field-hint">Add comma-separated tags to categorize your video</span>
             </div>
 
+            <div class="form-field-wrapper">
+              <label class="field-label">Analysis Scenario</label>
+              <select class="custom-input" formControlName="scenario">
+                <option value="">-- Use Default (from settings) --</option>
+                <option value="surveillance">Surveillance</option>
+                <option value="traffic">Traffic</option>
+                <option value="nhl">NHL</option>
+                <option value="sports">Sports</option>
+                <option value="retail">Retail</option>
+                <option value="warehouse">Warehouse</option>
+                <option value="nyc_control">NYC Control</option>
+                <option value="egocentric">Egocentric (Kitchen/Barista/Sports/Finding)</option>
+                <option value="general">General</option>
+              </select>
+              <span class="field-hint">Select the analysis prompt scenario for this video</span>
+            </div>
+
             <label class="checkbox-wrapper">
               <input type="checkbox" formControlName="isPrivate" class="custom-checkbox">
               <span class="checkbox-label">
@@ -157,13 +174,14 @@ import { UploadRequest } from '../../shared/models/video.model';
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        color: rgba(255, 255, 255, 0.95);
+        color: var(--text-primary);
         font-weight: 500;
         margin: 0 0 1rem 0 !important;
         padding: 0 !important;
+        transition: color 0.3s ease;
         
         mat-icon {
-          color: #00d9ff;
+          color: var(--accent-primary);
         }
       }
     }
@@ -209,14 +227,14 @@ import { UploadRequest } from '../../shared/models/video.model';
     }
 
     .drop-text {
-      color: rgba(255, 255, 255, 0.95);
+      color: var(--text-primary);
       font-size: 1.1rem;
       margin-bottom: 0.5rem;
       font-weight: 400;
     }
 
     .drop-hint {
-      color: rgba(255, 255, 255, 0.65);
+      color: var(--text-muted);
       font-size: 0.875rem;
       margin: 0;
     }
@@ -226,7 +244,7 @@ import { UploadRequest } from '../../shared/models/video.model';
       
       .field-label {
         display: block;
-        color: rgba(255, 255, 255, 0.95);
+        color: var(--text-primary);
         font-size: 0.875rem;
         font-weight: 500;
         margin-bottom: 0.5rem;
@@ -236,27 +254,27 @@ import { UploadRequest } from '../../shared/models/video.model';
       .custom-input {
         width: 100%;
         padding: 0.875rem 1rem;
-        background: rgba(0, 71, 171, 0.1);
-        border: 1px solid rgba(0, 71, 171, 0.3);
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
         border-radius: 12px;
-        color: rgba(255, 255, 255, 0.95);
+        color: var(--text-primary);
         font-size: 0.95rem;
         outline: none;
         transition: all 0.3s ease;
         font-family: inherit;
         
         &::placeholder {
-          color: rgba(255, 255, 255, 0.45);
+          color: var(--text-muted);
         }
         
         &:hover {
-          border-color: rgba(0, 71, 171, 0.5);
-          background: rgba(0, 71, 171, 0.15);
+          border-color: var(--border-hover);
+          background: var(--bg-card-hover);
         }
         
         &:focus {
-          border-color: #00d9ff;
-          background: rgba(0, 71, 171, 0.2);
+          border-color: var(--accent-primary);
+          background: var(--bg-card-hover);
           box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.1);
         }
       }
@@ -265,7 +283,7 @@ import { UploadRequest } from '../../shared/models/video.model';
         display: block;
         margin-top: 0.375rem;
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.55);
+        color: var(--text-muted);
         font-style: italic;
       }
     }
@@ -297,12 +315,12 @@ import { UploadRequest } from '../../shared/models/video.model';
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        color: rgba(255, 255, 255, 0.9);
+        color: var(--text-primary);
         font-size: 0.95rem;
         cursor: pointer;
         
         .checkbox-icon {
-          color: #00d9ff;
+          color: var(--accent-primary);
           font-size: 1.5rem;
           width: 1.5rem;
           height: 1.5rem;
@@ -337,12 +355,12 @@ import { UploadRequest } from '../../shared/models/video.model';
         font-size: 4rem;
         width: 4rem;
         height: 4rem;
-        color: #00d9ff;
+        color: var(--accent-primary);
         animation: pulse 1.5s ease-in-out infinite;
       }
       
       h3 {
-        color: rgba(255, 255, 255, 0.95);
+        color: var(--text-primary);
         font-size: 1.5rem;
         margin: 0;
         font-weight: 500;
@@ -353,7 +371,7 @@ import { UploadRequest } from '../../shared/models/video.model';
       }
       
       .progress-detail {
-        color: rgba(255, 255, 255, 0.75);
+        color: var(--text-secondary);
         margin: 0;
       }
     }
@@ -381,20 +399,20 @@ import { UploadRequest } from '../../shared/models/video.model';
         font-size: 5rem;
         width: 5rem;
         height: 5rem;
-        color: #00d9ff;
+        color: var(--accent-primary);
         animation: scaleIn 0.5s ease-out;
         filter: drop-shadow(0 0 10px rgba(0, 217, 255, 0.5));
       }
       
       h3 {
-        color: rgba(255, 255, 255, 0.95);
+        color: var(--text-primary);
         font-size: 1.75rem;
         margin: 0;
         font-weight: 500;
       }
       
       p {
-        color: rgba(255, 255, 255, 0.85);
+        color: var(--text-secondary);
         margin: 0;
       }
       
@@ -413,27 +431,27 @@ import { UploadRequest } from '../../shared/models/video.model';
           background: rgba(0, 71, 171, 0.15);
           border: 1px solid rgba(0, 71, 171, 0.3);
           border-radius: 8px;
-          color: rgba(0, 217, 255, 0.9);
+          color: var(--accent-primary);
           font-size: 0.9rem;
           transition: all 0.3s ease;
           
           &:hover {
-            background: rgba(0, 71, 171, 0.25);
-            border-color: rgba(0, 217, 255, 0.5);
+            background: var(--bg-card-hover);
+            border-color: var(--border-hover);
           }
           
           mat-icon {
             font-size: 1.25rem;
             width: 1.25rem;
             height: 1.25rem;
-            color: rgba(0, 217, 255, 0.8);
+            color: var(--accent-primary);
           }
         }
       }
       
       .wait-message {
         font-size: 0.875rem;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--text-muted);
         font-style: italic;
       }
     }
@@ -453,8 +471,9 @@ import { UploadRequest } from '../../shared/models/video.model';
       padding: 1rem 1.5rem !important;
       justify-content: flex-end;
       gap: 1rem;
-      background: rgba(0, 0, 0, 0.2);
-      border-top: 1px solid rgba(0, 71, 171, 0.25);
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+      transition: background 0.3s ease, border-color 0.3s ease;
       
       button {
         border-radius: 10px;
@@ -464,34 +483,48 @@ import { UploadRequest } from '../../shared/models/video.model';
         transition: all 0.3s ease;
         
         &.mat-mdc-button {
-          color: rgba(255, 255, 255, 0.85);
+          color: var(--text-secondary);
           
           &:hover {
-            background: rgba(0, 71, 171, 0.2);
+            background: var(--bg-card-hover);
           }
         }
         
         &.mat-mdc-raised-button {
-          background: linear-gradient(135deg, #0047AB 0%, #003380 100%);
+          background: var(--button-bg-primary) !important;
+          color: var(--button-text) !important;
+          
+          * {
+            color: var(--button-text) !important;
+          }
           
           &:hover:not(:disabled) {
-            background: linear-gradient(135deg, #0056D6 0%, #0047AB 100%);
-            box-shadow: 0 4px 12px rgba(0, 71, 171, 0.4);
+            background: var(--button-bg-hover) !important;
+            box-shadow: var(--shadow-hover);
             transform: translateY(-1px);
           }
           
           &:disabled {
-            background: rgba(100, 100, 100, 0.3);
-            color: rgba(255, 255, 255, 0.4);
+            background: var(--bg-card);
+            color: var(--text-muted);
+            
+            * {
+              color: var(--text-muted) !important;
+            }
           }
           
           // Cancel button styling (same as Upload button)
           &.cancel-button {
-            background: linear-gradient(135deg, #0047AB 0%, #003380 100%);
+            background: var(--button-bg-primary) !important;
+            color: var(--button-text) !important;
+            
+            * {
+              color: var(--button-text) !important;
+            }
             
             &:hover {
-              background: linear-gradient(135deg, #0056D6 0%, #0047AB 100%);
-              box-shadow: 0 4px 12px rgba(0, 71, 171, 0.4);
+              background: var(--button-bg-hover) !important;
+              box-shadow: var(--shadow-hover);
               transform: translateY(-1px);
             }
           }
@@ -508,7 +541,8 @@ export class UploadDialogComponent {
   uploadForm = this.fb.group({
     tags: [''],
     isPrivate: [false],  // Default to false = public
-    allowedUsers: ['']
+    allowedUsers: [''],
+    scenario: ['']  // Analysis scenario (optional, falls back to default)
   });
 
   selectedFile = signal<File | null>(null);
@@ -603,11 +637,14 @@ export class UploadDialogComponent {
       // isPrivate=true → is_public=false (private)
       const isPublic = !formValue.isPrivate;
       
+      const scenario = formValue.scenario || '';
+      
       const response = await this.videoService.uploadVideo(
         file,
         isPublic,
         tags,
-        allowedUsers
+        allowedUsers,
+        scenario
       ).toPromise();
       
       console.log('Upload completed successfully:', response);

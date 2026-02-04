@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, HostListener, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,7 +10,10 @@ import { environment } from '../../../environments/environment';
   standalone: true,
   imports: [CommonModule, MatButtonModule, MatIconModule],
   template: `
-    <div class="config-popover" [class.visible]="isVisible()">
+    @if (isVisible()) {
+      <div class="backdrop" (click)="close()"></div>
+    }
+    <div class="config-popover" [class.visible]="isVisible()" #popoverElement (click)="$event.stopPropagation()">
       <div class="popover-header">
         <mat-icon class="header-icon">code</mat-icon>
         <span class="header-title">Backend Config</span>
@@ -47,17 +50,27 @@ import { environment } from '../../../environments/environment';
     </div>
   `,
   styles: [`
+    .backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.2);
+      z-index: 9997;
+      cursor: pointer;
+    }
+
     .config-popover {
       position: fixed;
       top: 80px;
       right: 20px;
       width: 450px;
       max-height: 70vh;
-      background: rgba(15, 15, 30, 0.98);
-      border: 1px solid rgba(0, 71, 171, 0.4);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
       border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5),
-                  0 0 0 1px rgba(0, 206, 209, 0.1);
+      box-shadow: var(--shadow);
       backdrop-filter: blur(10px);
       z-index: 9998;
       display: flex;
@@ -65,7 +78,7 @@ import { environment } from '../../../environments/environment';
       opacity: 0;
       transform: translateY(-10px) scale(0.95);
       pointer-events: none;
-      transition: all 0.2s ease;
+      transition: all 0.2s ease, background 0.3s ease, border-color 0.3s ease;
       
       &.visible {
         opacity: 1;
@@ -85,12 +98,12 @@ import { environment } from '../../../environments/environment';
         font-size: 24px;
         width: 24px;
         height: 24px;
-        color: #00CED1;
+        color: var(--accent-primary);
       }
       
       .header-title {
         flex: 1;
-        color: rgba(255, 255, 255, 0.95);
+        color: var(--text-primary);
         font-size: 1rem;
         font-weight: 500;
         font-family: 'Roboto Mono', monospace;
@@ -110,14 +123,14 @@ import { environment } from '../../../environments/environment';
           font-size: 18px;
           width: 18px;
           height: 18px;
-          color: rgba(255, 255, 255, 0.7);
+          color: var(--text-secondary);
         }
         
         &:hover {
-          background: rgba(255, 255, 255, 0.1);
+          background: var(--bg-card-hover);
           
           mat-icon {
-            color: white;
+            color: var(--text-primary);
           }
         }
       }
@@ -131,22 +144,22 @@ import { environment } from '../../../environments/environment';
       justify-content: center;
       padding: 2rem;
       gap: 0.75rem;
-      color: rgba(255, 255, 255, 0.7);
+      color: var(--text-secondary);
       font-size: 0.85rem;
       
       mat-icon {
         font-size: 32px;
         width: 32px;
         height: 32px;
-        color: #ef4444;
+        color: var(--accent-danger);
       }
     }
 
     .spinner {
       width: 28px;
       height: 28px;
-      border: 3px solid rgba(0, 71, 171, 0.2);
-      border-top-color: #00CED1;
+      border: 3px solid var(--border-color);
+      border-top-color: var(--accent-primary);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
@@ -165,16 +178,16 @@ import { environment } from '../../../environments/environment';
       }
       
       &::-webkit-scrollbar-track {
-        background: rgba(255, 255, 255, 0.05);
+        background: var(--scrollbar-track);
       }
       
       &::-webkit-scrollbar-thumb {
-        background: rgba(0, 71, 171, 0.5);
+        background: var(--scrollbar-thumb);
         border-radius: 3px;
       }
       
       &::-webkit-scrollbar-thumb:hover {
-        background: rgba(0, 71, 171, 0.7);
+        background: var(--scrollbar-thumb-hover);
       }
     }
 
@@ -182,11 +195,16 @@ import { environment } from '../../../environments/environment';
       font-family: 'Roboto Mono', 'Courier New', monospace;
       font-size: 0.8rem;
       line-height: 1.6;
-      color: rgba(255, 255, 255, 0.9);
+      color: var(--text-primary);
       margin: 0;
       white-space: pre;
       word-wrap: normal;
       overflow-x: auto;
+      background: var(--bg-secondary);
+      padding: 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
       
       /* YAML syntax highlighting (manual) */
       /* Keys are turquoise */
@@ -194,13 +212,14 @@ import { environment } from '../../../environments/environment';
 
     .popover-footer {
       padding: 0.5rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      border-top: 1px solid var(--border-color);
       display: flex;
       justify-content: flex-end;
+      transition: border-color 0.3s ease;
       
       .refresh-btn {
-        background: rgba(0, 71, 171, 0.2);
-        border: 1px solid rgba(0, 71, 171, 0.4);
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
         border-radius: 6px;
         padding: 0.4rem;
         cursor: pointer;
@@ -212,12 +231,12 @@ import { environment } from '../../../environments/environment';
           font-size: 18px;
           width: 18px;
           height: 18px;
-          color: #00CED1;
+          color: var(--accent-primary);
         }
         
         &:hover {
-          background: rgba(0, 71, 171, 0.3);
-          border-color: rgba(0, 71, 171, 0.6);
+          background: var(--bg-card-hover);
+          border-color: var(--border-hover);
           transform: rotate(180deg);
         }
       }

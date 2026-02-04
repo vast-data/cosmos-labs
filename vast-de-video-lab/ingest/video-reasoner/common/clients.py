@@ -171,16 +171,26 @@ class CosmosReasoningClient:
                 "raw_response": response_data
             }
 
-    def analyze_video(self, video_content: bytes, filename: str, prompt: Optional[str] = None) -> Dict[str, Any]:
-        """Complete video analysis pipeline using Cosmos reasoning."""
+    def analyze_video(self, video_content: bytes, filename: str, prompt: Optional[str] = None, scenario: Optional[str] = None) -> Dict[str, Any]:
+        """Complete video analysis pipeline using Cosmos reasoning.
+        
+        Args:
+            video_content: Video file content as bytes
+            filename: Name of the video file
+            prompt: Optional custom prompt (overrides scenario)
+            scenario: Optional scenario name (overrides settings default, ignored if prompt is provided)
+        """
         if prompt is None:
-            prompt = get_prompt_for_scenario(self.settings.scenario)
+            # Use scenario from parameter, or fall back to settings default
+            scenario_to_use = scenario if scenario else self.settings.scenario
+            prompt = get_prompt_for_scenario(scenario_to_use)
         
         with self.tracer.start_as_current_span("Complete Video Analysis (Cosmos)") as span:
+            scenario_used = scenario if scenario else self.settings.scenario
             span.set_attributes({
                 "filename": filename,
                 "file_size_bytes": len(video_content),
-                "scenario": self.settings.scenario
+                "scenario": scenario_used
             })
             
             # Check video size limit
@@ -438,16 +448,26 @@ class NemotronReasoningClient:
                 "raw_response": response_data
             }
 
-    def analyze_video(self, video_content: bytes, filename: str, prompt: Optional[str] = None) -> Dict[str, Any]:
-        """Complete video analysis pipeline using Nemotron reasoning."""
+    def analyze_video(self, video_content: bytes, filename: str, prompt: Optional[str] = None, scenario: Optional[str] = None) -> Dict[str, Any]:
+        """Complete video analysis pipeline using Nemotron reasoning.
+        
+        Args:
+            video_content: Video file content as bytes
+            filename: Name of the video file
+            prompt: Optional custom prompt (overrides scenario)
+            scenario: Optional scenario name (overrides settings default, ignored if prompt is provided)
+        """
         if prompt is None:
-            prompt = get_prompt_for_scenario(self.settings.scenario)
+            # Use scenario from parameter, or fall back to settings default
+            scenario_to_use = scenario if scenario else self.settings.scenario
+            prompt = get_prompt_for_scenario(scenario_to_use)
         
         with self.tracer.start_as_current_span("Complete Video Analysis (Nemotron)") as span:
+            scenario_used = scenario if scenario else self.settings.scenario
             span.set_attributes({
                 "filename": filename,
                 "file_size_bytes": len(video_content),
-                "scenario": self.settings.scenario,
+                "scenario": scenario_used,
                 "num_frames": self.settings.nemotron_num_frames
             })
             

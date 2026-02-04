@@ -40,6 +40,7 @@ export interface BatchSyncStartRequest {
   camera_id?: string;
   capture_type?: string;
   neighborhood?: string;
+  scenario?: string;  // Analysis scenario (surveillance, traffic, egocentric, etc.)
 }
 
 export interface BatchSyncStatus {

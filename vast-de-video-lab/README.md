@@ -48,7 +48,7 @@ The system has two main parts:
 
 ### 1. Configurable Video Analysis Prompts (Cosmos VLM)
 
-The `video-reasoner` function uses NVIDIA Cosmos VLM for video understanding. The analysis prompt can be configured per use case by setting the `scenario` key in the ingest secret, it is defaulted to `surveillance` for now.
+The `video-reasoner` function uses NVIDIA Cosmos VLM for video understanding. The analysis prompt can be configured per use case by setting the `scenario` key in the ingest secret or in streaming, it is defaulted to `general` for now.
 
 **For complete documentation, see:** [ingest/video-reasoner/README.md#available-scenarios](ingest/video-reasoner/README.md#available-scenarios)
 

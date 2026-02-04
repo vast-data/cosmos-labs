@@ -15,6 +15,7 @@ export interface StreamingStartRequest {
   camera_id?: string;
   capture_type?: string;  // traffic, streets, crowds, malls
   neighborhood?: string;
+  scenario?: string;  // Analysis scenario (surveillance, traffic, egocentric, etc.)
 }
 
 export interface StreamingStatus {

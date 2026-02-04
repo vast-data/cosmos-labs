@@ -42,6 +42,7 @@ class StreamingStartRequest(BaseModel):
     camera_id: Optional[str] = Field(default="", description="Camera identifier")
     capture_type: Optional[str] = Field(default="", description="Capture type: traffic, streets, crowds, malls")
     neighborhood: Optional[str] = Field(default="", description="Geographic area/neighborhood")
+    scenario: Optional[str] = Field(default="", description="Analysis scenario: surveillance, traffic, egocentric, etc.")
 
 
 class StreamingStatusResponse(BaseModel):
@@ -170,10 +171,11 @@ async def start_streaming(
             # Stream capture metadata - will be stored as S3 object metadata
             "camera_id": request.camera_id or "",
             "capture_type": request.capture_type or "",
-            "neighborhood": request.neighborhood or ""
+            "neighborhood": request.neighborhood or "",
+            "scenario": request.scenario or ""
         }
         
-        logger.info(f"[STREAMING] Metadata: camera_id={request.camera_id}, capture_type={request.capture_type}, neighborhood={request.neighborhood}")
+        logger.info(f"[STREAMING] Metadata: camera_id={request.camera_id}, capture_type={request.capture_type}, neighborhood={request.neighborhood}, scenario={request.scenario}")
         
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(

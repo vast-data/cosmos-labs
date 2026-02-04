@@ -347,11 +347,12 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
     
     /* Container */
     .search-bar-container {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       padding: 2rem;
       margin-bottom: 2rem;
+      transition: background 0.3s ease, border-color 0.3s ease;
     }
 
     /* Main Search Form */
@@ -370,15 +371,15 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
       position: relative;
       display: flex;
       align-items: center;
-      background: rgba(255, 255, 255, 0.08);
-      border: 2px solid rgba(255, 255, 255, 0.2);
+      background: var(--bg-secondary);
+      border: 2px solid var(--border-color);
       border-radius: 8px;
       padding: 0 1rem;
       transition: all 0.2s ease;
       
       &:focus-within {
-        border-color: #0047AB; /* Darker space blue */
-        background: rgba(255, 255, 255, 0.12);
+        border-color: var(--accent-secondary);
+        background: var(--bg-card-hover);
         box-shadow: 0 0 0 3px rgba(0, 71, 171, 0.15);
       }
       
@@ -395,13 +396,14 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
         background: transparent;
         border: none;
         outline: none;
-        color: #fff;
+        color: var(--text-primary);
         font-size: 1rem;
         padding: 1rem 0;
         font-family: 'Roboto', sans-serif;
+        transition: color 0.3s ease;
         
         &::placeholder {
-          color: rgba(255, 255, 255, 0.65); /* Brighter gray */
+          color: var(--text-muted);
         }
         
         &:focus {
@@ -410,7 +412,7 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
       }
       
       .clear-button {
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--bg-card);
         border: none;
         border-radius: 50%;
         width: 24px;
@@ -418,7 +420,7 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
         display: flex;
         align-items: center;
         justify-content: center;
-        color: rgba(255, 255, 255, 0.7); /* Brighter */
+        color: var(--text-secondary);
         font-size: 14px;
         cursor: pointer;
         transition: all 0.2s ease;
@@ -426,8 +428,8 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
         margin-left: 0.5rem;
         
         &:hover {
-          background: rgba(255, 255, 255, 0.2);
-          color: #fff;
+          background: var(--bg-card-hover);
+          color: var(--text-primary);
         }
       }
     }
@@ -439,16 +441,19 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
       height: auto;
       min-height: 56px;
       padding: 0 2rem;
-      background: linear-gradient(135deg, #0047AB 0%, #002766 100%) !important; /* Darker space blues */
+      background: var(--button-bg-primary) !important;
+      color: var(--button-text) !important;
       border-radius: 8px !important;
       font-weight: 500;
       cursor: pointer !important;
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      transition: all 0.3s ease;
       
       * {
         cursor: pointer !important;
+        color: var(--button-text) !important;
       }
       
       &:disabled {
@@ -461,7 +466,8 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
       }
       
       &:not(:disabled):hover {
-        box-shadow: 0 4px 12px rgba(0, 71, 171, 0.6);
+        background: var(--button-bg-hover) !important;
+        box-shadow: var(--shadow-hover);
       }
     }
 
@@ -475,7 +481,7 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
       margin-bottom: 1.5rem;
       
       .scope-label {
-        color: rgba(255, 255, 255, 0.85);
+        color: var(--text-secondary);
         font-size: 0.95rem;
         font-weight: 500;
       }
@@ -483,10 +489,11 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
       .scope-pills {
         display: flex;
         gap: 0.5rem;
-        background: rgba(0, 71, 171, 0.12);
+        background: var(--bg-secondary);
         padding: 0.25rem;
         border-radius: 12px;
-        border: 1px solid rgba(0, 71, 171, 0.3);
+        border: 1px solid var(--border-color);
+        transition: background 0.3s ease, border-color 0.3s ease;
         
         .scope-pill {
           display: flex;
@@ -496,7 +503,7 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
           background: transparent;
           border: none;
           border-radius: 10px;
-          color: rgba(255, 255, 255, 0.7);
+          color: var(--text-secondary);
           font-size: 0.9rem;
           font-weight: 500;
           font-family: 'Roboto', sans-serif;
@@ -513,21 +520,19 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
           }
           
           &:hover:not(.active) {
-            background: rgba(0, 71, 171, 0.2);
-            color: rgba(255, 255, 255, 0.9);
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
             transform: translateY(-1px);
           }
           
           &.active {
-            background: linear-gradient(135deg, #0047AB 0%, #003380 100%);
-            color: #ffffff;
-            box-shadow: 
-              0 4px 12px rgba(0, 71, 171, 0.4),
-              inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            background: var(--button-bg-primary);
+            color: var(--button-text);
+            box-shadow: var(--shadow);
             transform: translateY(0);
             
             mat-icon {
-              color: #00d9ff;
+              color: var(--accent-primary);
               filter: drop-shadow(0 0 4px rgba(0, 217, 255, 0.6));
             }
           }
@@ -544,7 +549,8 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
        ============================================ */
     .ai-toggle-container {
       padding: 1rem 0;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid var(--border-color);
+      transition: border-color 0.3s ease;
       
       .ai-toggle {
         ::ng-deep .mdc-label {
@@ -557,7 +563,7 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          color: rgba(255, 255, 255, 0.9);
+          color: var(--text-primary);
           font-size: 0.95rem;
           font-weight: 500;
           user-select: none;
@@ -567,7 +573,7 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
             font-size: 20px;
             width: 20px;
             height: 20px;
-            color: #00d9ff;
+            color: var(--accent-primary);
           }
         }
         
@@ -603,13 +609,14 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
       align-items: flex-start;
       gap: 1rem;
       padding-top: 1.5rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid var(--border-color);
+      transition: border-color 0.3s ease;
       
       .hint-label {
-        color: rgba(255, 255, 255, 0.85); /* Brighter gray */
+        color: var(--text-secondary);
         font-size: 0.9rem;
         font-weight: 500;
-        padding-top: 0.5rem; /* Align with first row of chips */
+        padding-top: 0.5rem;
         flex-shrink: 0;
       }
       
@@ -620,23 +627,23 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
         flex: 1;
         
         .hint-chip {
-          background: rgba(0, 71, 171, 0.15); /* Darker space blue */
-          color: rgba(255, 255, 255, 0.9); /* Brighter text */
-          border: 1px solid rgba(0, 71, 171, 0.4);
+          background: var(--bg-secondary);
+          color: var(--text-primary);
+          border: 1px solid var(--border-color);
           border-radius: 20px;
           padding: 0.5rem 1rem;
           font-size: 0.875rem;
           font-family: 'Roboto', sans-serif;
           cursor: pointer;
           transition: all 0.2s ease;
-          white-space: nowrap; /* Keep text on one line */
+          white-space: nowrap;
           
           &:hover {
-            background: rgba(0, 71, 171, 0.25);
-            border-color: rgba(0, 71, 171, 0.6);
+            background: var(--bg-card-hover);
+            border-color: var(--border-hover);
             transform: translateY(-1px);
-            color: #fff;
-            box-shadow: 0 2px 8px rgba(0, 71, 171, 0.3);
+            color: var(--text-primary);
+            box-shadow: var(--shadow);
           }
           
           &:active {
@@ -654,13 +661,14 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
       align-items: center;
       gap: 1rem;
       padding: 1.25rem 0 0.5rem 0;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      border-top: 1px solid var(--border-color);
       margin-top: 1rem;
+      transition: border-color 0.3s ease;
     }
 
     .time-label {
       font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.7);
+      color: var(--text-secondary);
       font-weight: 500;
       white-space: nowrap;
     }
@@ -676,10 +684,10 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
       align-items: center;
       gap: 0.4rem;
       padding: 0.5rem 1rem;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
       border-radius: 20px;
-      color: rgba(255, 255, 255, 0.7);
+      color: var(--text-secondary);
       font-size: 0.85rem;
       font-family: 'Roboto', sans-serif;
       cursor: pointer;
@@ -690,29 +698,33 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
         font-size: 1.1rem;
         width: 1.1rem;
         height: 1.1rem;
-        color: rgba(0, 217, 255, 0.7);
+        color: var(--accent-primary);
       }
       
       &.active {
-        background: linear-gradient(135deg, #0047AB 0%, #002766 100%);
-        border-color: rgba(0, 71, 171, 0.8);
-        color: #fff;
-        box-shadow: 0 2px 12px rgba(0, 71, 171, 0.4);
+        background: var(--button-bg-primary);
+        border-color: var(--accent-secondary);
+        color: var(--button-text);
+        box-shadow: var(--shadow);
         
         mat-icon {
-          color: #00d9ff;
+          color: var(--accent-primary);
         }
       }
       
       &:hover:not(.active) {
-        background: rgba(0, 71, 171, 0.15);
-        border-color: rgba(0, 71, 171, 0.4);
-        color: #fff;
+        background: var(--bg-card-hover);
+        border-color: var(--border-hover);
+        color: var(--text-primary);
         transform: translateY(-1px);
         
         mat-icon {
-          color: #00d9ff;
+          color: var(--accent-primary);
         }
+      }
+      
+      &:hover.active {
+        background: var(--button-bg-hover);
       }
       
       &:active {
@@ -720,7 +732,7 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
       }
       
       &.custom-pill {
-        border: 2px dashed rgba(0, 217, 255, 0.3);
+        border: 2px dashed var(--accent-primary);
         
         &.active {
           border-style: solid;
@@ -759,7 +771,7 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
       gap: 1rem;
       
       .datetime-label {
-        color: rgba(255, 255, 255, 0.8);
+        color: var(--text-secondary);
         font-weight: 500;
         font-size: 0.9rem;
         min-width: 45px;
@@ -775,7 +787,7 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
         }
         
         .mat-mdc-text-field-wrapper {
-          background: rgba(255, 255, 255, 0.08);
+          background: var(--bg-secondary);
           border-radius: 8px;
         }
         
@@ -790,32 +802,32 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
         .mdc-notched-outline__leading,
         .mdc-notched-outline__notch,
         .mdc-notched-outline__trailing {
-          border-color: rgba(255, 255, 255, 0.2) !important;
+          border-color: var(--border-color) !important;
         }
         
         .mat-mdc-form-field.mat-focused {
           .mdc-notched-outline__leading,
           .mdc-notched-outline__notch,
           .mdc-notched-outline__trailing {
-            border-color: rgba(0, 217, 255, 0.6) !important;
+            border-color: var(--accent-primary) !important;
           }
         }
         
         .mat-mdc-input-element {
-          color: #fff;
-          caret-color: #00d9ff;
+          color: var(--text-primary);
+          caret-color: var(--accent-primary);
         }
         
         .mat-mdc-form-field-label {
-          color: rgba(255, 255, 255, 0.7) !important;
+          color: var(--text-secondary) !important;
         }
         
         .mat-mdc-form-field.mat-focused .mat-mdc-form-field-label {
-          color: rgba(0, 217, 255, 0.9) !important;
+          color: var(--accent-primary) !important;
         }
         
         .mat-datepicker-toggle {
-          color: rgba(0, 217, 255, 0.8);
+          color: var(--accent-primary);
         }
       }
     }
@@ -829,7 +841,7 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
         }
         
         .mat-mdc-text-field-wrapper {
-          background: rgba(255, 255, 255, 0.08);
+          background: var(--bg-secondary);
           border-radius: 8px;
         }
         
@@ -844,32 +856,32 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
         .mdc-notched-outline__leading,
         .mdc-notched-outline__notch,
         .mdc-notched-outline__trailing {
-          border-color: rgba(255, 255, 255, 0.2) !important;
+          border-color: var(--border-color) !important;
         }
         
         .mat-mdc-form-field.mat-focused {
           .mdc-notched-outline__leading,
           .mdc-notched-outline__notch,
           .mdc-notched-outline__trailing {
-            border-color: rgba(0, 217, 255, 0.6) !important;
+            border-color: var(--accent-primary) !important;
           }
         }
         
         .mat-mdc-input-element {
-          color: #fff;
-          caret-color: #00d9ff;
+          color: var(--text-primary);
+          caret-color: var(--accent-primary);
         }
         
         .mat-mdc-form-field-label {
-          color: rgba(255, 255, 255, 0.7) !important;
+          color: var(--text-secondary) !important;
         }
         
         .mat-mdc-form-field.mat-focused .mat-mdc-form-field-label {
-          color: rgba(0, 217, 255, 0.9) !important;
+          color: var(--accent-primary) !important;
         }
         
         .mat-icon {
-          color: rgba(0, 217, 255, 0.8);
+          color: var(--accent-primary);
         }
       }
     }
@@ -883,25 +895,26 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
       gap: 1rem;
       margin-top: 1rem;
       padding-top: 1rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid var(--border-color);
+      transition: border-color 0.3s ease;
       
       .toggle-button {
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        background: rgba(0, 71, 171, 0.2);
-        border: 1px solid rgba(0, 71, 171, 0.4);
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
         border-radius: 8px;
         padding: 0.75rem 1.25rem;
-        color: rgba(255, 255, 255, 0.9);
+        color: var(--text-primary);
         font-size: 0.95rem;
         font-weight: 500;
         cursor: pointer;
         transition: all 0.2s ease;
         
         &:hover:not(:disabled) {
-          background: rgba(0, 71, 171, 0.3);
-          border-color: rgba(0, 71, 171, 0.6);
+          background: var(--bg-card-hover);
+          border-color: var(--border-hover);
         }
         
         &:disabled {
@@ -921,19 +934,20 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
       }
       
       .loading-indicator {
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--text-muted);
         font-size: 0.875rem;
         font-style: italic;
       }
     }
 
     .advanced-filters-panel {
-      background: rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(0, 71, 171, 0.3);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       padding: 1.5rem;
       margin-top: 1rem;
       animation: slideDown 0.3s ease-out;
+      transition: background 0.3s ease, border-color 0.3s ease;
       
       @keyframes slideDown {
         from {
@@ -952,10 +966,11 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
         align-items: center;
         margin-bottom: 1rem;
         padding-bottom: 0.75rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        border-bottom: 1px solid var(--border-color);
+        transition: border-color 0.3s ease;
         
         span {
-          color: rgba(255, 255, 255, 0.85);
+          color: var(--text-primary);
           font-size: 1rem;
           font-weight: 500;
         }
@@ -965,17 +980,17 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
           align-items: center;
           gap: 0.5rem;
           background: rgba(220, 38, 38, 0.2);
-          border: 1px solid rgba(220, 38, 38, 0.4);
+          border: 1px solid var(--accent-danger);
           border-radius: 6px;
           padding: 0.5rem 1rem;
-          color: rgba(255, 255, 255, 0.9);
+          color: var(--text-primary);
           font-size: 0.875rem;
           cursor: pointer;
           transition: all 0.2s ease;
           
           &:hover {
             background: rgba(220, 38, 38, 0.3);
-            border-color: rgba(220, 38, 38, 0.6);
+            border-color: var(--accent-danger);
           }
           
           mat-icon {
@@ -997,39 +1012,39 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
             
             ::ng-deep {
               .mat-mdc-text-field-wrapper {
-                background: rgba(255, 255, 255, 0.05);
+                background: var(--bg-secondary);
               }
               
               .mat-mdc-form-field-focus-overlay {
-                background: rgba(0, 71, 171, 0.1);
+                background: transparent;
               }
               
               .mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__leading,
               .mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__notch,
               .mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__trailing {
-                border-color: rgba(255, 255, 255, 0.2);
+                border-color: var(--border-color);
               }
               
               .mat-mdc-form-field.mat-focused .mdc-notched-outline .mdc-notched-outline__leading,
               .mat-mdc-form-field.mat-focused .mdc-notched-outline .mdc-notched-outline__notch,
               .mat-mdc-form-field.mat-focused .mdc-notched-outline .mdc-notched-outline__trailing {
-                border-color: rgba(0, 71, 171, 0.8) !important;
+                border-color: var(--accent-secondary) !important;
               }
               
               .mat-mdc-form-field-label {
-                color: rgba(255, 255, 255, 0.7);
+                color: var(--text-secondary);
               }
               
               .mat-mdc-input-element {
-                color: #fff;
+                color: var(--text-primary);
               }
               
               .mat-mdc-select-value {
-                color: #fff;
+                color: var(--text-primary);
               }
               
               .mat-mdc-select-arrow {
-                color: rgba(255, 255, 255, 0.7);
+                color: var(--text-secondary);
               }
             }
           }
@@ -1037,16 +1052,16 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
           .filter-checkbox {
             ::ng-deep {
               .mdc-checkbox__background {
-                border-color: rgba(255, 255, 255, 0.4);
+                border-color: var(--border-color);
               }
               
               .mdc-checkbox--selected .mdc-checkbox__background {
-                background-color: rgba(0, 71, 171, 0.8);
-                border-color: rgba(0, 71, 171, 0.8);
+                background-color: var(--accent-secondary);
+                border-color: var(--accent-secondary);
               }
               
               .mdc-label {
-                color: rgba(255, 255, 255, 0.85);
+                color: var(--text-primary);
               }
             }
           }

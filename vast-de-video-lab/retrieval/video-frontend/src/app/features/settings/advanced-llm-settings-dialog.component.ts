@@ -162,13 +162,14 @@ export function getLLMSettings(): LLMSettings {
   `,
   styles: [`
     .dialog-container {
-      background: linear-gradient(135deg, #0A0A1E 0%, #15152E 100%);
-      color: white;
+      background: var(--bg-card);
+      color: var(--text-primary);
       border-radius: 12px;
       overflow: hidden;
       display: flex;
       flex-direction: column;
       min-width: 500px;
+      transition: background 0.3s ease, color 0.3s ease;
     }
 
     .dialog-header {
@@ -176,8 +177,9 @@ export function getLLMSettings(): LLMSettings {
       justify-content: space-between;
       align-items: center;
       padding: 1rem 1.5rem;
-      background: rgba(0, 0, 0, 0.2);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      transition: background 0.3s ease, border-color 0.3s ease;
 
       .header-title {
         display: flex;
@@ -188,22 +190,22 @@ export function getLLMSettings(): LLMSettings {
           margin: 0;
           font-size: 1.2rem;
           font-weight: 600;
-          color: #00CED1;
+          color: var(--accent-primary);
         }
 
         mat-icon {
           font-size: 1.8rem;
           width: 1.8rem;
           height: 1.8rem;
-          color: #00CED1;
+          color: var(--accent-primary);
         }
       }
 
       .close-btn {
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--text-secondary);
         &:hover {
-          color: white;
-          background: rgba(255, 255, 255, 0.1);
+          color: var(--text-primary);
+          background: var(--bg-card-hover);
         }
       }
     }
@@ -217,7 +219,7 @@ export function getLLMSettings(): LLMSettings {
 
     .description {
       font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.7);
+      color: var(--text-secondary);
       line-height: 1.5;
       margin: 0;
     }
@@ -243,7 +245,7 @@ export function getLLMSettings(): LLMSettings {
       .label-text {
         font-size: 0.95rem;
         font-weight: 500;
-        color: rgba(255, 255, 255, 0.9);
+        color: var(--text-primary);
       }
 
       .info-btn {
@@ -283,11 +285,11 @@ export function getLLMSettings(): LLMSettings {
         }
 
         .mat-mdc-select-value {
-          color: white !important;
+          color: var(--text-primary) !important;
         }
 
         .mat-mdc-select-arrow {
-          color: rgba(255, 255, 255, 0.7) !important;
+          color: var(--text-secondary) !important;
         }
       }
     }
@@ -305,15 +307,15 @@ export function getLLMSettings(): LLMSettings {
       
       .slider-label {
         font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--text-muted);
       }
       
       .slider-value {
         font-family: 'JetBrains Mono', monospace;
         font-size: 1.1rem;
         font-weight: 600;
-        color: #00CED1;
-        background: rgba(0, 206, 209, 0.1);
+        color: var(--accent-primary);
+        background: var(--bg-secondary);
         padding: 0.25rem 0.75rem;
         border-radius: 4px;
       }
@@ -349,15 +351,16 @@ export function getLLMSettings(): LLMSettings {
       display: flex;
       align-items: flex-start;
       gap: 1rem;
-      background: rgba(0, 71, 171, 0.15);
-      border: 1px solid rgba(0, 71, 171, 0.3);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       padding: 1rem;
       font-size: 0.85rem;
-      color: rgba(255, 255, 255, 0.8);
+      color: var(--text-primary);
+      transition: background 0.3s ease, border-color 0.3s ease;
 
       mat-icon {
-        color: #F59E0B;
+        color: var(--accent-warning);
         font-size: 1.5rem;
         width: 1.5rem;
         height: 1.5rem;
@@ -382,17 +385,18 @@ export function getLLMSettings(): LLMSettings {
       justify-content: space-between;
       align-items: center;
       padding: 1rem 1.5rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      background: rgba(0, 0, 0, 0.2);
+      border-top: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+      transition: background 0.3s ease, border-color 0.3s ease;
 
       .reset-btn {
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--text-muted);
         mat-icon {
           margin-right: 0.25rem;
         }
         &:hover {
-          color: white;
-          background: rgba(255, 255, 255, 0.1);
+          color: var(--text-primary);
+          background: var(--bg-card-hover);
         }
       }
 
@@ -402,20 +406,26 @@ export function getLLMSettings(): LLMSettings {
       }
 
       .cancel-btn {
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--text-secondary);
         &:hover {
-          background: rgba(255, 255, 255, 0.1);
+          background: var(--bg-card-hover);
         }
       }
 
       .save-btn {
-        background: linear-gradient(135deg, #0047AB 0%, #002766 100%) !important;
-        color: white !important;
+        background: var(--button-bg-primary) !important;
+        color: var(--button-text) !important;
+        
+        * {
+          color: var(--button-text) !important;
+        }
+        
         mat-icon {
           margin-right: 0.5rem;
         }
         &:hover {
-          box-shadow: 0 4px 12px rgba(0, 71, 171, 0.6);
+          background: var(--button-bg-hover) !important;
+          box-shadow: var(--shadow-hover);
         }
       }
     }
