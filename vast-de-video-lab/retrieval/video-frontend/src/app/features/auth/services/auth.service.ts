@@ -81,7 +81,7 @@ export class AuthService {
       });
   }
 
-  logout() {
+  logout(useFullReload: boolean = true) {
     // Clear auth state
     this.state.update((state) => ({ ...state, status: 'pending', token: null, user: null, error: null }));
     
@@ -89,9 +89,12 @@ export class AuthService {
     localStorage.removeItem(SETTINGS.LS_KEY_TOKEN);
     localStorage.removeItem(SETTINGS.USER_KEY_TOKEN);
     
-    // Full page reload to clear all application state (search results, cached data, etc.)
-    // This ensures a clean slate for the next user
-    window.location.href = '/login';
+    if (useFullReload) {
+      // Full page reload to clear all application state (search results, cached data, etc.)
+      // This ensures a clean slate for the next user
+      window.location.href = '/login';
+    }
+    // If useFullReload is false, the caller will handle navigation (e.g., interceptor)
   }
 }
 
