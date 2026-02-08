@@ -271,11 +271,11 @@ export function getLLMSettings(): LLMSettings {
       
       ::ng-deep {
         .mat-mdc-form-field-flex {
-          background: rgba(0, 0, 0, 0.3) !important;
+          background: var(--bg-secondary) !important;
         }
 
         .mat-mdc-text-field-wrapper {
-          background: transparent !important;
+          background: var(--bg-secondary) !important;
         }
 
         .mdc-notched-outline__leading,

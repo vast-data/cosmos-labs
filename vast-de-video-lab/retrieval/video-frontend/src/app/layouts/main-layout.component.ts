@@ -310,6 +310,23 @@ import { MatTooltipModule } from '@angular/material/tooltip';
       &:active {
         transform: scale(0.95);
       }
+      
+      /* Light mode specific styling for better visibility */
+      :host-context([data-theme="light"]) &,
+      [data-theme="light"] & {
+        background: rgba(115, 200, 253, 0.2) !important; /* lightblue-400 with opacity */
+        border-color: rgba(115, 200, 253, 0.4) !important; /* lightblue-400 border */
+        color: #0e1a35 !important; /* blue-900 - dark icon for contrast */
+        
+        ::ng-deep .mat-icon {
+          color: #0e1a35 !important; /* blue-900 - dark icon */
+        }
+        
+        &:hover {
+          background: rgba(115, 200, 253, 0.35) !important; /* lightblue-400 with higher opacity */
+          border-color: rgba(115, 200, 253, 0.6) !important;
+        }
+      }
     }
 
     .config-button {

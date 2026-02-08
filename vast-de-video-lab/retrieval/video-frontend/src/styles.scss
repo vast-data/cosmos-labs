@@ -21,74 +21,142 @@ $my-theme: mat.m2-define-light-theme((
 
 @include mat.all-component-themes($my-theme);
 
-/* Theme CSS Variables - Dark theme (default) */
+/* Theme CSS Variables - Dark theme (default) - Using VAST Design Tokens */
 :root {
-  --bg-primary: #0f0f1e;
-  --bg-secondary: #15152e;
-  --bg-card: rgba(10, 10, 30, 0.8);
-  --bg-card-hover: rgba(10, 10, 40, 0.9);
-  --bg-header: rgb(14 26 53);
-  --bg-toolbar: rgb(14 26 53);
-  --border-color: rgba(0, 206, 209, 0.3);
-  --border-hover: rgba(0, 206, 209, 0.5);
-  --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.85);
-  --text-muted: rgba(255, 255, 255, 0.65);
-  --accent-primary: #00CED1;
-  --accent-secondary: #0047AB;
-  --accent-success: #06FFA5;
-  --accent-warning: #fbbf24;
-  --accent-danger: #ef4444;
-  --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  --shadow-hover: 0 12px 48px rgba(0, 0, 0, 0.6);
-  --scrollbar-track: rgba(255, 255, 255, 0.05);
-  --scrollbar-thumb: rgba(0, 71, 171, 0.6);
-  --scrollbar-thumb-hover: rgba(0, 71, 171, 0.8);
-  --button-bg-primary: linear-gradient(135deg, var(--accent-secondary) 0%, #002766 100%);
-  --button-bg-hover: linear-gradient(135deg, #0056D6 0%, var(--accent-secondary) 100%);
-  --button-text: var(--text-primary);
+  /* Background Colors - from tokens */
+  --bg-primary: #0e1a35; /* blue-900 - screen background primary */
+  --bg-secondary: #16233f; /* blue-850 - modal main, secondary backgrounds */
+  --bg-card: #16233f; /* blue-850 - panels, modals */
+  --bg-card-hover: #253048; /* blue-550 - hover state */
+  --bg-header: #0f1a31; /* blue-1000 - table headers, top nav */
+  --bg-toolbar: #0f1a31; /* blue-1000 - toolbar background */
+  
+  /* Border Colors - from tokens */
+  --border-color: #343e55; /* blue-400 - outlines, separation lines */
+  --border-hover: #505f7f; /* blue-250 - hover borders */
+  
+  /* Text Colors - from tokens */
+  --text-primary: #e8ebec; /* gray-50 - primary text */
+  --text-secondary: #c5ccce; /* gray-200 - secondary text */
+  --text-muted: #a2aeb4; /* gray-400 - muted text */
+  
+  /* Accent Colors - from tokens */
+  --accent-primary: #73c8fd; /* lightblue-400 - actions, click feedback, hyperlinks */
+  --accent-secondary: #0e1a35; /* blue-900 - secondary accents */
+  --accent-success: #54e7de; /* cyan-400 - active status */
+  --accent-warning: #e8af6f; /* orange-300 - warning status */
+  --accent-danger: #e86f6f; /* red-400 - failed status */
+  
+  /* Shadows - from tokens */
+  --shadow: 0 4px 4px rgba(15, 26, 49, 0.25); /* shadow - toast, snack bar */
+  --shadow-hover: 0 4px 4px rgba(15, 26, 49, 0.4);
+  
+  /* Scrollbar - from tokens */
+  --scrollbar-track: rgba(162, 174, 180, 0.1); /* gray-400 with opacity */
+  --scrollbar-thumb: #a2aeb4; /* gray-400 - scroller color default */
+  --scrollbar-thumb-hover: #c5ccce; /* gray-200 - scroller color hover */
+  
+  /* Buttons - from tokens */
+  --button-bg-primary: #73c8fd; /* lightblue-400 - primary button background */
+  --button-bg-hover: #b7e3ff; /* lightblue-200 - primary button hover */
+  --button-text: #0e1a35; /* blue-900 - primary button text */
+  
+  /* Additional token-based colors for component-specific use */
+  --color-blue-900: #0e1a35;
+  --color-blue-850: #16233f;
+  --color-blue-800: #1c2944;
+  --color-blue-700: #1f2c47;
+  --color-blue-500: #25304a;
+  --color-blue-450: #39435b;
+  --color-blue-400: #343e55;
+  --color-blue-300: #4a5e88;
+  --color-blue-250: #505f7f;
+  --color-blue-1000: #0f1a31;
+  --color-lightblue-400: #73c8fd;
+  --color-lightblue-200: #b7e3ff;
+  --color-gray-50: #e8ebec;
+  --color-gray-200: #c5ccce;
+  --color-gray-400: #a2aeb4;
+  --color-gray-600: #7a898e;
+  --color-cyan-400: #54e7de;
+  --color-red-400: #e86f6f;
+  --color-orange-300: #e8af6f;
 }
 
-/* Light theme */
+/* Light theme - Using design token principles with light adaptations */
 [data-theme="light"] {
-  --bg-primary: #f7f5f2;
-  --bg-secondary: #faf9f6;
-  --bg-card: rgba(255, 253, 250, 0.95);
-  --bg-card-hover: rgba(255, 255, 255, 1);
-  --bg-header: linear-gradient(135deg, rgba(250, 249, 246, 0.98) 0%, rgba(247, 245, 242, 0.98) 100%);
-  --bg-toolbar: linear-gradient(135deg, #e0f2f1 0%, #b2dfdb 100%); /* Light blue/teal gradient for header */
-  --border-color: rgba(0, 206, 209, 0.2);
-  --border-hover: rgba(0, 206, 209, 0.4);
-  --text-primary: #1a1a1a;
-  --text-secondary: rgba(26, 26, 26, 0.85);
-  --text-muted: rgba(26, 26, 26, 0.65);
-  --accent-primary: #008B8B;
-  --accent-secondary: #003d7a;
-  --accent-success: #00cc7a;
-  --accent-warning: #d4a017;
-  --accent-danger: #dc2626;
-  --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  --shadow-hover: 0 12px 48px rgba(0, 0, 0, 0.15);
-  --scrollbar-track: rgba(0, 0, 0, 0.05);
-  --scrollbar-thumb: rgba(0, 206, 209, 0.3);
-  --scrollbar-thumb-hover: rgba(0, 206, 209, 0.5);
-  --button-bg-primary: linear-gradient(135deg, #e0f2f1 0%, #b2dfdb 100%);
-  --button-bg-hover: linear-gradient(135deg, #b2dfdb 0%, #80cbc4 100%);
-  --button-text: var(--accent-secondary);
+  /* Background Colors - light theme adaptations - softer, warmer beige */
+  --bg-primary: #f5f3ef; /* Softer, warmer beige background */
+  --bg-secondary: #f8f6f2; /* Softer, warmer lighter beige */
+  --bg-card: rgba(252, 250, 246, 0.98); /* Warmer, softer white-beige */
+  --bg-card-hover: rgba(255, 253, 250, 1); /* Softer warm white-beige on hover */
+  --bg-header: linear-gradient(135deg, rgba(248, 246, 242, 0.98) 0%, rgba(245, 243, 239, 0.98) 100%);
+  --bg-toolbar: linear-gradient(135deg, #b7e3ff 0%, #73c8fd 100%); /* lightblue-200 to lightblue-400 gradient */
+  
+  /* Border Colors - using token blue colors with low opacity for light theme */
+  --border-color: rgba(52, 62, 85, 0.2); /* blue-400 with low opacity */
+  --border-hover: rgba(52, 62, 85, 0.4); /* blue-400 with higher opacity */
+  
+  /* Text Colors - dark text for light theme */
+  --text-primary: #0e1a35; /* blue-900 - dark text */
+  --text-secondary: rgba(14, 26, 53, 0.85); /* blue-900 with opacity */
+  --text-muted: rgba(14, 26, 53, 0.65); /* blue-900 with lower opacity */
+  
+  /* Accent Colors - using design tokens adapted for light theme */
+  --accent-primary: #73c8fd; /* lightblue-400 - actions, hyperlinks */
+  --accent-secondary: #0e1a35; /* blue-900 - secondary accents */
+  --accent-success: #54e7de; /* cyan-400 - active status */
+  --accent-warning: #e8af6f; /* orange-300 - warning status */
+  --accent-danger: #e86f6f; /* red-400 - failed status */
+  
+  /* Shadows - lighter shadows for light theme */
+  --shadow: 0 4px 4px rgba(15, 26, 49, 0.1); /* Lighter shadow */
+  --shadow-hover: 0 4px 4px rgba(15, 26, 49, 0.15);
+  
+  /* Scrollbar - using token colors with opacity */
+  --scrollbar-track: rgba(162, 174, 180, 0.1); /* gray-400 with opacity */
+  --scrollbar-thumb: rgba(122, 137, 142, 0.4); /* gray-600 with opacity */
+  --scrollbar-thumb-hover: rgba(122, 137, 142, 0.6); /* gray-600 with higher opacity */
+  
+  /* Buttons - using design tokens */
+  --button-bg-primary: #73c8fd; /* lightblue-400 - primary button */
+  --button-bg-hover: #b7e3ff; /* lightblue-200 - button hover */
+  --button-text: #0e1a35; /* blue-900 - button text on light background */
+  
+  /* Additional token-based colors for light theme */
+  --color-blue-900: #0e1a35;
+  --color-blue-850: #16233f;
+  --color-blue-800: #1c2944;
+  --color-blue-700: #1f2c47;
+  --color-blue-500: #25304a;
+  --color-blue-450: #39435b;
+  --color-blue-400: #343e55;
+  --color-blue-300: #4a5e88;
+  --color-blue-250: #505f7f;
+  --color-blue-1000: #0f1a31;
+  --color-lightblue-400: #73c8fd;
+  --color-lightblue-200: #b7e3ff;
+  --color-gray-50: #e8ebec;
+  --color-gray-200: #c5ccce;
+  --color-gray-400: #a2aeb4;
+  --color-gray-600: #7a898e;
+  --color-cyan-400: #54e7de;
+  --color-red-400: #e86f6f;
+  --color-orange-300: #e8af6f;
 }
 
-/* Login screen theme isolation - always use dark theme regardless of global theme */
+/* Login screen theme isolation - always use dark theme with design tokens */
 app-login,
 app-login * {
-  --bg-primary: #0a0a1e !important;
-  --bg-secondary: rgba(10, 10, 30, 0.8) !important;
-  --bg-card: rgba(15, 15, 30, 0.98) !important;
-  --bg-card-hover: rgba(20, 20, 40, 0.98) !important;
-  --text-primary: #ffffff !important;
-  --text-secondary: rgba(255, 255, 255, 0.85) !important;
-  --text-muted: rgba(255, 255, 255, 0.65) !important;
-  --border-color: rgba(255, 255, 255, 0.15) !important;
-  --border-hover: rgba(255, 255, 255, 0.3) !important;
+  --bg-primary: #0e1a35 !important; /* blue-900 */
+  --bg-secondary: #16233f !important; /* blue-850 */
+  --bg-card: #16233f !important; /* blue-850 */
+  --bg-card-hover: #253048 !important; /* blue-550 */
+  --text-primary: #e8ebec !important; /* gray-50 */
+  --text-secondary: #c5ccce !important; /* gray-200 */
+  --text-muted: #a2aeb4 !important; /* gray-400 */
+  --border-color: #343e55 !important; /* blue-400 */
+  --border-hover: #505f7f !important; /* blue-250 */
 }
 
 /* Reset and base styles */
@@ -408,7 +476,7 @@ div.mat-mdc-menu-panel[role="menu"] .mat-mdc-menu-item {
   background: transparent !important;
 
   &:hover {
-    background: rgba(0, 206, 209, 0.15) !important;
+    background: rgba(115, 200, 253, 0.15) !important; /* lightblue-400 with opacity */
     transform: translateX(4px) !important;
   }
 
@@ -475,12 +543,12 @@ div.mat-mdc-menu-panel[role="menu"] .mat-mdc-menu-item {
     background: transparent !important;
 
     &:hover:not(.mdc-list-item--disabled) {
-      background: rgba(0, 71, 171, 0.3) !important;
+      background: rgba(74, 94, 136, 0.3) !important; /* blue-300 with opacity */
     }
 
     &.mdc-list-item--selected:not(.mdc-list-item--disabled),
     &.mat-mdc-option-active {
-      background: rgba(0, 71, 171, 0.4) !important;
+      background: rgba(74, 94, 136, 0.4) !important; /* blue-300 with opacity */
       color: var(--accent-primary) !important;
     }
 
@@ -530,7 +598,7 @@ div.mat-mdc-menu-panel[role="menu"] .mat-mdc-menu-item {
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
     border-radius: 12px !important;
     overflow: hidden !important;
-    border: 1px solid rgba(0, 71, 171, 0.3) !important;
+    border: 1px solid rgba(52, 62, 85, 0.5) !important; /* blue-400 with opacity */
   }
 
   .mat-mdc-dialog-surface {
@@ -557,7 +625,7 @@ div.mat-mdc-menu-panel[role="menu"] .mat-mdc-menu-item {
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
     border-radius: 12px !important;
     overflow: hidden !important;
-    border: 1px solid rgba(0, 71, 171, 0.3) !important;
+    border: 1px solid rgba(52, 62, 85, 0.5) !important; /* blue-400 with opacity */
   }
 
   .mat-mdc-dialog-surface {
