@@ -518,10 +518,10 @@ h1 {
 .login-button {
   height: 50px;
   margin-top: 0.5rem;
-  background: linear-gradient(135deg, #0066cc 0%, #003d7a 100%);
+  background: #73c8fd !important; /* lightblue-400 */
   border: none;
   border-radius: 4px;
-  color: #fff;
+  color: #0e1a35 !important; /* blue-900 - dark text for contrast */
   font-size: 1rem;
   font-weight: 500;
   text-transform: none;
@@ -534,7 +534,8 @@ h1 {
   gap: 0.5rem;
   
   &:not(:disabled):hover {
-    box-shadow: 0 4px 12px rgba(0, 102, 204, 0.5);
+    background: #b7e3ff !important; /* lightblue-200 - lighter on hover */
+    box-shadow: 0 4px 12px rgba(115, 200, 253, 0.5);
   }
   
   &:disabled {
@@ -565,12 +566,12 @@ h1 {
   }
   
   a {
-    color: #0066cc;
+    color: #73c8fd !important; /* lightblue-400 */
     text-decoration: none;
     transition: color 0.3s ease;
     
     &:hover {
-      color: #003d7a;
+      color: #b7e3ff !important; /* lightblue-200 - lighter on hover */
       text-decoration: underline;
     }
   }

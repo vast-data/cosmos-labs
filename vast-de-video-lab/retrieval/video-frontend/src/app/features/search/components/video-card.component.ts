@@ -279,13 +279,13 @@ import { VideoService } from '../../../shared/services/video.service';
         }
         
         &.similarity-score {
-          background: rgba(102, 126, 234, 0.15);
-          color: var(--accent-secondary);
-          border: 1px solid var(--accent-secondary);
+          background: rgba(115, 200, 253, 0.15); /* lightblue-400 with opacity */
+          color: #73c8fd; /* lightblue-400 */
+          border: 1px solid rgba(115, 200, 253, 0.4); /* lightblue-400 with opacity */
           font-weight: 600;
           
           mat-icon {
-            color: var(--accent-secondary);
+            color: #73c8fd; /* lightblue-400 */
           }
         }
       }

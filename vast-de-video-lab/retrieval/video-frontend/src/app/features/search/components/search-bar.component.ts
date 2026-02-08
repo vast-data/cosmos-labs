@@ -219,8 +219,9 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
                 matInput 
                 type="time"
                 formControlName="customStartTime"
-                placeholder="00:00">
-              <mat-icon matSuffix>schedule</mat-icon>
+                placeholder="00:00"
+                #startTimeInput>
+              <mat-icon matSuffix (click)="openTimePicker(startTimeInput)" class="time-picker-icon">schedule</mat-icon>
             </mat-form-field>
           </div>
 
@@ -242,8 +243,9 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
                 matInput 
                 type="time"
                 formControlName="customEndTime"
-                placeholder="23:59">
-              <mat-icon matSuffix>schedule</mat-icon>
+                placeholder="23:59"
+                #endTimeInput>
+              <mat-icon matSuffix (click)="openTimePicker(endTimeInput)" class="time-picker-icon">schedule</mat-icon>
             </mat-form-field>
           </div>
         </div>
@@ -378,13 +380,13 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
       transition: all 0.2s ease;
       
       &:focus-within {
-        border-color: var(--accent-secondary);
+        border-color: var(--accent-primary);
         background: var(--bg-card-hover);
-        box-shadow: 0 0 0 3px rgba(0, 71, 171, 0.15);
+        box-shadow: 0 0 0 3px rgba(115, 200, 253, 0.2); /* lightblue-400 with opacity */
       }
       
       .search-icon {
-        color: rgba(0, 71, 171, 0.9); /* Darker space blue */
+        color: var(--accent-primary); /* lightblue-400 */
         display: flex;
         align-items: center;
         margin-right: 0.75rem;
@@ -526,14 +528,13 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
           }
           
           &.active {
-            background: var(--button-bg-primary);
-            color: var(--button-text);
+            background: var(--color-lightblue-400); /* lightblue-400 - active tab background */
+            color: var(--color-blue-1000); /* blue-1000 - active tab text */
             box-shadow: var(--shadow);
             transform: translateY(0);
             
             mat-icon {
-              color: var(--accent-primary);
-              filter: drop-shadow(0 0 4px rgba(0, 217, 255, 0.6));
+              color: var(--color-blue-1000); /* blue-1000 - icon matches text */
             }
           }
           
@@ -579,13 +580,13 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
         
         ::ng-deep .mdc-switch {
           .mdc-switch__track {
-            background: rgba(0, 71, 171, 0.3);
-            border-color: rgba(0, 71, 171, 0.5);
+            background: rgba(162, 174, 180, 0.3); /* gray-400 with opacity */
+            border-color: rgba(162, 174, 180, 0.5); /* gray-400 with opacity */
           }
           
           &.mdc-switch--selected .mdc-switch__track {
-            background: linear-gradient(135deg, #0047AB 0%, #003380 100%);
-            border-color: #0047AB;
+            background: var(--color-lightblue-400); /* lightblue-400 */
+            border-color: var(--color-lightblue-400);
           }
           
           .mdc-switch__handle-track .mdc-switch__handle {
@@ -594,8 +595,8 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
           }
           
           &.mdc-switch--selected .mdc-switch__handle {
-            background: #00d9ff;
-            box-shadow: 0 0 12px rgba(0, 217, 255, 0.6);
+            background: var(--color-blue-1000); /* blue-1000 - dark handle on selected */
+            box-shadow: 0 0 12px rgba(115, 200, 253, 0.6); /* lightblue-400 glow */
           }
         }
       }
@@ -702,13 +703,13 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
       }
       
       &.active {
-        background: var(--button-bg-primary);
-        border-color: var(--accent-secondary);
-        color: var(--button-text);
+        background: var(--color-lightblue-400); /* lightblue-400 - active tab background */
+        border-color: var(--color-lightblue-400); /* lightblue-400 - border matches background */
+        color: var(--color-blue-1000); /* blue-1000 - active tab text */
         box-shadow: var(--shadow);
         
         mat-icon {
-          color: var(--accent-primary);
+          color: var(--color-blue-1000); /* blue-1000 - icon matches text */
         }
       }
       
@@ -750,8 +751,8 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
       gap: 1rem;
       margin-top: 1rem;
       padding: 1.25rem;
-      background: rgba(0, 71, 171, 0.05);
-      border: 1px solid rgba(0, 71, 171, 0.2);
+      background: rgba(115, 200, 253, 0.05); /* lightblue-400 with low opacity */
+      border: 1px solid rgba(115, 200, 253, 0.2); /* lightblue-400 with opacity */
       border-radius: 8px;
       opacity: 0;
       max-height: 0;
@@ -882,6 +883,20 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
         
         .mat-icon {
           color: var(--accent-primary);
+        }
+        
+        .time-picker-icon {
+          cursor: pointer;
+          transition: all 0.2s ease;
+          
+          &:hover {
+            color: var(--accent-primary);
+            transform: scale(1.1);
+          }
+          
+          &:active {
+            transform: scale(0.95);
+          }
         }
       }
     }
@@ -1132,6 +1147,16 @@ export class SearchBarComponent implements OnInit {
         customEndDate: null,
         customEndTime: '23:59'
       });
+    }
+  }
+
+  openTimePicker(inputElement: HTMLInputElement) {
+    // Focus and click the input to open the native time picker
+    inputElement.focus();
+    inputElement.click();
+    // For some browsers, we need to show the picker explicitly
+    if (inputElement.showPicker) {
+      inputElement.showPicker();
     }
   }
 

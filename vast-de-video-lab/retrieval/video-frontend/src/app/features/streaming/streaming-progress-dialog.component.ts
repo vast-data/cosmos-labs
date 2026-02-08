@@ -276,12 +276,24 @@ import { interval } from 'rxjs';
         cursor: pointer !important;
       }
 
-      .mat-mdc-raised-button:not([color="warn"]) {
-        background: linear-gradient(135deg, var(--accent-secondary) 0%, #002766 100%) !important;
-        color: var(--text-primary) !important;
+      /* Close button (mat-button) */
+      .mat-mdc-button:not([color="warn"]) {
+        background: #73c8fd !important; /* lightblue-400 */
+        color: #0e1a35 !important; /* blue-900 - dark text for contrast */
         
         &:hover:not([disabled]) {
-          background: linear-gradient(135deg, #0056D6 0%, var(--accent-secondary) 100%) !important;
+          background: #b7e3ff !important; /* lightblue-200 - lighter on hover */
+          box-shadow: var(--shadow-hover);
+        }
+      }
+
+      /* Refresh button (mat-raised-button) */
+      .mat-mdc-raised-button:not([color="warn"]) {
+        background: #73c8fd !important; /* lightblue-400 */
+        color: #0e1a35 !important; /* blue-900 - dark text for contrast */
+        
+        &:hover:not([disabled]) {
+          background: #b7e3ff !important; /* lightblue-200 - lighter on hover */
           box-shadow: var(--shadow-hover);
         }
       }

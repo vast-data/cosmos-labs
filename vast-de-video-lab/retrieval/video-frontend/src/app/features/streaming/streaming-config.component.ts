@@ -586,22 +586,25 @@ import { StreamingService, StreamingStartRequest } from '../../shared/services/s
       --mdc-circular-progress-active-indicator-color: #00CED1;
     }
 
-    // Style the mat-select dropdown panel to match the dark theme
+    // Style the mat-select dropdown panel to match the clean metadata dropdowns
     ::ng-deep .mat-mdc-select-panel {
-      background: linear-gradient(135deg, #0A0A1E 0%, #15152E 100%) !important;
-      border: 1px solid rgba(0, 206, 209, 0.3) !important;
+      background: var(--bg-card) !important;
+      border: 1px solid var(--border-color) !important;
       border-radius: 8px !important;
+      box-shadow: var(--shadow) !important;
+      transition: background 0.3s ease, border-color 0.3s ease;
 
       .mat-mdc-option {
-        color: var(--text-primary) !important;
+        color: var(--text-secondary) !important;
         background: transparent !important;
 
         &:hover:not(.mdc-list-item--disabled) {
-          background: var(--bg-card-hover) !important;
+          background: rgba(74, 94, 136, 0.3) !important; /* blue-300 with opacity */
         }
 
-        &.mdc-list-item--selected:not(.mdc-list-item--disabled) {
-          background: var(--bg-card) !important;
+        &.mdc-list-item--selected:not(.mdc-list-item--disabled),
+        &.mat-mdc-option-active {
+          background: rgba(74, 94, 136, 0.4) !important; /* blue-300 with opacity */
           color: var(--accent-primary) !important;
         }
 
