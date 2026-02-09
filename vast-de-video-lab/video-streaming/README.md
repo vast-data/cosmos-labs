@@ -54,7 +54,7 @@ http://video-streamer.<cluster_name>.vastdata.com
      "camera_id": "cam-01",
      "capture_type": "traffic",
      "neighborhood": "downtown",
-     "max_duration": 1800
+     "max_duration": 3600
    }
    ```
    - `youtube_url` (required): YouTube video URL
@@ -67,7 +67,7 @@ http://video-streamer.<cluster_name>.vastdata.com
    - `camera_id` (optional): Camera identifier metadata
    - `capture_type` (optional): Capture type metadata
    - `neighborhood` (optional): Location metadata
-   - `max_duration` (optional): Maximum capture duration in seconds for VOD videos (default: 1800 = 30 minutes)
+   - `max_duration` (optional): Maximum capture duration in seconds for VOD videos (default: 3600 = 1 hour)
 
 2. **Stop Capture** - `POST /stop`
    ```json

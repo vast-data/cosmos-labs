@@ -212,10 +212,11 @@ class VideoCaptureService:
                         return True
                 
                 # Last resort: trust yt-dlp succeeded and skip OpenCV test
-                # Some URLs work for streaming but fail the initial test
+                # Some YouTube URLs have complex query parameters that OpenCV can't parse
+                # but the actual streaming may still work, or we'll use yt-dlp download fallback
                 logger.warning("OpenCV test failed, but yt-dlp extracted URL successfully")
-                logger.info("Proceeding anyway - streaming may still work...")
-                return True  # Trust yt-dlp, let actual capture try
+                logger.info("Proceeding anyway - will use yt-dlp download fallback if streaming fails")
+                return True  # Trust yt-dlp, let actual capture try with fallback
             else:
                 logger.error(f"Cannot extract YouTube stream URL: {stream_url}")
                 return False
@@ -243,6 +244,107 @@ class VideoCaptureService:
             return self.get_youtube_stream_url(stream_url)
         return stream_url
     
+    def _capture_with_ytdlp_download(self, config, capture_interval, bucket_name, s3_prefix,
+                                     camera_id, capture_type, neighborhood, max_duration):
+        """
+        Fallback method: Use yt-dlp to download segments directly when OpenCV streaming fails.
+        This works around OpenCV's inability to handle complex YouTube URLs.
+        """
+        logger.info("Using yt-dlp download method (OpenCV streaming unavailable)")
+        capture_count = 0
+        session_start = time.time()
+        
+        try:
+            youtube_url = config['youtube_url']
+            
+            # Get video info first
+            info_cmd = ['yt-dlp', '--dump-json', '--no-playlist', youtube_url]
+            info_result = subprocess.run(info_cmd, capture_output=True, text=True, timeout=30)
+            
+            if info_result.returncode != 0:
+                logger.error(f"Failed to get video info: {info_result.stderr}")
+                return
+            
+            try:
+                video_info = json.loads(info_result.stdout)
+                duration = video_info.get('duration', 0)
+                logger.info(f"Video duration: {duration:.1f}s")
+            except:
+                duration = 0
+            
+            segment_start = 0
+            while self.is_running:
+                # Check max duration
+                session_elapsed = time.time() - session_start
+                if duration > 0 and session_elapsed >= min(max_duration, duration):
+                    logger.info(f"Reached max duration or video end. Stopping.")
+                    break
+                
+                if duration > 0 and segment_start >= duration:
+                    logger.info(f"Video ended. Total segments: {capture_count}")
+                    break
+                
+                # Generate filename
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"{config['name']}_{timestamp}_{uuid.uuid4().hex[:8]}.mp4"
+                temp_path = os.path.join(tempfile.gettempdir(), filename)
+                self.temp_files.append(temp_path)
+                
+                logger.info(f"Downloading segment #{capture_count + 1}: {filename}")
+                
+                # Download segment using yt-dlp
+                # Use --download-sections to get specific time range
+                ytdlp_cmd = [
+                    'yt-dlp',
+                    '-f', 'best[height<=720][ext=mp4]/best[height<=720][ext=webm]/best[height<=720]',
+                    '--no-playlist',
+                    '--external-downloader', 'ffmpeg',
+                    '--external-downloader-args', f'-ss {segment_start} -t {capture_interval}',
+                    '-o', temp_path,
+                    youtube_url
+                ]
+                
+                result = subprocess.run(ytdlp_cmd, capture_output=True, text=True, timeout=capture_interval + 30)
+                
+                if result.returncode == 0 and os.path.exists(temp_path) and os.path.getsize(temp_path) > 0:
+                    logger.info(f"✓ Downloaded segment #{capture_count + 1}: {filename}")
+                    
+                    # Prepare S3 metadata
+                    s3_metadata = {}
+                    if camera_id:
+                        s3_metadata['camera-id'] = camera_id
+                    if capture_type:
+                        s3_metadata['capture-type'] = capture_type
+                    if neighborhood:
+                        s3_metadata['neighborhood'] = neighborhood
+                    s3_metadata['capture-timestamp'] = timestamp
+                    
+                    # Upload to S3
+                    s3_key = f"{s3_prefix}/{filename}"
+                    if self.upload_to_s3(temp_path, bucket_name, s3_key, metadata=s3_metadata):
+                        logger.info(f"✓ Uploaded to S3: s3://{bucket_name}/{s3_key}")
+                        try:
+                            os.remove(temp_path)
+                            self.temp_files.remove(temp_path)
+                        except:
+                            pass
+                        capture_count += 1
+                    else:
+                        logger.error(f"Failed to upload {filename} to S3")
+                else:
+                    logger.warning(f"Failed to download segment: {result.stderr[:200] if result.stderr else 'unknown error'}")
+                    if duration > 0 and segment_start >= duration - capture_interval:
+                        # Video ended
+                        break
+                
+                segment_start += capture_interval
+                time.sleep(0.5)  # Small delay between segments
+                
+        except Exception as e:
+            logger.error(f"Error in yt-dlp download capture: {e}", exc_info=True)
+        finally:
+            logger.info(f"yt-dlp download capture stopped. Total segments: {capture_count}")
+    
     def continuous_capture(self, config):
         """
         Continuous capture thread function.
@@ -250,7 +352,7 @@ class VideoCaptureService:
         Works for both LIVE streams and regular VOD videos:
         - Keeps VideoCapture open across chunks (no re-opening)
         - For VOD: automatically stops when video ends
-        - For VOD: max_duration timeout (default 30 min) as safety
+        - For VOD: max_duration timeout (default 1 hour) as safety
         - For live: runs until stopped manually
         """
         cap = None
@@ -263,9 +365,9 @@ class VideoCaptureService:
             bucket_name = config.get('bucket_name', 'rawlivevideos')
             s3_prefix = config.get('s3_prefix', 'captures')
             
-            # Max duration for VOD videos (default 30 minutes = 1800 seconds)
+            # Max duration for VOD videos (default 1 hour = 3600 seconds)
             # Live streams ignore this (run until manually stopped)
-            max_duration = config.get('max_duration', 1800)
+            max_duration = config.get('max_duration', 3600)
             
             # Metadata fields
             camera_id = config.get('camera_id', '')
@@ -300,8 +402,15 @@ class VideoCaptureService:
                 cap = cv2.VideoCapture(actual_stream_url)
             
             if not cap.isOpened():
-                logger.error(f"Cannot open stream: {actual_stream_url}")
-                return
+                # Final fallback: Use yt-dlp to download segments directly
+                # This works for videos that OpenCV can't stream (complex URLs, HLS playlists, etc.)
+                if self.is_youtube_url(stream_url):
+                    logger.warning("OpenCV failed to open stream, using yt-dlp download method as fallback")
+                    return self._capture_with_ytdlp_download(config, capture_interval, bucket_name, s3_prefix, 
+                                                             camera_id, capture_type, neighborhood, max_duration)
+                else:
+                    logger.error(f"Cannot open stream: {stream_url}")
+                    return
             
             # Get stream properties
             fps = int(cap.get(cv2.CAP_PROP_FPS)) or 30
@@ -317,7 +426,9 @@ class VideoCaptureService:
                 logger.info(f"🔴 LIVE STREAM detected - will run until stopped manually")
             else:
                 logger.info(f"📹 VOD detected - {total_frames} frames, ~{video_duration_sec:.1f}s duration")
-                logger.info(f"   Will auto-stop after video ends or {max_duration}s timeout")
+                # For VOD, use actual video duration, but cap at max_duration as safety
+                effective_duration = min(video_duration_sec, max_duration) if video_duration_sec > 0 else max_duration
+                logger.info(f"   Will auto-stop after video ends (~{effective_duration:.1f}s)")
             
             logger.info(f"Stream properties: {width}x{height} @ {fps}fps")
             
@@ -326,11 +437,29 @@ class VideoCaptureService:
             consecutive_failures = 0
             max_consecutive_failures = 30  # ~3 seconds of failures = video ended
             
+            # For VOD, use actual video duration, but cap at max_duration as absolute safety limit
+            # This allows videos shorter than max_duration to complete fully
+            effective_duration = None
+            if not is_live and video_duration_sec > 0:
+                # Use video duration, but never exceed max_duration (safety limit)
+                effective_duration = min(video_duration_sec, max_duration)
+                if video_duration_sec > max_duration:
+                    logger.warning(f"⚠️  Video duration ({video_duration_sec:.1f}s) exceeds max_duration ({max_duration}s). Will stop at {max_duration}s for safety.")
+                else:
+                    logger.info(f"✓ Video duration ({video_duration_sec:.1f}s) is within max_duration limit. Will capture full video.")
+            
             while self.is_running:
-                # Check max duration timeout (for VOD safety)
+                # Check duration timeout
                 session_elapsed = time.time() - session_start
-                if not is_live and session_elapsed >= max_duration:
-                    logger.info(f"⏱ Max duration ({max_duration}s) reached. Stopping capture.")
+                
+                # For VOD: stop at effective duration (video end or max_duration safety limit)
+                if not is_live and effective_duration and session_elapsed >= effective_duration:
+                    logger.info(f"⏱ Video duration reached ({effective_duration:.1f}s). Stopping capture.")
+                    break
+                
+                # For live streams: only check max_duration as absolute limit
+                if is_live and session_elapsed >= max_duration:
+                    logger.info(f"⏱ Max duration ({max_duration}s) reached for live stream. Stopping capture.")
                     break
                 
                 # Generate filename for this chunk
@@ -361,6 +490,19 @@ class VideoCaptureService:
                     if not ret:
                         consecutive_failures += 1
                         
+                        # For VOD: check if we've reached the end of the video
+                        if not is_live:
+                            # Get current position in video
+                            current_pos = cap.get(cv2.CAP_PROP_POS_FRAMES)
+                            current_time = current_pos / fps if fps > 0 else 0
+                            
+                            # Check if we're at or past the end
+                            if total_frames > 0 and current_pos >= total_frames - 1:
+                                logger.info(f"📼 Reached end of VOD video ({current_time:.1f}s / {video_duration_sec:.1f}s)")
+                                video_ended = True
+                                break
+                        
+                        # Also check consecutive failures (for stream errors or actual end)
                         if consecutive_failures >= max_consecutive_failures:
                             # Video has ended (VOD) or stream died
                             logger.info(f"📼 Video stream ended (no frames for {consecutive_failures} attempts)")
