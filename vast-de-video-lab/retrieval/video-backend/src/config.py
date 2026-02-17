@@ -1,5 +1,5 @@
 """
-Configuration management for Video Reasoning Backend
+Configuration management for Vast VSS Blueprint Backend
 """
 from pydantic import Field
 from pydantic_settings import BaseSettings

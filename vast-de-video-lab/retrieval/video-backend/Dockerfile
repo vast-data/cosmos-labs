@@ -1,4 +1,4 @@
-# Video Reasoning Backend Dockerfile
+# Vast VSS Blueprint Backend Dockerfile
 FROM python:3.10-slim
 
 WORKDIR /app
