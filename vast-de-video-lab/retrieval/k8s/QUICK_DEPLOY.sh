@@ -1,10 +1,10 @@
 #!/bin/bash
-# Quick Deployment Script for Video Reasoning Lab
+# Quick Deployment Script for Vast VSS Blueprint
 # Usage: cd k8s && ./QUICK_DEPLOY.sh <namespace> <cluster_name>
 
 set -e
 
-echo "🚀 Video Reasoning Lab - Quick Deploy"
+echo "🚀 Vast VSS Blueprint - Quick Deploy"
 echo "======================================"
 echo ""
 

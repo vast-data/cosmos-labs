@@ -7,6 +7,12 @@ export const routes: Routes = [
     path: 'login',
     loadComponent: () => import('./features/auth/components/login/login.component').then(m => m.LoginComponent)
   },
+  // Blueprint diagram - standalone page
+  {
+    path: 'blueprint',
+    loadComponent: () => import('./features/blueprint/blueprint-diagram.component').then(m => m.BlueprintDiagramComponent),
+    canActivate: [authGuard]
+  },
   // Main layout - includes toolbar for all authenticated pages
   {
     path: '',

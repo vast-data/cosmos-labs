@@ -1,6 +1,6 @@
 # Video Frontend
 
-An Angular web application that provides the user interface for the Video Reasoning Lab system.
+An Angular web application that provides the user interface for the VSS Blueprint.
 
 ## What It Does
 

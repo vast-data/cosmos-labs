@@ -298,10 +298,14 @@ import { VideoService } from '../../../shared/services/video.service';
     .tags {
       ::ng-deep mat-chip {
         background: var(--bg-secondary);
-        color: var(--accent-secondary);
+        color: var(--text-primary);
         border: 1px solid var(--border-color);
         font-size: 0.75rem;
         transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        
+        .mdc-evolution-chip__text-label {
+          color: var(--text-primary) !important;
+        }
       }
     }
 

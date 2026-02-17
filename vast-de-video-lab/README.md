@@ -1,6 +1,6 @@
-# VAST DataEngine - Video Reasoning Lab
+# VAST DataEngine - Video VSS Blueprint
 
-Full overview: How to Deploy and Manage the Video Reasoning Lab system powered by VAST DataEngine.  
+Full overview: How to Deploy and Manage the VSS Blueprint powered by VAST DataEngine.  
 
 ###### This is **NOT** an AI generated README. All steps here are mandatory to deploy the entire Demo.  
 
@@ -112,7 +112,7 @@ The system authenticates users against VAST cluster credentials with support for
 
 ## Pipeline Flow Diagram
 
-![Video Reasoning Lab Architecture](video-demo-diagram.png)
+![VSS Blueprint Architecture](video-demo-diagram.png)
 
 ---
 
@@ -136,7 +136,7 @@ Before starting, ensure you have:
   - VastDB database bucket created: `processed-videos-db` (or your custom name)
 
 - **AI/ML services:**
-  - NVIDIA COSMOS Modelo Endpoint (for video reasoning)
+  - NVIDIA COSMOS Model Endpoint (for video reasoning)
   - NVIDIA NIM Endpoints with API key (for embeddings and LLM models)
 
 - **Network access:**

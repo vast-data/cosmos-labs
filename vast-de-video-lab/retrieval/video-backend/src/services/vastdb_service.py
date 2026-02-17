@@ -5,6 +5,7 @@ import logging
 import vastdb
 import vastdb._internal as _internal
 import pyarrow as pa
+import pandas as pd
 import time
 import os
 import urllib.request
@@ -335,55 +336,117 @@ class VastDBService:
             # Apply permission filtering and minimum similarity threshold
             filtered_results = []
             similarity_filtered_count = 0
-            for _, row in df.iterrows():
-                # Calculate similarity score
-                similarity_score = 1.0 - row['distance']
-                
-                # Filter by minimum similarity threshold
-                if similarity_score < min_similarity:
-                    similarity_filtered_count += 1
-                    continue
+            row_index = 0
+            for idx, row in df.iterrows():
+                row_index += 1
+                try:
+                    logger.debug(f"[ROW {row_index}] Processing row {idx}")
                     
-                # Check if user has access (respecting include_public filter)
-                if self._user_has_access(row, user, include_public):
-                    # Convert cosine distance to similarity score
-                    # Cosine distance: 0.0=identical, 1.0=orthogonal, 2.0=opposite
-                    # Similarity: 1.0=identical, 0.0=orthogonal, -1.0=opposite
-                    similarity_score = 1.0 - row['distance']
+                    # Calculate similarity score
+                    try:
+                        distance_value = row['distance']
+                        logger.debug(f"[ROW {row_index}] distance type: {type(distance_value)}, value: {distance_value}")
+                        similarity_score = 1.0 - distance_value
+                    except Exception as e:
+                        logger.error(f"[ROW {row_index}] Error accessing distance: {e}, type: {type(row.get('distance'))}")
+                        raise
                     
-                    result = VideoSearchResult(
-                        filename=row['filename'],
-                        source=row['source'],
-                        reasoning_content=row['reasoning_content'],
-                        video_url=row['video_url'],
-                        is_public=row['is_public'],
-                        upload_timestamp=row['upload_timestamp'],
-                        duration=row['duration'],
-                        segment_number=row['segment_number'],
-                        total_segments=row['total_segments'],
-                        original_video=row['original_video'],
-                        tags=row['tags'] if row['tags'] else [],
-                        similarity_score=similarity_score,
-                        cosmos_model=row.get('cosmos_model'),
-                        tokens_used=row.get('tokens_used'),
-                        camera_id=row.get('camera_id'),
-                        capture_type=row.get('capture_type'),
-                        neighborhood=row.get('neighborhood')
-                    )
-                    filtered_results.append(result)
+                    # Filter by minimum similarity threshold
+                    if similarity_score < min_similarity:
+                        similarity_filtered_count += 1
+                        logger.debug(f"[ROW {row_index}] Filtered by similarity threshold: {similarity_score} < {min_similarity}")
+                        continue
                     
-                    # Stop if we have enough results
-                    if len(filtered_results) >= top_k:
-                        break
-                else:
+                    # Log field types before access check
+                    try:
+                        is_public_raw = row.get('is_public')
+                        allowed_users_raw = row.get('allowed_users', [])
+                        tags_raw = row.get('tags', [])
+                        logger.debug(f"[ROW {row_index}] Field types - is_public: {type(is_public_raw)}, allowed_users: {type(allowed_users_raw)}, tags: {type(tags_raw)}")
+                        logger.debug(f"[ROW {row_index}] Field values - is_public: {is_public_raw}, allowed_users: {allowed_users_raw}, tags: {tags_raw}")
+                    except Exception as e:
+                        logger.error(f"[ROW {row_index}] Error inspecting field types: {e}")
+                        raise
+                    
+                    # Check if user has access (respecting include_public filter)
+                    try:
+                        has_access = self._user_has_access(row, user, include_public)
+                        logger.debug(f"[ROW {row_index}] User access check result: {has_access}")
+                    except Exception as e:
+                        logger.error(f"[ROW {row_index}] Error in _user_has_access: {e}", exc_info=True)
+                        raise
+                    
+                    if has_access:
+                        # Convert cosine distance to similarity score
+                        # Cosine distance: 0.0=identical, 1.0=orthogonal, 2.0=opposite
+                        # Similarity: 1.0=identical, 0.0=orthogonal, -1.0=opposite
+                        similarity_score = 1.0 - row['distance']
+                        
+                        # Safely convert tags from NumPy array to list
+                        try:
+                            tags_list = self._safe_array_to_list(row['tags'])
+                            logger.debug(f"[ROW {row_index}] Tags converted: {tags_list}")
+                        except Exception as e:
+                            logger.error(f"[ROW {row_index}] Error converting tags: {e}", exc_info=True)
+                            tags_list = []
+                        
+                        # Safely extract is_public as a boolean scalar
+                        try:
+                            is_public_value = self._safe_scalar_value(row.get('is_public', False), default=False)
+                            is_public_bool = bool(is_public_value) if is_public_value is not None and pd.notna(is_public_value) else False
+                            logger.debug(f"[ROW {row_index}] is_public extracted: {is_public_bool} (from {is_public_value})")
+                        except Exception as e:
+                            logger.error(f"[ROW {row_index}] Error extracting is_public: {e}", exc_info=True)
+                            is_public_bool = False
+                        
+                        # Extract other fields safely
+                        try:
+                            result = VideoSearchResult(
+                                filename=str(row['filename']) if pd.notna(row.get('filename')) else '',
+                                source=str(row['source']) if pd.notna(row.get('source')) else '',
+                                reasoning_content=str(row['reasoning_content']) if pd.notna(row.get('reasoning_content')) else '',
+                                video_url=str(row['video_url']) if pd.notna(row.get('video_url')) else '',
+                                is_public=is_public_bool,
+                                upload_timestamp=row['upload_timestamp'],
+                                duration=row.get('duration'),
+                                segment_number=int(row['segment_number']) if pd.notna(row.get('segment_number')) else None,
+                                total_segments=int(row['total_segments']) if pd.notna(row.get('total_segments')) else None,
+                                original_video=str(row['original_video']) if pd.notna(row.get('original_video')) else '',
+                                tags=tags_list,
+                                similarity_score=similarity_score,
+                                cosmos_model=str(row.get('cosmos_model')) if pd.notna(row.get('cosmos_model')) else None,
+                                tokens_used=int(row.get('tokens_used')) if pd.notna(row.get('tokens_used')) else None,
+                                camera_id=str(row.get('camera_id')) if pd.notna(row.get('camera_id')) else None,
+                                capture_type=str(row.get('capture_type')) if pd.notna(row.get('capture_type')) else None,
+                                neighborhood=str(row.get('neighborhood')) if pd.notna(row.get('neighborhood')) else None
+                            )
+                            filtered_results.append(result)
+                            logger.debug(f"[ROW {row_index}] Successfully created VideoSearchResult")
+                        except Exception as e:
+                            logger.error(f"[ROW {row_index}] Error creating VideoSearchResult: {e}", exc_info=True)
+                            raise
+                        
+                        # Stop if we have enough results
+                        if len(filtered_results) >= top_k:
+                            logger.debug(f"[ROW {row_index}] Reached top_k limit, stopping")
+                            break
+                    else:
+                        permission_filtered_count += 1
+                        logger.debug(f"[ROW {row_index}] Permission denied")
+                except Exception as e:
+                    logger.error(f"[ROW {row_index}] Error processing row {idx}: {e}", exc_info=True)
+                    # Continue processing other rows instead of failing completely
                     permission_filtered_count += 1
+                    continue
             
             logger.info(f"Filtering: {len(filtered_results)} accessible, {permission_filtered_count} permission filtered, {similarity_filtered_count} below similarity threshold ({min_similarity})")
             
             return filtered_results[:top_k], search_time_ms, permission_filtered_count, formatted_sql
                 
         except Exception as e:
-            logger.error(f"Error during similarity search: {str(e)}")
+            logger.error(f"Error during similarity search: {str(e)}", exc_info=True)
+            import traceback
+            logger.error(f"Full traceback: {traceback.format_exc()}")
             raise
     
     def _calculate_time_threshold(self, time_filter: str) -> Optional[datetime]:
@@ -449,6 +512,112 @@ class VastDBService:
         
         return '\n'.join(formatted_lines)
     
+    def _safe_array_to_list(self, value) -> List:
+        """
+        Safely convert a NumPy array, pandas Series, or other iterable to a Python list.
+        Handles None, NaN, and empty values properly to avoid "ambiguous truth value" errors.
+        
+        Args:
+            value: Value that might be a NumPy array, pandas Series, list, or None/NaN
+            
+        Returns:
+            List representation of the value, or empty list if None/NaN/empty
+        """
+        try:
+            logger.debug(f"[SAFE_ARRAY_TO_LIST] Input value type: {type(value)}, value: {value}")
+            
+            if value is None:
+                logger.debug(f"[SAFE_ARRAY_TO_LIST] Value is None, returning []")
+                return []
+            
+            # Check for NaN
+            try:
+                if pd.isna(value):
+                    logger.debug(f"[SAFE_ARRAY_TO_LIST] Value is NaN, returning []")
+                    return []
+            except (TypeError, ValueError) as e:
+                logger.debug(f"[SAFE_ARRAY_TO_LIST] Could not check for NaN (might be array): {e}")
+            
+            if hasattr(value, '__iter__') and not isinstance(value, str):
+                try:
+                    result = list(value)
+                    logger.debug(f"[SAFE_ARRAY_TO_LIST] Converted to list, length: {len(result)}")
+                    # Filter out any NaN values that might be in the list
+                    filtered = [item for item in result if item is not None and not pd.isna(item)]
+                    logger.debug(f"[SAFE_ARRAY_TO_LIST] Filtered result length: {len(filtered)}")
+                    return filtered
+                except (TypeError, ValueError) as e:
+                    logger.warning(f"[SAFE_ARRAY_TO_LIST] Error converting to list: {e}")
+                    return []
+            
+            logger.debug(f"[SAFE_ARRAY_TO_LIST] Not an iterable (or is string), returning []")
+            return []
+        except Exception as e:
+            logger.error(f"[SAFE_ARRAY_TO_LIST] Unexpected error: {e}", exc_info=True)
+            return []
+    
+    def _safe_scalar_value(self, value, default=None):
+        """
+        Safely extract a scalar value from a pandas Series, NumPy array, or other type.
+        Handles cases where the value might be wrapped in a Series or array.
+        
+        Args:
+            value: Value that might be a scalar, Series, array, or None/NaN
+            default: Default value to return if extraction fails
+            
+        Returns:
+            Scalar value, or default if extraction fails
+        """
+        try:
+            logger.debug(f"[SAFE_SCALAR] Input value type: {type(value)}, value: {value}")
+            
+            if value is None:
+                logger.debug(f"[SAFE_SCALAR] Value is None, returning default: {default}")
+                return default
+            
+            # Check for NaN
+            try:
+                if pd.isna(value):
+                    logger.debug(f"[SAFE_SCALAR] Value is NaN, returning default: {default}")
+                    return default
+            except (TypeError, ValueError) as e:
+                logger.debug(f"[SAFE_SCALAR] Could not check for NaN (might be array): {e}")
+            
+            # If it's a pandas Series, get the first value
+            if hasattr(value, 'iloc'):
+                try:
+                    length = len(value)
+                    logger.debug(f"[SAFE_SCALAR] Detected pandas Series with length {length}")
+                    result = value.iloc[0] if length > 0 else default
+                    logger.debug(f"[SAFE_SCALAR] Extracted from Series: {result}")
+                    return result
+                except (TypeError, ValueError, IndexError) as e:
+                    logger.warning(f"[SAFE_SCALAR] Error extracting from Series: {e}")
+                    return default
+            
+            # If it's an array/iterable (but not a string), get the first element
+            if hasattr(value, '__iter__') and not isinstance(value, str):
+                try:
+                    value_list = list(value)
+                    logger.debug(f"[SAFE_SCALAR] Detected iterable (not string) with length {len(value_list)}")
+                    if len(value_list) > 0:
+                        result = value_list[0]
+                        logger.debug(f"[SAFE_SCALAR] Extracted first element: {result}")
+                        return result
+                    else:
+                        logger.debug(f"[SAFE_SCALAR] Iterable is empty, returning default: {default}")
+                        return default
+                except (TypeError, ValueError, IndexError) as e:
+                    logger.warning(f"[SAFE_SCALAR] Error converting iterable to list: {e}")
+                    return default
+            
+            # Otherwise, return as-is (should be a scalar)
+            logger.debug(f"[SAFE_SCALAR] Treating as scalar, returning: {value}")
+            return value
+        except Exception as e:
+            logger.error(f"[SAFE_SCALAR] Unexpected error: {e}", exc_info=True)
+            return default
+    
     def _user_has_access(self, row, user: User, include_public: bool = True) -> bool:
         """
         NEW LOGIC: Check if user has access to a video segment
@@ -465,21 +634,75 @@ class VastDBService:
         Returns:
             True if user has access, False otherwise
         """
-        # If include_public=False ("My Videos" mode), only show videos where user is in allowed_users
-        if not include_public:
-            allowed_users = row.get('allowed_users', [])
-            return user.username in allowed_users if allowed_users else False
-        
-        # If is_public=True, everyone can see it (no further checks)
-        if row['is_public']:
-            return True
-        
-        # If is_public=False, check if user is in allowed_users list
-        allowed_users = row.get('allowed_users', [])
-        if allowed_users and user.username in allowed_users:
-            return True
-        
-        return False
+        try:
+            logger.debug(f"[ACCESS_CHECK] Starting access check for user {user.username}, include_public={include_public}")
+            
+            # If include_public=False ("My Videos" mode), only show videos where user is in allowed_users
+            if not include_public:
+                try:
+                    allowed_users_raw = row.get('allowed_users', [])
+                    logger.debug(f"[ACCESS_CHECK] include_public=False, allowed_users_raw type: {type(allowed_users_raw)}, value: {allowed_users_raw}")
+                    allowed_users_list = self._safe_array_to_list(allowed_users_raw)
+                    logger.debug(f"[ACCESS_CHECK] allowed_users_list: {allowed_users_list}")
+                    result = user.username in allowed_users_list if len(allowed_users_list) > 0 else False
+                    logger.debug(f"[ACCESS_CHECK] Result (include_public=False): {result}")
+                    return result
+                except Exception as e:
+                    logger.error(f"[ACCESS_CHECK] Error in include_public=False branch: {e}", exc_info=True)
+                    return False
+            
+            # If is_public=True, everyone can see it (no further checks)
+            # Safely extract scalar value and convert to bool (handles NumPy bool_, pandas bool, arrays, etc.)
+            try:
+                is_public_raw = row.get('is_public', False)
+                logger.debug(f"[ACCESS_CHECK] is_public_raw type: {type(is_public_raw)}, value: {is_public_raw}")
+                
+                # Check if it's an array before trying to extract scalar
+                if hasattr(is_public_raw, '__iter__') and not isinstance(is_public_raw, str):
+                    logger.warning(f"[ACCESS_CHECK] is_public appears to be an array/iterable: {type(is_public_raw)}, value: {is_public_raw}")
+                
+                is_public_value = self._safe_scalar_value(is_public_raw, default=False)
+                logger.debug(f"[ACCESS_CHECK] is_public_value after extraction: {is_public_value}, type: {type(is_public_value)}")
+                
+                if is_public_value is not None and pd.notna(is_public_value):
+                    # Try to convert to bool - this is where the error might occur
+                    try:
+                        is_public_bool = bool(is_public_value)
+                        logger.debug(f"[ACCESS_CHECK] is_public_bool: {is_public_bool}")
+                        if is_public_bool:
+                            logger.debug(f"[ACCESS_CHECK] Video is public, granting access")
+                            return True
+                    except ValueError as ve:
+                        logger.error(f"[ACCESS_CHECK] ValueError converting is_public to bool: {ve}, value: {is_public_value}, type: {type(is_public_value)}")
+                        # If conversion fails, treat as False
+                        is_public_bool = False
+                else:
+                    logger.debug(f"[ACCESS_CHECK] is_public is None or NaN, treating as False")
+                    is_public_bool = False
+            except Exception as e:
+                logger.error(f"[ACCESS_CHECK] Error checking is_public: {e}", exc_info=True)
+                is_public_bool = False
+            
+            # If is_public=False, check if user is in allowed_users list
+            try:
+                allowed_users_raw = row.get('allowed_users', [])
+                logger.debug(f"[ACCESS_CHECK] Checking allowed_users, raw type: {type(allowed_users_raw)}, value: {allowed_users_raw}")
+                allowed_users_list = self._safe_array_to_list(allowed_users_raw)
+                logger.debug(f"[ACCESS_CHECK] allowed_users_list: {allowed_users_list}")
+                if len(allowed_users_list) > 0:
+                    username_in_list = user.username in allowed_users_list
+                    logger.debug(f"[ACCESS_CHECK] User {user.username} in allowed_users: {username_in_list}")
+                    if username_in_list:
+                        logger.debug(f"[ACCESS_CHECK] User found in allowed_users, granting access")
+                        return True
+            except Exception as e:
+                logger.error(f"[ACCESS_CHECK] Error checking allowed_users: {e}", exc_info=True)
+            
+            logger.debug(f"[ACCESS_CHECK] Access denied")
+            return False
+        except Exception as e:
+            logger.error(f"[ACCESS_CHECK] Unexpected error in _user_has_access: {e}", exc_info=True)
+            return False
     
     def get_video_by_source(self, source: str, user: User) -> VideoSearchResult | None:
         """
@@ -552,18 +775,25 @@ class VastDBService:
                 logger.warning(f"User {user.username} denied access to {source}")
                 return None
             
+            # Safely convert tags from NumPy array to list
+            tags_list = self._safe_array_to_list(row['tags'])
+            
+            # Safely extract is_public as a boolean scalar
+            is_public_value = self._safe_scalar_value(row.get('is_public', False), default=False)
+            is_public_bool = bool(is_public_value) if is_public_value is not None and pd.notna(is_public_value) else False
+            
             return VideoSearchResult(
                 filename=row['filename'],
                 source=row['source'],
                 reasoning_content=row['reasoning_content'],
                 video_url=row['video_url'],
-                is_public=row['is_public'],
+                is_public=is_public_bool,
                 upload_timestamp=row['upload_timestamp'],
                 duration=row['duration'],
                 segment_number=row['segment_number'],
                 total_segments=row['total_segments'],
                 original_video=row['original_video'],
-                tags=row['tags'] if row['tags'] else [],
+                tags=tags_list,
                 similarity_score=1.0,  # Not applicable for direct lookup
                 cosmos_model=row.get('cosmos_model'),
                 tokens_used=row.get('tokens_used'),

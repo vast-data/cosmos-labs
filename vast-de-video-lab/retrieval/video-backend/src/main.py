@@ -1,5 +1,5 @@
 """
-Video Reasoning Backend - Main FastAPI Application
+Vast VSS Blueprint Backend - Main FastAPI Application
 """
 import logging
 from fastapi import FastAPI
@@ -21,7 +21,7 @@ settings = get_settings()
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
-    description="Backend API for video reasoning with semantic search",
+    description="Backend API for video search & summarization with semantic search",
     debug=settings.debug
 )
 

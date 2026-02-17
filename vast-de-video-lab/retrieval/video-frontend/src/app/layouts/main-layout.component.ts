@@ -1,5 +1,5 @@
 import { Component, inject, ViewChild, signal, OnInit, OnDestroy } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { RouterOutlet, Router } from '@angular/router';
 import { AuthService } from '../features/auth/services/auth.service';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
@@ -29,8 +29,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     <mat-toolbar class="app-toolbar">
       <img src="assets/vast_logo.svg" alt="VAST" class="logo">
       <div class="title-container">
-        <span class="main-title">DataEngine</span>
-        <span class="subtitle">Video Reasoning Lab</span>
+        <span class="main-title">Vast VSS Blueprint</span>
+        <span class="subtitle">Video Search & Summarization Powered By DataEngine</span>
       </div>
       <span class="spacer"></span>
       <div class="user-info">
@@ -68,6 +68,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
           <mat-icon>code</mat-icon>
           <span>Show Backend Config</span>
         </button>
+        <button mat-menu-item (click)="openBlueprintDiagram()">
+          <mat-icon>architecture</mat-icon>
+          <span>Show Blueprint Diagram</span>
+        </button>
+        <mat-divider></mat-divider>
         <button mat-menu-item (click)="openStreamingConfig()">
           <mat-icon>video_settings</mat-icon>
           <span>Configure Video Streaming</span>
@@ -414,6 +419,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   batchSyncService = inject(BatchSyncService);
   streamingService = inject(StreamingService);
   themeService = inject(ThemeService);
+  router = inject(Router);
   
   @ViewChild('configPopover') configPopover!: ConfigPopoverComponent;
 
@@ -504,6 +510,12 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
 
   openBackendConfig() {
     this.configPopover.open();
+  }
+
+  openBlueprintDiagram() {
+    // Open blueprint in a new tab as full-screen page
+    const url = this.router.createUrlTree(['/blueprint']).toString();
+    window.open(url, '_blank');
   }
 
   openStreamingConfig() {
