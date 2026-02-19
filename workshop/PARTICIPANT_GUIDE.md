@@ -2,7 +2,7 @@
 
 ## 🎯 Welcome to the Workshop!
 
-This guide will help you follow along during the 2.25-hour VAST SDK workshop. Keep this open and follow the step-by-step instructions as we explore VAST Data's Python SDKs together.
+This guide will help you follow along during the ~2 hour VAST SDK workshop. Keep this open and follow the step-by-step instructions as we explore VAST Data's Python SDKs together.
 
 ## 📋 Pre-Workshop Checklist
 
@@ -14,7 +14,14 @@ Before we start, make sure you have:
 - [ ] **Internet connection** for documentation
 - [ ] **VAST cluster access** (read-only credentials provided)
 
-## 🚀 Quick Setup
+## Build On VAST: Code Lab Server Access
+The VAST Data Labs gives our entire community remote access to our data infrastructure platform for hands-on exploration and testing. The lab environment is a practical way to get familiar with VAST systems, try out different configurations, and build automation workflows - all without needing your own hardware setup.
+
+If you do not have access to a VAST cluster, complete this lab using our data infrastructure platform, join our Community to get Code Lab Server access.
+
+## [Optional]🚀 Quick Setup
+
+Note: If you are using the Code Server, the configuration is already part of the code server, so this step is optional.
 
 **Quick start:**
 1. Clone repository and install dependencies according to the [Main README](../README.md).

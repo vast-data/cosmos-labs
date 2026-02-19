@@ -109,6 +109,8 @@ except Exception as e:
 
 **"Let's talk about how we connect to VAST systems. We use a centralized configuration approach that's both secure and flexible."**
 
+Note: If you are using the Code Server, the configuration is already part of the code server, so this step is optional.
+
 **"Configuration files:**
 - **`config.yaml`** - Non-sensitive settings like endpoints and timeouts
 - **`secrets.yaml`** - Sensitive data like passwords and API keys
@@ -534,6 +536,7 @@ python lab4_solution.py --browse-snapshot "test-milestone" --protected-path "tes
 - Prepare real-world examples from your experience
 
 ### **During the Workshop:**
+- Recommend workshop attendees to use the Code Server
 - Encourage questions throughout
 - Adapt timing based on participant experience
 - Use real-world analogies and examples
