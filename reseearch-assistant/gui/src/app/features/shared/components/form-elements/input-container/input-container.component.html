@@ -1,0 +1,6 @@
+<div class="input-container" [ngClass]="{narrow:isNarrow}">
+  @if (label) {
+    <label class="input-container-label" [for]="for">{{ label }}</label>
+  }
+  <ng-content></ng-content>
+</div>

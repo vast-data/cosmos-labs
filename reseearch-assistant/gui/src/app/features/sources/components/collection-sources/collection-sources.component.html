@@ -1,0 +1,67 @@
+<div class="collection-sources">
+  <!-- Header with breadcrumb -->
+  <div class="header">
+    <div class="breadcrumb">
+      <button
+        (click)="navigateToCollections()"
+        class="breadcrumb-link">
+        Collections
+      </button>
+      <span class="breadcrumb-separator">></span>
+      <h2 class="collection-title">
+        {{ collectionName() }} ({{ totalDocuments() }})
+      </h2>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- Filters -->
+    <div class="filters-section">
+      <app-source-filters
+        (filterChange)="onFilterChange($event)">
+      </app-source-filters>
+    </div>
+
+    <!-- Sources Grid -->
+    <div class="sources-section">
+      <!-- Loading state -->
+      <div *ngIf="isLoading()" class="loading">
+        Loading...
+      </div>
+
+      <!-- Sources grid -->
+      <div *ngIf="!isLoading()" class="sources-grid">
+        <app-source-card
+          *ngFor="let source of sources(); trackBy: trackByDocumentName"
+          [source]="source"
+          [collectionName]="collectionName()"
+          [className]="'source-item'"
+          (edit)="onSourceEdit($event)"
+          (delete)="onSourceDelete($event)">
+        </app-source-card>
+      </div>
+
+      <!-- Empty state -->
+      <div *ngIf="!isLoading() && sources().length === 0" class="empty-state">
+        <div class="empty-message">
+          No sources found
+        </div>
+        <div class="empty-description">
+          {{ hasActiveFilters()
+              ? 'Try adjusting your search to see more results.'
+              : 'No sources available for this collection.' }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Collection not found state -->
+<div *ngIf="!collectionName()" class="not-found">
+  <div class="not-found-message">
+    Collection not found
+  </div>
+  <div class="not-found-description">
+    Invalid collection name in URL.
+  </div>
+</div>

@@ -1,0 +1,32 @@
+<header
+  class="top-bar"
+  role="banner"
+>
+  <div class="top-bar-content">
+    <div class="left-section">
+      <button
+        type="button"
+        aria-label="Open menu"
+        class="menu-button"
+        (click)="toggleSidebar()"
+      >
+        <span class="sr-only">Open menu</span>
+        <mat-icon svgIcon="sidepanel" class="menu-icon"></mat-icon>
+      </button>
+      <a routerLink="/chat" class="logo-link" (click)="onLogoClick()">
+        <img src="/assets/images/vast-logo.png" alt="Vast" class="logo" />
+      </a>
+    </div>
+
+    <div class="right-section">
+      <a routerLink="/blueprint"
+         class="blueprint-button"
+         aria-label="Architecture Blueprint"
+         matTooltip="Architecture Blueprint"
+         matTooltipPosition="below">
+        <mat-icon>architecture</mat-icon>
+      </a>
+      <app-user-logo [withMenu]="true" [size]="40"></app-user-logo>
+    </div>
+  </div>
+</header>

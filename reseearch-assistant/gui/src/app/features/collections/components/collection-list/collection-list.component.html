@@ -1,0 +1,52 @@
+<div class="collection-list">
+  <!-- Header -->
+  <div class="header">
+    <h2 class="title">Collections</h2>
+    <button
+      type="button"
+      class="btn btn-primary create-btn"
+      (click)="onCreateCollection()">
+      <span class="btn-icon">+</span>
+      Create Collection
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-section">
+    <app-collection-filters
+      (filterChange)="onFilterChange($event)">
+    </app-collection-filters>
+  </div>
+
+  <!-- Collections Grid -->
+  <div class="collections-section">
+    <!-- Loading state -->
+    <div *ngIf="isLoading()" class="loading">
+      Loading...
+    </div>
+
+    <!-- Collections grid -->
+    <div *ngIf="!isLoading()" class="collections-grid">
+      <app-collection-card
+        *ngFor="let collection of collections(); trackBy: trackByCollectionName"
+        [collection]="collection"
+        [className]="'collection-item'"
+        (doubleClick)="onCollectionDoubleClick($event)"
+        (upload)="onCollectionUpload($event)"
+        (delete)="onCollectionDelete($event)">
+      </app-collection-card>
+    </div>
+
+    <!-- Empty state -->
+    <div *ngIf="!isLoading() && collections().length === 0" class="empty-state">
+      <div class="empty-message">
+        No collections found
+      </div>
+      <div class="empty-description">
+        {{ hasActiveFilters()
+            ? 'Try adjusting your filters to see more results.'
+            : 'Create your first collection to get started.' }}
+      </div>
+    </div>
+  </div>
+</div>

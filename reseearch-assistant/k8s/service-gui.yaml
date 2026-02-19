@@ -1,0 +1,19 @@
+# Research Assistant GUI - Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: research-assistant-gui
+  labels:
+    app: research-assistant-gui
+    component: frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: research-assistant-gui
+    component: frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+

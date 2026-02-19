@@ -1,0 +1,14 @@
+<div class="conversations">
+  <div class="conversations__title">Recents</div>
+  <div class="conversations__list">
+    @for (conversation of orderedConversations(); track conversation.id) {
+      <a class="conversations__item unstyled-link"
+         [class.conversations__item_active]="selectedConversation() === conversation.id"
+         (click)="selectConversation.emit(conversation.id)">
+        <div class="conversations__icon"><mat-icon></mat-icon></div>
+        <div class="conversations__text">{{ conversation.title }}</div>
+      </a>
+    }
+  </div>
+</div>
+

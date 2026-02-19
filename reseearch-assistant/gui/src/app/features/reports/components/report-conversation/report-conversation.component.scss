@@ -1,0 +1,120 @@
+:host {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.report-conversation {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    justify-content: center;
+    align-items: center;
+
+    background: var(--secondary-bg);
+
+    display: flex;
+    flex-direction: column;
+
+    &__title {
+        border-bottom: 1px solid #313E57;
+        display: flex;
+        align-items: center;
+        font-size: 1.125rem;
+        font-style: normal;
+        font-weight: 600;
+        line-height: 1.5rem;
+        padding: .75rem 1.5rem;
+        box-sizing: border-box;
+        width: 100%;
+
+        mat-icon {
+            width: 1rem;
+            height: 1rem;
+            font-size: 4px;
+            margin-right: 0.75rem;
+        }
+    }
+
+    &__content {
+        width: 100%;
+        height: calc(100% - 50px);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        box-sizing: border-box;
+    }
+
+    // probably move it outside
+    &_standalone {
+        background: transparent;
+        .report-conversation__content {
+            width: 100%;
+            height: 100%;
+        }
+
+        .report-conversation__title {
+            display: none;
+        }
+
+        .report-conversation__input {
+            width: 60%;
+        }
+
+        .chat {
+            width: 60% !important;
+        }
+    }
+
+    &__history {
+        display: flex;
+        justify-content: center;
+        flex: 2;
+        width: 100%;
+        overflow: auto;
+        z-index: 9;
+    }
+
+    &__loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        height: 100%;
+    }
+
+    &__input {
+        width: 100%;
+        padding: 0 1.5rem 1.5rem 1.5rem;
+        box-sizing: border-box;
+        z-index: 9;
+    }
+
+
+
+    .chat-backdrop {
+        position: absolute;
+        bottom: 0;
+        width: 100%;
+        height: 220px;
+        background: linear-gradient(0deg, #122341 0%, rgba(18, 35, 65, 0.5) 78.8%, rgba(18, 35, 65, 0) 91.24%);
+    }
+
+    .chat {
+        width: 100%;
+        padding: 1rem 1.5rem;
+        box-sizing: border-box;
+
+        &__history {
+            margin-bottom: 3rem;
+        }
+
+        &__history-list {
+            padding-bottom: 3rem;
+        }
+    }
+}
+
+
+

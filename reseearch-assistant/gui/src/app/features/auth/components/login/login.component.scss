@@ -1,0 +1,119 @@
+.login-wrapper {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, rgba(14, 23, 36, 0.00) 0%, rgba(11, 19, 34, 0.90) 87.41%), url('../../../../../assets/images/astro-background.png') #0B2B7A;
+    background-size: cover;
+
+
+    .login {
+        height: 80vh;
+        width: 80vw;
+        display: flex;
+        justify-content: space-between;
+        color: #E8EBEC;
+
+        .info {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+
+            &__logo {
+                margin-bottom: 2.5rem;
+
+                img {
+                    width: 16rem;
+                    height: 2.875rem;
+                    padding: 0.625rem;
+                }
+            }
+
+            &__description {
+                margin-bottom: 1.5rem;
+            }
+        }
+
+        .form {
+            width: 25vw;
+            border-radius: 20px;
+            background: linear-gradient(0deg, rgba(11, 72, 167, 0.20) 0%, rgba(11, 72, 167, 0.20) 100%), rgba(232, 235, 236, 0.15);
+            padding: 2rem 3.125rem;
+            display: grid;
+            grid-template-rows: 1fr 4fr 1fr;
+
+            &__input {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+
+            &__error {
+                min-height: 1rem;
+                color: #FD3166;
+            }
+        }
+    }
+
+    .button-submit {
+        border-radius: 100px;
+        background: #17B5EC;
+        background: color(display-p3 0.3294 0.698 0.9059);
+    }
+
+    .form__divider {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        margin: 1.5rem 0;
+        
+        &::before,
+        &::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid rgba(232, 235, 236, 0.3);
+        }
+        
+        span {
+            padding: 0 1rem;
+            color: rgba(232, 235, 236, 0.7);
+            font-size: 0.875rem;
+        }
+    }
+
+    .form__azure-login {
+        display: flex;
+        justify-content: center;
+    }
+
+    .button-azure {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 100px;
+        background: rgba(232, 235, 236, 0.1);
+        border: 1px solid rgba(232, 235, 236, 0.2);
+        color: #E8EBEC;
+        cursor: pointer;
+        font-size: 0.9375rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+
+        &:hover {
+            background: rgba(232, 235, 236, 0.15);
+            border-color: rgba(232, 235, 236, 0.3);
+        }
+
+        svg {
+            width: 21px;
+            height: 21px;
+        }
+
+        span {
+            white-space: nowrap;
+        }
+    }
+}
+

@@ -1,0 +1,159 @@
+<div class="tool-block" [class.expanded]="expanded()" [class.loading]="tool.status === 'loading'" [class.no-expand]="!hasExpandableContent">
+  <div 
+    class="tool-block__header" 
+    [class.tool-block__header--clickable]="hasExpandableContent"
+    (click)="hasExpandableContent && toggle()"
+    (keydown.enter)="hasExpandableContent && toggle()"
+    (keydown.space)="hasExpandableContent && toggle(); $event.preventDefault()"
+    [attr.role]="hasExpandableContent ? 'button' : null"
+    [attr.tabindex]="hasExpandableContent ? 0 : null">
+    <div class="tool-block__header-left">
+      @if (hasExpandableContent) {
+        <mat-icon class="tool-block__chevron">
+          {{ expanded() ? 'expand_more' : 'chevron_right' }}
+        </mat-icon>
+      }
+      
+      @if (tool.status === 'loading') {
+        <div class="tool-block__spinner"></div>
+      } @else if (tool.status === 'success') {
+        <mat-icon class="tool-block__status tool-block__status--success">check_circle</mat-icon>
+      } @else if (tool.status === 'warning') {
+        <mat-icon class="tool-block__status tool-block__status--warning">warning</mat-icon>
+      } @else {
+        <mat-icon class="tool-block__status tool-block__status--error">error</mat-icon>
+      }
+      
+      <span class="tool-block__name">{{ displayName }}</span>
+    </div>
+    
+    <div class="tool-block__header-right">
+      @if (citationsCount > 0) {
+        <span class="tool-block__badge">{{ citationsCount }} sources</span>
+      }
+      <span class="tool-block__duration">{{ durationText }}</span>
+    </div>
+  </div>
+
+  @if (expanded() && hasExpandableContent) {
+    <div class="tool-block__content">
+      @if (queryText) {
+        <div class="tool-block__section">
+          <div class="tool-block__section-title">
+            <mat-icon>search</mat-icon>
+            Similarity Query
+          </div>
+          <div class="tool-block__prompt">{{ queryText }}</div>
+        </div>
+      }
+
+      @if (metadataQueryText) {
+        <div class="tool-block__section">
+          <div class="tool-block__section-title">
+            <mat-icon>filter_alt</mat-icon>
+            Metadata Filter
+          </div>
+          <div class="tool-block__metadata-query">{{ metadataQueryText }}</div>
+        </div>
+      }
+
+      @if (tool.collectionMetadata || citationsCount > 0) {
+        <div class="tool-block__section">
+          <div class="tool-block__section-title">
+            <mat-icon>analytics</mat-icon>
+            Statistics
+          </div>
+          <div class="tool-block__metadata">
+            @if (tool.collectionMetadata) {
+              <span>{{ tool.collectionMetadata.num_unique_files }} files</span>
+              <span>{{ tool.collectionMetadata.num_chunks }} chunks</span>
+              <span>{{ tool.collectionMetadata.total_doc_size_mb.toFixed(1) }} MB</span>
+            }
+            @if (citationsCount > 0) {
+              <span>{{ citationsCount }} sources</span>
+            }
+            <span>{{ durationText }}</span>
+          </div>
+        </div>
+      }
+
+      @if (errorMessage) {
+        <div class="tool-block__section tool-block__section--warning">
+          <div class="tool-block__section-title">
+            <mat-icon>info</mat-icon>
+            Result
+          </div>
+          <div class="tool-block__warning-message">{{ errorMessage }}</div>
+        </div>
+      }
+
+      @if (tool.prompt && tool.prompt.length > 0) {
+        <div class="tool-block__section">
+          <div class="tool-block__section-title">
+            <mat-icon>chat</mat-icon>
+            Prompt
+          </div>
+          <div class="tool-block__prompt">{{ tool.prompt }}</div>
+        </div>
+      }
+
+      @if (tool.citations && tool.citations.length > 0) {
+        <div class="tool-block__section">
+          <div class="tool-block__section-title">
+            <mat-icon>description</mat-icon>
+            Sources ({{ tool.citations.length }})
+          </div>
+          <ul class="tool-block__citations">
+            @for (citation of tool.citations; track citation) {
+              <li class="tool-block__citation">
+                @if (getCitationUrl(citation); as url) {
+                  <a [href]="url" target="_blank" rel="noopener noreferrer" class="tool-block__citation-link">
+                    <mat-icon class="tool-block__citation-icon">open_in_new</mat-icon>
+                    {{ citation }}
+                  </a>
+                } @else {
+                  {{ citation }}
+                }
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
+      @if (tool.chunks && tool.chunks.length > 0) {
+        <div class="tool-block__section">
+          <div class="tool-block__section-title">
+            <mat-icon>article</mat-icon>
+            RAG Results ({{ tool.chunks.length }})
+          </div>
+          <div class="tool-block__chunks">
+            @for (chunk of tool.chunks; track $index) {
+              <details class="tool-block__chunk">
+                <summary class="tool-block__chunk-header">
+                  <span class="tool-block__chunk-index">#{{ $index + 1 }}</span>
+                  @if (chunk.sourceTitle) {
+                    <span class="tool-block__chunk-source">{{ chunk.sourceTitle }}</span>
+                  } @else if (chunk.source) {
+                    <span class="tool-block__chunk-source">{{ chunk.source }}</span>
+                  }
+                  <span class="tool-block__chunk-score">Score: {{ chunk.score.toFixed(2) }}</span>
+                </summary>
+                <div class="tool-block__chunk-body">
+                  @if (chunk.sourceUrl) {
+                    <div class="tool-block__chunk-link">
+                      <mat-icon class="tool-block__chunk-link-icon">open_in_new</mat-icon>
+                      <a [href]="chunk.sourceUrl" target="_blank" rel="noopener noreferrer">{{ chunk.sourceUrl }}</a>
+                    </div>
+                  }
+                  <div class="tool-block__chunk-text">{{ truncateText(chunk.text, 500) }}</div>
+                </div>
+              </details>
+            }
+          </div>
+        </div>
+      }
+
+    </div>
+  }
+</div>
+

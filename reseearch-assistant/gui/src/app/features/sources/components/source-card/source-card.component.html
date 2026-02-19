@@ -1,0 +1,54 @@
+<div class="source-card" [class]="className()">
+  <div class="card-content">
+    <!-- Header with source name and actions -->
+    <div class="header">
+      <div class="source-name">
+        <div class="name-container">
+          <mat-icon class="resource-icon">description</mat-icon>
+          <span class="name-text">{{ source().document_name }}</span>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button
+          mat-icon-button
+          [matMenuTriggerFor]="actionsMenu"
+          class="actions-button"
+          aria-label="Source actions">
+          <mat-icon>more_vert</mat-icon>
+        </button>
+
+        <mat-menu #actionsMenu="matMenu" class="actions-menu">
+          <button mat-menu-item (click)="onEdit()" class="menu-item">
+            <mat-icon>edit</mat-icon>
+            <span>Edit</span>
+          </button>
+          <button mat-menu-item (click)="onDelete()" class="menu-item delete-item">
+            <mat-icon>delete</mat-icon>
+            <span>Delete</span>
+          </button>
+        </mat-menu>
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div class="description">
+      <p>
+        {{ source().description ||
+           "Significant Market Adoption: Nova product pre-orders and initial sales figures were significantly higher than anticipated." }}
+      </p>
+    </div>
+
+    <!-- Separator -->
+    <div class="separator"></div>
+
+    <!-- Tags -->
+    <div class="tags">
+      <span
+        *ngFor="let tag of displayTags"
+        class="tag">
+        {{ tag }}
+      </span>
+    </div>
+  </div>
+</div>
