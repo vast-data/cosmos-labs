@@ -1,0 +1,29 @@
+# Research Assistant - ConfigMap
+# Generated from .env file
+# Apply with: kubectl apply -f configmap.yaml -n <namespace>
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: research-assistant-config
+  labels:
+    app: research-assistant
+    component: api
+data:
+  AGENT_TEMPERATURE: "0.15"
+  AGENT_MARKDOWN: "true"
+  AGENT_NAME: "ResearchAssistant"
+  RAG_BASE_URL: "http://backend-webserver.research-assistant:8080"
+  RAG_SSL_VERIFY: "false"
+  RAG_TIMEOUT: "60.0"
+  API_TITLE: "Research Assistant API"
+  API_DESCRIPTION: "API for research assistant with RAG backend integration"
+  API_VERSION: "1.0.0"
+  AGENT_OPENAI_BASE_URL: "https://integrate.api.nvidia.com/v1"
+  AGENT_OPENAI_MODEL_ID: "meta/llama-3.3-70b-instruct"
+  AUTH__AZURE__AUTHORIZATIONENDPOINT: ""
+  AUTH__AZURE__TOKENENDPOINT: ""
+  AUTH__AZURE__ISSUERENDPOINT: ""
+  AUTH__AZURE__JWKSENDPOINT: ""
+  AUTH__AZURE__REDIRECTURI: ""
+  AUTH__AZURE__NEXTAUTHURL: ""

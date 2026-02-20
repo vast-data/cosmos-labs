@@ -1,0 +1,23 @@
+<div class="filters-grid">
+  <!-- Search by title -->
+  <div class="filter-item">
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Search by title</mat-label>
+      <input
+        matInput
+        [formControl]="searchControl"
+        placeholder="Search sources by title..."
+        #searchInput>
+      <button
+        *ngIf="searchControl.value"
+        matSuffix
+        mat-icon-button
+        (click)="onClearSearch()"
+        aria-label="Clear search">
+        <mat-icon>close</mat-icon>
+      </button>
+      <mat-icon matPrefix>search</mat-icon>
+    </mat-form-field>
+  </div>
+</div>
+

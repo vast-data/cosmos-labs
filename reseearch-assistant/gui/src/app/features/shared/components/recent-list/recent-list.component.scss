@@ -1,0 +1,49 @@
+:host {
+    display: block;
+    height: 100%;
+}
+
+.conversations {
+    padding: 0 0 2rem 2rem;
+    color: #0E142C;
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+
+    &__title {
+        font-weight: 600;
+        margin-bottom: 1rem;
+        padding-left: .5rem;
+    }
+
+    &__list {
+        overflow-y: auto;
+        padding-right: 2rem;
+    }
+
+    &__item {
+        display: flex;
+        cursor: pointer;
+        margin-bottom: .5rem;
+        padding: .5rem;
+        border-radius: 4px;
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.20);
+        }
+
+        &_active {
+            background: rgba(255, 255, 255, 0.54) !important;
+        }
+    }
+
+    &__icon {
+        width: 0;
+        height: 0;
+    }
+
+    &__text {
+        font-size: 0.8125rem;
+    }
+}

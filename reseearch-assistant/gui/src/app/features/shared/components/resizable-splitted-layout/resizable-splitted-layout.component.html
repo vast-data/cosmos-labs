@@ -1,0 +1,16 @@
+<div id='container'
+     class="container"
+     [ngClass]="{
+        'no-select': isResizing(),
+        'resizing': isResizing(),
+        'container_standalone': !showRightSide(),
+     }"
+>
+    <div class="left" [style.width.%]="leftWidth()">
+        <ng-content select="[appLeftResizableContent]"></ng-content>
+    </div>
+    <div class="resizer" (mousedown)="startResize()"></div>
+    <div class="right" [style.width.%]="100 - leftWidth()">
+        <ng-content select="[appRightResizableContent]"></ng-content>
+    </div>
+</div>

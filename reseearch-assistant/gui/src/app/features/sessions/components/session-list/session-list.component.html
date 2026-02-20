@@ -1,0 +1,44 @@
+<div class="session-list">
+  <!-- Header -->
+  <div class="header">
+    <h2 class="title">Recent Sessions</h2>
+  </div>
+
+  <!-- Search Field -->
+  <div class="search-section">
+    <input
+      type="text"
+      class="search-input"
+      placeholder="Search by summary..."
+      [ngModel]="searchQuery()"
+      (ngModelChange)="searchQuery.set($event)"
+    />
+  </div>
+
+  <!-- Sessions List -->
+  <div class="sessions-section">
+    <!-- Loading state -->
+    <div *ngIf="isLoading()" class="loading">
+      Loading sessions...
+    </div>
+
+    <!-- Sessions list -->
+    <div *ngIf="!isLoading()" class="sessions-container">
+      <app-session-card
+        *ngFor="let session of filteredSessions(); trackBy: trackBySessionId"
+        [session]="session"
+        [className]="'session-item'">
+      </app-session-card>
+    </div>
+
+    <!-- Empty state -->
+    <div *ngIf="!isLoading() && filteredSessions().length === 0" class="empty-state">
+      <div class="empty-message">
+        No sessions found
+      </div>
+      <div class="empty-description">
+        {{ searchQuery() ? 'No sessions match your search.' : 'Start a new conversation to create your first session.' }}
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,39 @@
+<div class="container">
+    <div class="ai">
+        <div class="ai__content">
+            <div class="ai__logo">
+                <img [style.visibility]="showIcon() ? 'visible' : 'hidden'" alt="ai-logo" src="assets/icons/ai-logo.svg">
+            </div>
+            <div class="ai__message">
+                <div class="">
+                    {{ item().description }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="step-indicator">
+        @if (item().status === 'success') {
+            <div [@expandAnimation]="animateI() ? 'on' : 'off'" class="step-indicator__success">
+                <svg style="width: .5rem; height: .5rem" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8" fill="none">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M7.82304 2.02073L3.33704 6.88006C3.21104 7.01674 3.03303 7.09475 2.84703 7.09475H2.8417C2.65371 7.09273 2.47503 7.01206 2.35037 6.87203L0.169707 4.43207C-0.0756246 4.15739 -0.0522932 3.73606 0.22237 3.4907C0.497032 3.24471 0.919707 3.26938 1.1637 3.54338L2.85503 5.43606L6.8437 1.11605C7.0937 0.846705 7.51503 0.829391 7.7857 1.07872C8.05637 1.32806 8.07303 1.75004 7.82303 2.02073L7.82304 2.02073Z" fill="#73C8FD" style="fill:#73C8FD;fill:color(display-p3 0.4494 0.7841 0.9927);fill-opacity:1;"/>
+                </svg>
+            </div>
+        }
+        Step {{index()}}
+    </div>
+
+
+    @if (item().status === 'loading') {
+        <div style="margin-left: 4rem;" class="thinking-loading">
+            {{ item().title }}
+        </div>
+    } @else if (animateI()) {
+        <div style="padding-left: 4rem;" class="content">
+            <app-markdown-viewer [content]="item().content | stringToFlow:true | async"></app-markdown-viewer>
+        </div>
+    } @else {
+        <div style="padding-left: 4rem;" class="content">
+            <app-markdown-viewer [content]="item().content"></app-markdown-viewer>
+        </div>
+    }
+</div>

@@ -1,0 +1,50 @@
+<div mat-dialog-title>Create New Collection</div>
+
+<mat-dialog-content>
+  <div class="form-group">
+    <label for="collectionName" class="dialog-label">Collection Name</label>
+    <mat-form-field appearance="outline" class="dialog-form-field">
+      <input
+        matInput
+        id="collectionName"
+        type="text"
+        [ngModel]="collectionName()"
+        (ngModelChange)="collectionName.set($event)"
+        placeholder="Enter collection name"
+        [disabled]="isCreating()"
+        cdkFocusInitial>
+    </mat-form-field>
+  </div>
+
+  <div class="form-group checkbox-group">
+    <mat-checkbox
+      [checked]="isPublic()"
+      (change)="isPublic.set($event.checked)"
+      [disabled]="isCreating()">
+      Public collection
+    </mat-checkbox>
+    <p class="checkbox-hint">Public collections are accessible to all users</p>
+  </div>
+
+  @if (error()) {
+    <div class="error-message">
+      {{ error() }}
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button
+    mat-button
+    (click)="onCancel()"
+    [disabled]="isCreating()">
+    Cancel
+  </button>
+  <button
+    mat-raised-button
+    color="primary"
+    (click)="onCreate()"
+    [disabled]="!canCreate()">
+    {{ isCreating() ? 'Creating...' : 'Create' }}
+  </button>
+</mat-dialog-actions>

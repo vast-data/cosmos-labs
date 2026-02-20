@@ -1,0 +1,26 @@
+.form-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 400px;
+}
+
+.checkbox-group {
+  margin-top: 16px;
+
+  .checkbox-hint {
+    margin: 4px 0 0 0;
+    font-size: 12px;
+    color: #9CA3AF;
+  }
+}
+
+.error-message {
+  margin-top: 8px;
+  padding: 12px 16px;
+  background-color: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: 4px;
+  color: #f87171;
+  font-size: 14px;
+  font-family: 'Assistant', sans-serif;
+}

@@ -1,0 +1,49 @@
+<div class="wrapper">
+    <div class="wrapper__content">
+        <div class="conversations">
+            <div style="transform-origin: center; position:relative;"
+                 [class.chat_opened]="!reportsStore.standaloneChat()"
+                 [class.chat_new]="reportsStore.isNew()"
+                 class="conversations__chat chat"
+            >
+                <router-outlet></router-outlet>
+                <app-resizable-splitted-layout [initialLeftWidth]="30" [showRightSide]="!reportsStore.standaloneChat()" uniqId="reports">
+                    <ng-container appLeftResizableContent>
+                        <div class="chat-container" [class.chat-container--new]="reportsStore.isNew()">
+                            <!-- Empty state: Top section with weather/date and greeting -->
+                            @if (reportsStore.isNew()) {
+                                <div class="empty-state-top" @fadeSlide>
+                                    <div class="empty-state-top__weather">
+                                    </div>
+                                    <div class="empty-state-top__greeting">
+                                        <app-greeting-message></app-greeting-message>
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Conversation component - always visible, moves to bottom in new state -->
+                            <div class="conversation-wrapper" 
+                                 [class.conversation-wrapper--new]="reportsStore.isNew()"
+                                 [@conversationSlide]="reportsStore.isNew() ? 'new' : 'active'">
+                                <app-report-conversation [standalone]="reportsStore.standaloneChat()"></app-report-conversation>
+                            </div>
+
+                            <!-- Empty state: Bottom section with recent sessions -->
+                            @if (reportsStore.isNew()) {
+                                <div class="empty-state-bottom" @fadeSlide>
+                                    <app-recent-sessions></app-recent-sessions>
+                                </div>
+                            }
+                        </div>
+                    </ng-container>
+                    <ng-container appRightResizableContent>
+                        @if (!reportsStore.standaloneChat()) {
+                            <app-report-view [responding]="reportsStore.responding()" [content]="reportsStore.report()"></app-report-view>
+                        }
+                    </ng-container>
+                </app-resizable-splitted-layout>
+            </div>
+
+        </div>
+    </div>
+</div>

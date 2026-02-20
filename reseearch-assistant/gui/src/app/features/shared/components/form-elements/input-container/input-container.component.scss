@@ -1,0 +1,12 @@
+.input-container-label {
+  @apply text-[#C3CCCE] font-normal text-sm leading-4 pb-2;
+}
+
+.input-container {
+  //@apply flex flex-col items-start p-4 pr-3 rounded-lg box-border h-[73px];
+  @apply flex flex-col items-start rounded-lg box-border h-[72px];
+  &.narrow {
+    @apply h-[fit-content] py-0;
+
+  }
+}

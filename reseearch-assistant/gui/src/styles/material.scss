@@ -1,0 +1,295 @@
+$base-input-color: #76C3FF;
+
+/* fallback */
+@font-face {
+    font-family: 'Material Icons';
+    font-style: normal;
+    font-weight: 400;
+    src: url('../assets/fonts/flUhRq6tzZclQEJ-Vdg-IuiaDsNcIhQ8tQ.woff2') format('woff2');
+}
+
+.material-icons {
+    font-family: 'Material Icons';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 1.5rem;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+}
+
+.login-input-label {
+    line-height: 1.25rem;
+}
+
+.login-input {
+    margin-top: 0.25rem;
+
+    --mdc-outlined-text-field-outline-color: transparent !important;
+    --mdc-outlined-text-field-hover-outline-color: transparent !important;
+    --mdc-outlined-text-field-focus-outline-color: transparent !important;
+    --mdc-outlined-text-field-caret-color: color(display-p3 0.4494 0.7841 0.9927) !important;
+    --mdc-outlined-text-field-error-caret-color: color(display-p3 0.4494 0.7841 0.9927) !important;
+    --mdc-outlined-text-field-input-text-color: #F7F7F9 !important;
+
+    .mat-mdc-notch-piece {
+        border-color: transparent !important;
+    }
+
+    .mat-mdc-text-field-wrapper {
+        border-radius: 2px;
+        border: none;
+        background: rgba(212, 240, 254, 0.20);
+        border-bottom: 1px solid transparent;
+
+        &.mdc-text-field--focused {
+            border-bottom: 1px solid var(--feedback-fb-0173-c-8-fd, #00CEFF);
+        }
+    }
+}
+
+.mat-menu {
+    --mat-menu-container-color: #161E31;
+}
+
+// Mat Dialog Global Styles
+.cdk-overlay-dark-backdrop {
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.mat-mdc-dialog-container {
+    --mdc-dialog-container-color: var(--dialog-nav-bg);
+    --mdc-dialog-container-shape: 8px;
+    
+    .mdc-dialog__surface {
+        background: var(--dialog-nav-bg) !important;
+        border-radius: 8px !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+        overflow: hidden;
+    }
+
+    .mat-mdc-dialog-title {
+        padding: 1.5rem;
+        margin: 0;
+        color: var(--dialog-text-primary);
+        font-family: 'Assistant', sans-serif;
+        font-size: 1rem;
+        font-weight: 600;
+        
+        &::before {
+            display: none;
+        }
+    }
+
+    .mat-mdc-dialog-content {
+        padding: 24px;
+        margin: 0;
+        max-height: 65vh;
+        background: var(--dialog-nav-bg);
+        color: var(--dialog-text-primary);
+        font-family: 'Assistant', sans-serif;
+        
+        &::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        &::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        &::-webkit-scrollbar-thumb {
+            background: var(--dialog-input-border);
+            border-radius: 3px;
+        }
+    }
+
+    .mat-mdc-dialog-actions {
+        padding: 1re, 1.5rem;
+        margin: 0;
+        border-top: 1px solid var(--dialog-divider-light);
+        background: var(--dialog-nav-bg);
+        justify-content: flex-end;
+        gap: 16px;
+        min-height: auto;
+        
+        .mat-mdc-button,
+        .mat-mdc-outlined-button {
+            padding: 8px 24px;
+            border-radius: 50px;
+            font-family: 'Assistant', sans-serif;
+            font-size: 14px;
+            font-weight: 400;
+            min-height: 32px;
+            line-height: 1;
+            color: var(--dialog-text-primary);
+            
+            &:hover {
+                background: rgba(255, 255, 255, 0.08);
+            }
+        }
+        
+        .mat-mdc-raised-button,
+        .mat-mdc-flat-button,
+        .mat-mdc-unelevated-button {
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-family: 'Assistant', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            min-height: 32px;
+            line-height: 1;
+            background: var(--blue) !important;
+            color: var(--dialog-main-bg) !important;
+            
+            &:hover {
+                background: #6BC4F5 !important;
+            }
+            
+            &:disabled {
+                background: var(--dialog-input-border) !important;
+                color: var(--dialog-text-muted) !important;
+            }
+        }
+    }
+}
+
+// Dialog header with subtitle
+.dialog-header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 24px 24px 16px 32px;
+    border-bottom: 1px solid var(--dialog-divider);
+    
+    .dialog-title {
+        color: var(--dialog-text-primary);
+        font-family: 'Assistant', sans-serif;
+        font-size: 16px;
+        font-weight: 600;
+        margin: 0;
+    }
+    
+    .dialog-subtitle {
+        color: var(--dialog-text-secondary);
+        font-family: 'Assistant', sans-serif;
+        font-size: 14px;
+        font-weight: 400;
+        margin: 0;
+    }
+}
+
+// Dialog close button
+.dialog-close-button {
+    position: absolute !important;
+    top: 14px;
+    right: 16px;
+    color: var(--dialog-text-muted) !important;
+    width: 24px !important;
+    height: 24px !important;
+    padding: 0 !important;
+    min-width: 24px !important;
+    line-height: 24px !important;
+    
+    .mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+    }
+    
+    &:hover {
+        color: var(--dialog-text-primary) !important;
+        background: transparent !important;
+    }
+}
+
+// Dialog form inputs styling
+.dialog-form-field {
+    width: 100%;
+    
+    .mat-mdc-text-field-wrapper {
+        background: var(--dialog-input-bg) !important;
+        border-radius: 0 !important;
+        border-bottom: 1px solid transparent;
+        
+        &.mdc-text-field--focused {
+            border-bottom-color: var(--dialog-input-border);
+        }
+    }
+    
+    .mat-mdc-form-field-subscript-wrapper {
+        display: none;
+    }
+    
+    .mdc-text-field--outlined .mdc-notched-outline {
+        .mdc-notched-outline__leading,
+        .mdc-notched-outline__notch,
+        .mdc-notched-outline__trailing {
+            border-color: transparent !important;
+        }
+    }
+    
+    input.mat-mdc-input-element,
+    textarea.mat-mdc-input-element {
+        color: var(--dialog-text-primary);
+        font-family: 'Assistant', sans-serif;
+        font-size: 14px;
+        
+        &::placeholder {
+            color: var(--dialog-text-muted);
+        }
+    }
+}
+
+.dialog-label {
+    color: var(--dialog-text-secondary);
+    font-family: 'Assistant', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    margin-bottom: 8px;
+    display: block;
+}
+
+// Dialog tag chips
+.dialog-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 8px;
+    height: 24px;
+    background: var(--dialog-tag-bg);
+    border-radius: 4px;
+    color: var(--dialog-text-primary);
+    font-family: 'Assistant', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+// Dialog file container
+.dialog-file-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: #253351;
+    border: 1px solid #5D6F98;
+    border-radius: 4px;
+    
+    .file-icon {
+        width: 16px;
+        height: 16px;
+        color: #FFFFFF;
+    }
+    
+    .file-name {
+        color: #FFFFFF;
+        font-family: 'Assistant', sans-serif;
+        font-size: 14px;
+        font-weight: 400;
+    }
+}

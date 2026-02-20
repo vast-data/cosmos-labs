@@ -1,0 +1,29 @@
+@if (withMenu) {
+    <button [matMenuTriggerFor]="menu" [style.width.rem]="size / 16" [style.height.rem]="size / 16" [style.font-size.rem]="size / 2"
+            class="base-button avatar-circle">
+        <svg  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none">
+            <circle cx="20" cy="20" r="19.5" fill="#53677F" stroke="#8BAFDB" style="fill:#53677F;fill:color(display-p3 0.3240 0.4031 0.4992);fill-opacity:1;stroke:#8BAFDB;stroke:color(display-p3 0.5448 0.6872 0.8601);stroke-opacity:1;"/>
+            <path d="M19.6217 27.696C18.639 27.696 17.7517 27.498 16.9597 27.102C16.1824 26.706 15.5664 26.0533 15.1117 25.144C14.657 24.2347 14.4297 23.01 14.4297 21.47V13H16.2557V21.514C16.2557 22.6727 16.4024 23.5893 16.6957 24.264C17.0037 24.924 17.407 25.3933 17.9057 25.672C18.419 25.9507 18.991 26.09 19.6217 26.09C20.267 26.09 20.8464 25.9507 21.3597 25.672C21.873 25.3933 22.2764 24.924 22.5697 24.264C22.8777 23.5893 23.0317 22.6727 23.0317 21.514V13H24.7917V21.47C24.7917 23.01 24.5644 24.2347 24.1097 25.144C23.655 26.0533 23.039 26.706 22.2617 27.102C21.4844 27.498 20.6044 27.696 19.6217 27.696Z" fill="#E8EBEC" style="fill:#E8EBEC;fill:color(display-p3 0.9098 0.9216 0.9255);fill-opacity:1;"/>
+        </svg>
+    </button>
+
+    <mat-menu #menu="matMenu">
+        <div class="menu">
+            <div class="menu__header">
+                <div class="menu__name">
+                    {{ name() }}
+                </div>
+            </div>
+            <div class="menu__actions">
+                <button (click)="logout()" class="base-button">Logout</button>
+            </div>
+        </div>
+    </mat-menu>
+} @else {
+    <div [style.width.rem]="size / 16" [style.height.rem]="size / 16" [style.font-size.rem]="size / 2" class="avatar-circle">
+        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
+            <circle cx="20" cy="20" r="19.5" fill="#53677F" stroke="#8BAFDB" style="fill:#53677F;fill:color(display-p3 0.3240 0.4031 0.4992);fill-opacity:1;stroke:#8BAFDB;stroke:color(display-p3 0.5448 0.6872 0.8601);stroke-opacity:1;"/>
+            <path d="M19.6217 27.696C18.639 27.696 17.7517 27.498 16.9597 27.102C16.1824 26.706 15.5664 26.0533 15.1117 25.144C14.657 24.2347 14.4297 23.01 14.4297 21.47V13H16.2557V21.514C16.2557 22.6727 16.4024 23.5893 16.6957 24.264C17.0037 24.924 17.407 25.3933 17.9057 25.672C18.419 25.9507 18.991 26.09 19.6217 26.09C20.267 26.09 20.8464 25.9507 21.3597 25.672C21.873 25.3933 22.2764 24.924 22.5697 24.264C22.8777 23.5893 23.0317 22.6727 23.0317 21.514V13H24.7917V21.47C24.7917 23.01 24.5644 24.2347 24.1097 25.144C23.655 26.0533 23.039 26.706 22.2617 27.102C21.4844 27.498 20.6044 27.696 19.6217 27.696Z" fill="#E8EBEC" style="fill:#E8EBEC;fill:color(display-p3 0.9098 0.9216 0.9255);fill-opacity:1;"/>
+        </svg>
+    </div>
+}

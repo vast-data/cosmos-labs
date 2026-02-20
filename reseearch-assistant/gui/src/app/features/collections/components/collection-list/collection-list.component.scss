@@ -1,0 +1,86 @@
+.collection-list {
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+
+  .title {
+    margin: 0;
+    font-size: 36px;
+    font-weight: 700;
+    color: #E8EBEC;
+  }
+
+  .create-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background-color: #3b82f6;
+    border: 1px solid #3b82f6;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+
+    &:hover {
+      background-color: #2563eb;
+      border-color: #2563eb;
+    }
+
+    .btn-icon {
+      font-size: 16px;
+      font-weight: bold;
+    }
+  }
+
+  .filters-section {
+    margin-bottom: 24px;
+  }
+
+  .collections-section {
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 48px;
+      color: #C5CCCE;
+      font-size: 16px;
+    }
+
+    .collections-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 32px;
+
+      @media (min-width: 768px) {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      @media (min-width: 1024px) {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .empty-state {
+      padding: 48px 0;
+      text-align: center;
+
+      .empty-message {
+        margin-bottom: 8px;
+        font-size: 18px;
+        color: #A2AEB4;
+      }
+
+      .empty-description {
+        font-size: 14px;
+        color: #6B7280;
+      }
+    }
+  }
+}
+

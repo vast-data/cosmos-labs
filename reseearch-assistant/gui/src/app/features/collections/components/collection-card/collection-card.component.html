@@ -1,0 +1,40 @@
+<div
+  class="collection-card"
+  [class]="className()"
+  (dblclick)="onDoubleClick()">
+
+  <div class="card-header">
+    <div class="header-content">
+      <div class="title-section">
+        <h3 class="collection-title">
+          <mat-icon class="privacy-icon">{{ collection().private ? 'person' : 'groups' }}</mat-icon>
+          {{ collectionName() }}
+        </h3>
+        <p class="file-count">{{ fileCountText() }}</p>
+      </div>
+
+      <div class="actions-section">
+        <button
+          mat-icon-button
+          (click)="onUpload($event)"
+          class="upload-button"
+          aria-label="Upload file to collection">
+          <mat-icon>upload_file</mat-icon>
+        </button>
+        <button
+          mat-icon-button
+          (click)="onDelete($event)"
+          class="delete-button"
+          aria-label="Delete collection">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-content">
+    <div class="description">
+      <p>{{ descriptionForDisplay() }}</p>
+    </div>
+  </div>
+</div>

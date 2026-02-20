@@ -1,0 +1,103 @@
+.base-button {
+    outline: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    background: inherit;
+}
+
+.primary-button {
+    @extend .base-button;
+    display: inline-flex;
+    height: 1.5rem;
+    min-width: 79px;
+    padding: 1rem 1rem;
+    flex-direction: column;
+    justify-content: center;
+    border-radius: 100px;
+    background: #17B5EC;
+    background: color(display-p3 0.3294 0.698 0.9059);
+    color: #122441;
+    color: color(display-p3 0.0871 0.1376 0.2472);
+    font-feature-settings: 'liga' off, 'clig' off;
+    font-family: Assistant;
+    font-size: 0.875rem;
+    font-style: normal;
+    font-weight: 600;
+    line-height: 0.875rem; /* 100% */
+    text-transform: capitalize;
+    display: inline-flex;
+    height: 1.5rem;
+    min-width: 4.9375rem;
+    padding: 0.5rem 1rem;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0
+
+}
+
+.button-submit {
+    @extend .base-button;
+    color: #0E182B;
+    border-radius: 4px;
+    background: #17A3D1;
+    font-size: 1rem;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 1.25rem 1rem;
+
+    &:hover:not([disabled]),
+    &:active:not([disabled]),
+    &:focus:not([disabled]),
+    &:target:not([disabled]) {
+        background: #1a9dc7;
+    }
+
+    --mdc-circular-progress-active-indicator-color: #0E182B;
+}
+
+.button-icon {
+    @extend .base-button;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    width: 2rem;
+    height: 2rem;
+    font-size: 1rem;
+
+    mat-icon {
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+}
+
+.button-icon-s {
+    @extend .button-icon;
+
+    width: 1.5rem;
+    height: 1.5rem;
+    font-size: 1rem;
+
+    mat-icon {
+        width: .875rem;
+        height: .875rem;
+    }
+}
+
+.button-link {
+    @extend .base-button;
+    color: #4D8AFF;
+    text-decoration: underline;
+
+    mat-icon {
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+}
+

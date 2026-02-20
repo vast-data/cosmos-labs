@@ -1,0 +1,139 @@
+.source-card {
+  width: 100%;
+  background: #1F2C47;
+  border: 1px solid #343E55;
+  border-radius: 8px;
+  transition: border-color 0.2s ease;
+
+  &:hover {
+    border-color: #4A5E88;
+  }
+
+  .card-content {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .source-name {
+        .name-container {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: #253351;
+          border: 1px solid #5D6F98;
+          border-radius: 4px;
+          padding: 8px;
+
+          .resource-icon {
+            width: 14px;
+            height: 14px;
+            color: white;
+            font-size: 14px;
+          }
+
+          .name-text {
+            font-size: 14px;
+            font-weight: 400;
+            color: white;
+          }
+        }
+      }
+
+      .actions {
+        .actions-button {
+          width: 24px;
+          height: 24px;
+          background: #0E1A35;
+          border: 1px solid #505F7F;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+          color: #E8EBEC;
+
+          &:hover {
+            background: #1A2640;
+            border-color: #6A7A9F;
+          }
+
+          &:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px #54B2E7, 0 0 0 4px #1F2C47;
+          }
+        }
+      }
+    }
+
+    .description {
+      p {
+        font-size: 16px;
+        color: #C5CCCE;
+        line-height: 24px;
+        margin: 0;
+      }
+    }
+
+    .separator {
+      height: 1px;
+      background: #414E6D;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+
+      .tag {
+        background: #394661;
+        color: #E8EBEC;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+      }
+    }
+  }
+}
+
+.actions-menu {
+  ::ng-deep {
+    .mat-mdc-menu-panel {
+      background: #16233F;
+      border: 1px solid #4A5E88;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    }
+
+    .mat-mdc-menu-item {
+      color: #E8EBEC;
+      font-size: 14px;
+
+      &:hover {
+        background: #1F2C47;
+      }
+
+      .mat-icon {
+        margin-right: 8px;
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+      }
+    }
+
+    .delete-item {
+      color: #ef4444;
+
+      &:hover {
+        background: #1F2C47;
+      }
+    }
+  }
+}
+

@@ -1,0 +1,245 @@
+:host {
+    display: block;
+    width: 100%;
+    height: calc(100% - 64px);
+    overflow: hidden;
+
+    color: white;
+}
+.chat {
+    height: 100%;
+    display: flex;
+    background: var(--primary-bg);
+    backdrop-filter: blur(10px);
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
+    padding-top: 1rem;
+
+    &_new {
+        // Additional styles for new chat state if needed
+    }
+
+    &__opened {
+
+    }
+
+    &__history {
+        width: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        flex: 1;
+        margin-bottom: var(--chart-height);
+    }
+
+    &__history-list {
+        margin: 0 auto;
+        width: 70%;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 3rem;
+        padding-top: 3rem;
+    }
+
+    &__last-messages {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 3rem;
+        min-height: calc(100vh - 95px - 136px - 7rem);
+    }
+}
+
+// Chat container layout
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    padding: 1rem;
+    box-sizing: border-box;
+    transition: all 400ms ease-in-out;
+
+    &--new {
+        display: grid;
+        grid-template-rows: 0.6fr 1fr 0.8fr;
+        gap: 3rem;
+    }
+}
+
+// Empty state top section
+.empty-state-top {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+
+    &__weather {
+        display: flex;
+        justify-content: flex-end;
+        padding-right: 1rem;
+    }
+
+    &__greeting {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+}
+
+// Conversation wrapper
+.conversation-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    transition: all 400ms ease-in-out;
+
+    &--new {
+        flex: 0 0 auto;
+        justify-content: flex-end;
+    }
+
+    app-report-conversation {
+        width: 100%;
+        height: 100%;
+    }
+}
+
+// Empty state bottom section
+.empty-state-bottom {
+    display: flex;
+    justify-content: center;
+    padding: 0 1.5rem 2rem;
+}
+
+.container {
+    display: flex;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.left, .right {
+    height: 100%;
+    overflow: auto;
+}
+
+.resizer {
+    width: 5px;
+    cursor: col-resize;
+    height: 100%;
+    z-index: 10;
+}
+
+.wrapper {
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    justify-content: start;
+
+    .sidepanel {
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.85);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+
+        &__toggle {
+            width: 100%;
+            height: 95px;
+            color: #000;
+
+            display: flex;
+            align-items: center;
+        }
+
+        &__button {
+            padding-left: 40px;
+            width: 2rem;
+            height: 2rem;
+            box-sizing: content-box;
+        }
+
+        app-recent-list {
+            flex: 1;
+            overflow: hidden;
+            width: 26vw;
+            padding-top: 1rem;
+        }
+    }
+
+    &__content {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        margin: 0 auto;
+    }
+
+    .header {
+        height: 64px;
+        display: flex;
+        padding: 0 40px;
+        justify-content: space-between;
+        align-items: center;
+        filter: drop-shadow(0px 10px 20px rgba(0, 0, 0, 0.16));
+        box-shadow: 0px 0px 8px 0px rgba(0, 0, 0, 0.25), 4px 4px 4px 0px rgba(0, 0, 0, 0.20);
+
+        z-index: 2;
+
+        transition-duration: 600ms;
+        transition-property: box-shadow;
+
+        &__control {
+            display: flex;
+            align-items: center;
+        }
+
+        &__toggle {
+            width: 2rem;
+            height: 2rem;
+            margin-right: 1.75rem;
+            color: #FAFAFACC;
+
+            &_opened {
+                display: none;
+            }
+        }
+    }
+
+    .conversations {
+        height: calc(100% - 95px);
+        flex: 2;
+        display: flex;
+        justify-content: flex-start;
+
+        .chat {
+            position: relative;
+            height: 100%;
+            width: 100%;
+            margin: 0 auto;
+
+            &__wrapper {
+                position: absolute;
+                width: 100%;
+                bottom: 2rem;
+                display: flex;
+                justify-content: center;
+            }
+
+            &__control {
+                min-height: var(--chart-raw-height);
+                width: 70%;
+            }
+        }
+    }
+
+    app-markdown-viewer {
+        padding-top: 40px;
+        padding-left: 80px;
+        padding-right: 40px;
+    }
+
+}

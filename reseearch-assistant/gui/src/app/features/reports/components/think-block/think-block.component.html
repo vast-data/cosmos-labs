@@ -1,0 +1,25 @@
+<div class="content">
+    <div class="top-row">
+        <img alt="ai-logo" src="assets/icons/ai-logo.svg">
+    </div>
+    @if (!opened) {
+        <div class="text">
+            Your report was generated.
+        </div>
+    } @else {
+        <div class="think">
+            @for (item of items; track item.title) {
+                <mat-expansion-panel>
+                    <mat-expansion-panel-header>
+                        <div class="item-header">
+                            <div class="item-header__title">{{ item.title }}</div>
+                        </div>
+                    </mat-expansion-panel-header>
+                    <div class="item-content">
+                        <app-markdown-viewer [content]="item.content"></app-markdown-viewer>
+                    </div>
+                </mat-expansion-panel>
+            }
+        </div>
+    }
+</div>

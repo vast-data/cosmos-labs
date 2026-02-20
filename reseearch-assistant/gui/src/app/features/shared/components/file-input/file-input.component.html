@@ -1,0 +1,62 @@
+<!-- Hidden file input - always in DOM for ViewChild access -->
+<input
+  #fileInput
+  type="file"
+  class="file-input__input"
+  [accept]="config().accept"
+  [disabled]="isDisabled()"
+  (change)="onFileSelected($event)"
+/>
+
+<!-- Upload Area -->
+<div
+  class="file-input__upload-area"
+  [class.file-input__upload-area--drag-over]="dragOver()"
+  [class.file-input__upload-area--disabled]="isDisabled()"
+  [attr.tabindex]="isDisabled() ? -1 : 0"
+  role="button"
+  [attr.aria-label]="selectedFile() ? 'Selected file: ' + selectedFile()!.name : 'Drop file here or click to browse'"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave($event)"
+  (drop)="onDrop($event)"
+  (click)="browseFiles()"
+  (keydown.enter)="browseFiles()"
+  (keydown.space)="browseFiles(); $event.preventDefault()"
+>
+  @if (!selectedFile()) {
+    <div class="file-input__content">
+      <mat-icon class="file-input__icon">cloud_upload</mat-icon>
+      <h3 class="file-input__title">Drop your file here</h3>
+      <p class="file-input__description">or click to browse</p>
+      <button
+        mat-raised-button
+        color="primary"
+        class="file-input__button"
+        [disabled]="isDisabled()"
+        type="button"
+      >
+        Browse Files
+      </button>
+    </div>
+  } @else {
+    <!-- Selected File Display -->
+    <div class="file-input__selected-file">
+      <div class="file-input__file-content">
+        <mat-icon class="file-input__file-icon">description</mat-icon>
+        <div class="file-input__file-info">
+          <div class="file-input__file-name">{{ selectedFile()!.name }}</div>
+          <div class="file-input__file-size">{{ getFileSizeString(selectedFile()!.size) }}</div>
+        </div>
+        <button
+          mat-icon-button
+          class="file-input__file-remove"
+          [disabled]="isDisabled()"
+          (click)="removeFile(); $event.stopPropagation()"
+          type="button"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </div>
+  }
+</div>

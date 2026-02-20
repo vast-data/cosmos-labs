@@ -1,0 +1,54 @@
+<div class="login-wrapper">
+    <div class="login">
+        <div class="login__info info">
+            <div class="info__logo"><img src="assets/images/vast-logo.png" alt="Vast"></div>
+            <div class="info__description text-subheader">
+                Now you can find all the answers <br>
+                in every system you work with
+            </div>
+            <div class="info__title text-header">
+                One search. All the answers
+            </div>
+        </div>
+        <div class="login__form form">
+            <div class="form__title text-title">Login to your account</div>
+
+            <form class="form__input" [formGroup]="form" (ngSubmit)="onLogin()">
+                <label for="username" class="login-input-label">Username</label>
+                <mat-form-field appearance="outline" floatLabel="always" class="login-input">
+                    <input matInput formControlName="username" id="username">
+                </mat-form-field>
+                <label for="password" class="login-input-label">Password</label>
+                <mat-form-field appearance="outline" floatLabel="always" class="login-input">
+                    <input matInput formControlName="password" id="password" type="password">
+                </mat-form-field>
+
+                @if (authService.status() !== 'loading') {
+                    <button class="button-submit">Login</button>
+                } @else {
+                    <button type="button"
+                            class="button-submit">
+                        <mat-spinner [diameter]="16" color="0E182B"></mat-spinner><span class="invisible-text">L</span>
+                    </button>
+                }
+                <div class="form__error">
+                    {{authService.error()}}
+                </div>
+            </form>
+            <div class="form__divider">
+                <span>OR</span>
+            </div>
+            <div class="form__azure-login">
+                <button type="button" class="button-azure" (click)="onAzureAdLogin()">
+                    <svg width="21" height="21" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="21" height="21" fill="#F25022"/>
+                        <rect x="11" width="10" height="10" fill="#7FBA00"/>
+                        <rect y="11" width="10" height="10" fill="#00A4EF"/>
+                        <rect x="11" y="11" width="10" height="10" fill="#FFB900"/>
+                    </svg>
+                    <span>Login with Azure AD</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

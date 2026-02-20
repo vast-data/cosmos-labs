@@ -1,0 +1,18 @@
+<!-- Search by title -->
+<mat-form-field appearance="outline" class="search-field">
+  <mat-label>Search collections</mat-label>
+  <input
+    matInput
+    [formControl]="searchControl"
+    placeholder="Search by collection name or description..."
+    #searchInput>
+  <button
+    *ngIf="searchControl.value"
+    matSuffix
+    mat-icon-button
+    (click)="onClearSearch()"
+    aria-label="Clear search">
+    <mat-icon>close</mat-icon>
+  </button>
+  <mat-icon matPrefix>search</mat-icon>
+</mat-form-field>

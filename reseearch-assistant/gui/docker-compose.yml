@@ -1,0 +1,16 @@
+services:
+  gui:
+    container_name: gui
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "4200:80"
+    environment:
+      - NODE_ENV=production
+      - BASE_API_URL=http://agent-svc:8000
+    restart: unless-stopped
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf 
+    networks:
+      - default

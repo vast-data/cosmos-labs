@@ -1,0 +1,63 @@
+# Git
+.git
+.gitignore
+
+# Environment files - CRITICAL: Never include in Docker image
+.env
+.env.*
+*.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing
+tests/
+pytest_cache/
+.coverage
+htmlcov/
+
+# Documentation
+*.md
+README/
+docs/
+
+# GUI (deploy separately if needed)
+gui.py
+requirements-gui.txt
+Dockerfile.gui
+
+# Docker files
+docker-compose.yml
+Dockerfile*
+.dockerignore
+
+# Kubernetes configs (separate deployment)
+k8s/
+
+# Deployment scripts
+remote/
+deploy.sh
+remote_*.sh
+
+# Temporary files
+*.log
+*.tmp
+.DS_Store
+
+# Backup files
+*.bak
+*.backup

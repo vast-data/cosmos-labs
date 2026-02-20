@@ -1,0 +1,32 @@
+.avatar-circle {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.menu {
+    color: #E8EBEC;
+    padding: .75rem;
+    box-sizing: border-box;
+
+    &__header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-bottom: 1px solid #395894;
+        padding-bottom: .5rem;
+        margin-bottom: 1rem;
+    }
+
+    &__actions {
+        width: 100%;
+        button {
+            color: #E8EBEC;
+            padding: 0 .75rem;
+        }
+    }
+}
