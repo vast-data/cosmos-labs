@@ -4,20 +4,23 @@
 
 This guide will help you follow along during the ~2 hour VAST SDK workshop. Keep this open and follow the step-by-step instructions as we explore VAST Data's Python SDKs together.
 
-## 📋 Pre-Workshop Checklist
-
-Before we start, make sure you have:
-
-- [ ] **Python 3.7+** installed on your laptop
-- [ ] **Terminal/command line** access
-- [ ] **Code editor** (VS Code, PyCharm, or similar)
-- [ ] **Internet connection** for documentation
-- [ ] **VAST cluster access** (read-only credentials provided)
-
 ## Build On VAST: Code Lab Server Access
 The VAST Data Labs gives our entire community remote access to our data infrastructure platform for hands-on exploration and testing. The lab environment is a practical way to get familiar with VAST systems, try out different configurations, and build automation workflows - all without needing your own hardware setup.
 
 If you do not have access to a VAST cluster, complete this lab using our data infrastructure platform, [join our Community to get Code Lab Server access](https://community.vastdata.com/t/official-vast-data-labs-user-guide/1774#p-2216-infrastructure-automation-with-python-and-the-vast-api-3).
+
+## 📋 Pre-Workshop Checklist
+
+Before we start, make sure you have:
+
+Completing the Lab using the VAST Code Server:
+- [ ] **Internet connection** for documentation
+
+Completing the Lab on your own cluster:
+- [ ] **Python 3.7+** installed on your laptop
+- [ ] **Terminal/command line** access
+- [ ] **Code editor** (VS Code, PyCharm, or similar)
+- [ ] **VAST cluster access** (read-only credentials provided)
 
 ## [Optional]🚀 Quick Setup
 
@@ -219,15 +222,15 @@ python 06_chargeback_report.py
 
 **Command:**
 ```bash
-python 07_orphaned_data_discovery_catalog.py
+python 07b_orphaned_data_discovery_no_catalog.py
 ```
 
 **What this demonstrates:**
-- Finding orphaned data using catalog
+- Finding orphaned data by querying the VMS directly (not using catalog)
 - Efficient data cleanup identification
 
 **What to look for:**
-- Efficiently finds orphaned directories using VAST catalog
+- Efficiently finds orphaned directories
 - Storage space recovery potential
 - Cleanup recommendations
 
@@ -377,9 +380,9 @@ python lab4_solution.py --setup-policies
 
 **Create and browse snapshots:**
 ```bash
-python lab4_solution.py --create-snapshot "test-milestone" --protected-path "test_snapshot"
-python lab4_solution.py --list-available-snapshots --protected-path "test_snapshot"
-python lab4_solution.py --browse-snapshot "test-milestone" --protected-path "test_snapshot"
+python lab4_solution.py --create-snapshot "test-milestone" --protected-path "processed_data"
+python lab4_solution.py --list-available-snapshots --protected-path "processed_data"
+python lab4_solution.py --browse-snapshot "test-milestone" --protected-path "processed_data"
 ```
 
 **What this demonstrates:**

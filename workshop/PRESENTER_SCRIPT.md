@@ -149,6 +149,8 @@ vast_password = config.get_secret('vast_password')
 
 **"Let's work through the core examples that demonstrate fundamental VAST SDK operations. We'll cover 5 examples in 15 minutes, so about 3 minutes each."**
 
+> For workshop host: in `/cosmos-labs` run `source venv/bin/activate` before running scripts
+
 #### **Example 1: System Connection (3 minutes)**
 
 **"Let's start with the basics - connecting to your VAST system."**
@@ -264,10 +266,10 @@ python 06_chargeback_report.py
 
 **"Run this command:"**
 ```bash
-python 07_orphaned_data_discovery_catalog.py
+python 07b_orphaned_data_discovery_no_catalog.py
 ```
 
-**"This efficiently finds orphaned directories using VAST catalog."**
+**"This finds orphaned directories by querying the VMS directly (Catalog is not enabled)."**
 
 #### **Example 8: User Quotas (3 minutes)**
 
@@ -322,6 +324,24 @@ python lab1_solution.py --setup-only
 python lab1_solution.py --monitor-only
 ```
 
+#### Full Solution
+```bash
+# DRY RUN MODE (default - safe, no changes made)
+python lab1_solution.py
+
+# PRODUCTION MODE (actual changes will be made)
+python lab1_solution.py --pushtoprod
+
+# Setup only (check if views exist, then exit)
+python lab1_solution.py --setup-only
+
+# Monitor only (skip setup, start monitoring)
+python lab1_solution.py --monitor-only
+
+# In another terminal, run the dashboard
+python monitoring_dashboard.py
+```
+
 **"This demonstrates how you can build automated storage management that prevents crises rather than reacting to them."**
 
 ---
@@ -368,6 +388,56 @@ python lab2_solution.py --setup-only
 python lab2_solution.py --search-only --stats
 ```
 
+#### Full Solution
+
+(Optional) Swift data is already downloaded.
+
+##### Setup Infrastructure
+```bash
+# Dry run (safe - tests connections)
+python lab2_solution.py --setup-only
+
+# Production (creates views and database)
+python lab2_solution.py --setup-only --pushtoprod
+# will fail if view already exists
+```
+
+##### Upload Datasets
+```bash
+# Dry run
+python lab2_solution.py --upload-only
+
+# Production
+python lab2_solution.py --upload-only --pushtoprod
+```
+
+##### Process Metadata
+```bash
+# Dry run
+python lab2_solution.py --process-only
+
+# Production
+python lab2_solution.py --process-only --pushtoprod
+```
+
+##### Search Metadata
+```bash
+# Show statistics
+python lab2_solution.py --search-only --stats
+
+# Show recent files
+python lab2_solution.py --search-only --recent 10
+
+# Search by pattern
+python lab2_solution.py --search-only --pattern "*.gz"
+
+# Search by mission (using pattern matching)
+python lab2_solution.py --search-only --pattern "SWIFT*"
+
+# Search by observation ID (if in filename)
+python lab2_solution.py --search-only --pattern "swbj1421*"
+```
+
 **"This demonstrates how you can build searchable data catalogs that make petabytes of data discoverable and usable."**
 
 ---
@@ -408,6 +478,66 @@ python weather_analytics_demo.py
 - **Correlation analysis** - Finding relationships between variables
 - **Health impact assessment** - Using data for public health
 - **Scalable processing** - Handling large datasets efficiently
+
+
+#### Full Solution
+
+##### 1. Set Up Database Infrastructure
+
+```bash
+cd lab3
+
+# Show what would be set up
+python vastdb_manager.py --setup --dry-run
+# Run the actual database setup
+python vastdb_manager.py --setup
+```
+
+This creates the necessary database tables and schema.
+
+##### 2. Download Weather Data
+
+(Optional) Weather data is already downloaded.
+
+```bash
+# Using one or more of the following presets (recommended)
+python weather_downloader.py --preset test --start 2025-01-01 --end 2025-01-31
+python weather_downloader.py --preset extended --start 2025-01-01 --end 2025-01-31
+python weather_downloader.py --preset pollution --start 2025-01-01 --end 2025-01-31
+python weather_downloader.py --preset global --start 2025-01-01 --end 2025-01-31
+
+# Or specify cities manually
+python weather_downloader.py Beijing London New-York --start 2025-01-01 --end 2025-01-31
+```
+
+This downloads weather and air quality data for the specified cities and date range.
+
+###### Available Presets
+
+- **`test`** - Basic 2-city set (Beijing, London) for quick testing
+- **`extended`** - 6 major global cities with diverse weather patterns
+- **`pollution`** - High-pollution cities for dramatic air quality analysis:
+  - Delhi: Extreme PM2.5 pollution (often 300+ µg/m³)
+  - Lahore: Winter pollution episodes
+  - Mexico City: Ozone issues and altitude effects
+  - Krakow: Coal heating pollution in winter
+  - Ulaanbaatar: Extreme seasonal variation (clean summer, polluted winter)
+  - Los Angeles: Classic smog patterns and ozone action days
+- **`global`** - Comprehensive 10-city global dataset for advanced analytics
+
+##### 3. Run Analytics
+
+```bash
+# Recent analysis (last 6 months)
+python weather_analytics_demo.py --all-cities
+
+# Long-term trend analysis (10 years)
+python weather_analytics_demo.py --all-cities --trends
+
+# Analyze specific cities
+python weather_analytics_demo.py --locations Beijing
+```
+
 
 **"This shows how VAST Database makes complex analytics accessible through SQL while handling the scale and performance requirements of real-time data processing."**
 
