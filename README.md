@@ -5,6 +5,8 @@ Welcome! This repo is a collection of hands-on labs, examples, and projects desi
 
 *   **[DataEngine Video Search and Summary Lab](https://github.com/vast-data/cosmos-labs/tree/main/dataengine-vss-blueprint#vast-dataengine---video-vss-blueprint) (`/dataengine-vss-blueprint`):** A reference application to build a video ingestion and retrieval. It demonstrates how to use VAST data pipeline and vector database for AI applications.
 
+*   **[DataEngine Document Research Assistant Lab](https://github.com/vast-data/cosmos-labs/tree/main/reseearch-assistant#vast-research-assistant---complete-deployment-guide) (`/research-assistant`):** A reference application to build a document ingestion and retrieval. It demonstrates how to use VAST data pipeline and vector database for document AI applications.
+
 *   **[Code Examples](https://github.com/vast-data/cosmos-labs/tree/main/examples#vast-sdk-examples) (`/examples`):** A collection of standalone Python scripts that demonstrate specific, common tasks using the VAST SDKs, such as listing views or checking quotas.
 
 # Support and Resources
