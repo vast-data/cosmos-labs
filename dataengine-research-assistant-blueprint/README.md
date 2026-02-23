@@ -7,7 +7,21 @@ The Research Assistant Agent system is a comprehensive RAG (Retrieval Augmented 
 1. **Backend (Agent) / Frontend (Kubernetes)** - User interface and API
 2. **Ingest Pipeline (VAST DataEngine)** - Serverless document ingest functions
 
+### Table of Contents
 
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Prerequisites](#prerequisites)
+- [Deployment Flow](#deployment-flow)
+- [Part 1: Configuration](#part-1-configuration)
+- [Part 2: Deploy InsightEngine & Serverless Pipeline](#part-2-deploy-insightengine--serverless-pipeline)
+- [Part 3: Deploy Backend (Agent) & Frontend](#part-3-deploy-backend-agent--frontend)
+- [Part 4: Testing](#part-4-testing)
+- [Configuration Reference](#configuration-reference)
+- [Troubleshooting](#troubleshooting)
+- [Uninstall](#uninstall)
+- [Appendix A: Azure AD Configuration](#appendix-a-azure-ad-configuration)
+- [Appendix B: SyncEngine Collections](#appendix-b-syncengine-collections)
 
 ### Architecture
 
@@ -24,6 +38,15 @@ The Research Assistant Agent system is a comprehensive RAG (Retrieval Augmented 
 
 The Backend RAG Service and Serverless Pipeline are powered by [InsightEngine](https://www.vastdata.com/platform/insightengine), checkout a [video overview of InsightEngine](https://www.youtube.com/watch?v=MD5q6x0wfXg).
 
+---
+
+## Key Features
+
+- **RAG-Powered Q&A:** Retrieval Augmented Generation (RAG) on document collections using VAST DataEngine and InsightEngine
+- **Flexible Model Support:** Works with local NVIDIA GPU endpoints or remote NVIDIA NIM APIs for LLM, embedding, and reranker models
+- **Enterprise Authentication:** Optional Azure AD integration for identity-based access control to document collections
+
+---
 
 ## Prerequisites
 
@@ -38,8 +61,8 @@ Before starting, ensure you have:
 - Enabled DataEngine on your k8s cluster
 - Access to VAST DataEngine UI / CLI
 - Cluster name (Any name you pick - e.g., `v3121`)
- - The cluster name can be application specific or arbitrary and will be used as part of the URL for accessing the application
- - So cluster name of `v209` will be used as part of the application URL (so `https://vast-researchv209.vastdata.com`)
+  - The cluster name can be application specific or arbitrary and will be used as part of the URL for accessing the application
+  - So cluster name of `v209` will be used as part of the application URL (so `https://vast-researchv209.vastdata.com`)
 - Admin credentials for creating VMS manager user
 - (Optional) AzureAD connected to your cluster to use AzureAD identities (see Appendix A: Azure AD Configuration)
 
@@ -70,13 +93,52 @@ Note: For deploying the entire application, all deployment (steps 2, 3) will be 
 
 Before deploying, you need to configure secrets with your credentials. These secrets store sensitive information like API keys, database credentials, and S3 access keys.
 
+### Configuration Reference
+
+#### Kubernetes Files
+
+| File | Description |
+|------|-------------|
+| `k8s/configmap.yaml` | Non-sensitive configuration (templated) |
+| `k8s/secret.yaml` | Sensitive credentials (base64 encoded) |
+| `k8s/deployment.yaml` | Backend deployment specification |
+- [ ] File does not exist, is this `service-gui`
+| `k8s/gui-deployment.yaml` | GUI deployment specification |
+- [ ] File does not exist, is this `deployment-gui`
+| `k8s/service.yaml` | Kubernetes services |
+| `k8s/ingress.yaml` | Ingress for agent and GUI |
+| `k8s/install.sh` | Installation script |
+
+#### ConfigMap Variables (Templated)
+
+All components use `research-assistant` as the default namespace.
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `RAG_BASE_URL` | RAG backend URL | `http://backend-webserver.research-assistant:8080` |
+| `VASTDB_BUCKET` | VastDB bucket name | `research-assistant-bucket` |
+| `VASTDB_SCHEMA` | VastDB schema name | `research-assistant-schema` |
+| `AUTH__AZURE__REDIRECTURI` | Azure AD callback URL | `https://${GUI_HOST}/api/auth/callback/nvlogin` |
+| `AUTH__AZURE__NEXTAUTHURL` | Frontend URL | `https://${GUI_HOST}` |
+
+#### Secret Keys
+
+| Key | Description |
+|-----|-------------|
+| `AGENT_OPENAI_API_KEY` | NVIDIA/OpenAI API key for LLM |
+| `VASTDB_ENDPOINT` | VastDB endpoint URL |
+| `VASTDB_ACCESS_KEY` | VastDB access key |
+| `VASTDB_SECRET_KEY` | VastDB secret key |
+| `AUTH__AZURE__CLIENTID` | Azure AD application client ID (optional) |
+| `AUTH__AZURE__CLIENTSECRET` | Azure AD client secret (optional) |
+| `AUTH__AZURE__NEXTAUTHSECRET` | NextAuth session secret (optional) |
+
 **Configuration Files Location:**
 - `configs/config.yaml` - InsightEngine and Serverless Pipeline configuration
 
 ### Step 1.1: Configure InsightEngine & Serverless Pipeline
 
 Create or update `configs/config.yaml` with your environment-specific values :
-
 
 ```yaml
 # InsightEngine Deployment Configuration
@@ -85,7 +147,7 @@ Create or update `configs/config.yaml` with your environment-specific values :
 # ==========================================
 pipeline_name: "research-assistant"
 kubernetes_cluster: "" #the `Name` of the Kubernetes Cluster for your specific tenant
-vippool_host: ""
+vippool_host: "" # VIP pool hostname for S3/NFS data access
 qe_vippool_host: "" #For querying vectors, you will need a different endpoint
 
 # VAST Management System (VMS)
@@ -108,8 +170,8 @@ dataengine:
 - [ ] Add a optional fields
 s3:
   user: "" # S3 user for deployment (will be created if not exists)
-  bucket_name: "${pipeline_name}-bucket"
-  vdb_schema: "${pipeline_name}-schema"
+  bucket_name: "${pipeline_name}-bucket" # S3 bucket name for document storage
+  vdb_schema: "${pipeline_name}-schema" # VastDB schema name for vector and metadata storage
   view_policy: "s3_default_policy" # View policy for buckets
   access_key: "" # Set at runtime from credential generation
   secret_key: "" # Set at runtime from credential generation
@@ -198,9 +260,9 @@ serverless:
 
   # Ingestion Settings
   ingestion:
-    chunk_size: "500"
-    chunk_overlap: "25"
-    max_tokens: "8192"
+    chunk_size: "500" # tokens per document chunk
+    chunk_overlap: "25" # Token overlap between consecutive chunks
+    max_tokens: "8192" # Maximum tokens per ingestion request
 
   # NVIDIA Ingest Service (for Media Mode)
   nvingest:
@@ -327,6 +389,12 @@ docker run --rm --network host \
   vastdataorg/insight-engine-deploy:724b4600 task deploy:serverless
 ```
 
+Note: For the current version of InsightEngine, your DataEngine user must have access to the `default` tenant to deploy. So you may get this message if you deploy to another tenant:
+```
+<!-- ✗ Failed to connect to DataEngine API: Failed to authenticate: 401 Client Error: Unauthorized for url: ...
+Loading configuration for environment: default -->
+```
+
 #### Sanity Check — `deploy:serverless`
 
 After running the command above, verify that triggers, functions, and the pipeline were created:
@@ -377,6 +445,8 @@ research-assistant         Ready                                         f1ff23f
 
 ### Step 3.1: Build and Push Docker Images (Optional)
 
+This step is only required if you are making client (gui/backend) code changes, you will need to push the changes to a docker registry.
+
 ```bash
 # From project root
 cd backend
@@ -412,7 +482,7 @@ cd k8s/
   -i
 ```
 
-- [ ] brew install gettext, brew link --force gettext on macs
+If you receive errors, `install.sh` uses `envsubst` so you may need to update your local machine to run envsubst commands (i.e. `gettext` on osx).
 
 **Example (with secret file):**
 ```bash
@@ -561,49 +631,6 @@ kubectl logs -f deployment/research-assistant -n research-assistant
 # Frontend logs
 kubectl logs -f deployment/research-assistant-gui -n research-assistant
 ```
-
----
-
-## Configuration Reference
-
-### Kubernetes Files
-
-| File | Description |
-|------|-------------|
-| `k8s/configmap.yaml` | Non-sensitive configuration (templated) |
-| `k8s/secret.yaml` | Sensitive credentials (base64 encoded) |
-| `k8s/deployment.yaml` | Backend deployment specification |
-- [ ] File does not exist, is this `service-gui`
-| `k8s/gui-deployment.yaml` | GUI deployment specification |
-- [ ] File does not exist, is this `deployment-gui`
-| `k8s/service.yaml` | Kubernetes services |
-| `k8s/ingress.yaml` | Ingress for agent and GUI |
-| `k8s/install.sh` | Installation script |
-
-### ConfigMap Variables (Templated)
-
-All components use `research-assistant` as the default namespace.
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `RAG_BASE_URL` | RAG backend URL | `http://backend-webserver.research-assistant:8080` |
-| `VASTDB_BUCKET` | VastDB bucket name | `research-assistant-bucket` |
-| `VASTDB_SCHEMA` | VastDB schema name | `research-assistant-schema` |
-| `AUTH__AZURE__REDIRECTURI` | Azure AD callback URL | `https://${GUI_HOST}/api/auth/callback/nvlogin` |
-| `AUTH__AZURE__NEXTAUTHURL` | Frontend URL | `https://${GUI_HOST}` |
-
-### Secret Keys
-
-| Key | Description |
-|-----|-------------|
-| `AGENT_OPENAI_API_KEY` | NVIDIA/OpenAI API key for LLM |
-| `VASTDB_ENDPOINT` | VastDB endpoint URL |
-| `VASTDB_ACCESS_KEY` | VastDB access key |
-| `VASTDB_SECRET_KEY` | VastDB secret key |
-| `AUTH__AZURE__CLIENTID` | Azure AD application client ID (optional) |
-| `AUTH__AZURE__CLIENTSECRET` | Azure AD client secret (optional) |
-| `AUTH__AZURE__NEXTAUTHSECRET` | NextAuth session secret (optional) |
-
 
 ### Encoding Secrets
 
