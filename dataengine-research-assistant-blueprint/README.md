@@ -61,8 +61,8 @@ Before starting, ensure you have:
 - Enabled DataEngine on your k8s cluster
 - Access to VAST DataEngine UI / CLI
 - Cluster name (Any name you pick - e.g., `v3121`)
-  - The cluster name can be application specific or arbitrary and will be used as part of the URL for accessing the application
-  - So cluster name of `v209` will be used as part of the application URL (so `https://vast-researchv209.vastdata.com`)
+ - The cluster name can be application specific or arbitrary and will be used as part of the URL for accessing the application
+ - So cluster name of `v209` will be used as part of the application URL (so `https://vast-researchv209.vastdata.com`)
 - Admin credentials for creating VMS manager user
 - (Optional) AzureAD connected to your cluster to use AzureAD identities (see Appendix A: Azure AD Configuration)
 
@@ -102,9 +102,7 @@ Before deploying, you need to configure secrets with your credentials. These sec
 | `k8s/configmap.yaml` | Non-sensitive configuration (templated) |
 | `k8s/secret.yaml` | Sensitive credentials (base64 encoded) |
 | `k8s/deployment.yaml` | Backend deployment specification |
-- [ ] File does not exist, is this `service-gui`
 | `k8s/gui-deployment.yaml` | GUI deployment specification |
-- [ ] File does not exist, is this `deployment-gui`
 | `k8s/service.yaml` | Kubernetes services |
 | `k8s/ingress.yaml` | Ingress for agent and GUI |
 | `k8s/install.sh` | Installation script |
@@ -167,7 +165,6 @@ dataengine:
 # These settings define the common infrastructure and naming for your deployment
 
 # S3 Storage Configuration
-- [ ] Add a optional fields
 s3:
   user: "" # S3 user for deployment (will be created if not exists)
   bucket_name: "${pipeline_name}-bucket" # S3 bucket name for document storage
@@ -312,8 +309,6 @@ RAG_TIMEOUT=60.0
 VASTDB_ENDPOINT=
 VASTDB_ACCESS_KEY=
 VASTDB_SECRET_KEY=
-
-- [ ] Make a note to test out S3 bucket created with s3cmd commands
 
 # API Configuration
 API_TITLE=Research Assistant API
@@ -578,7 +573,6 @@ Options:
   -u, --uninstall                Uninstall the deployment
   -h, --help                     Show help message
 ```
-
 
 ### Step 3.4: Configure DNS/Hosts
 
