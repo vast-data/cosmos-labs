@@ -26,7 +26,6 @@ The Research Assistant Agent system is a comprehensive RAG (Retrieval Augmented 
 ### Architecture
 
 ![Architecture Diagram](docs/architecture.png)
-- [ ] Not urgent, but for sharing with marketing, the `Ingest: Serverless Pipeline` is essentially `InsightEngine`
 
 ### System Components
 
@@ -65,7 +64,6 @@ Before starting, ensure you have:
  - The cluster name can be application specific or arbitrary and will be used as part of the URL for accessing the application
  - So cluster name of `v209` will be used as part of the application URL (so `https://vast-researchv209.vastdata.com`)
 - Admin credentials for creating VMS manager user
-  - [ ] We expand/create a `User Authentication` section similar to [VSS](https://github.com/vast-data/cosmos-labs/blob/main/vast-de-video-lab/retrieval/video-backend/README.md#user-authentication)
 - (Optional) AzureAD connected to your cluster to use AzureAD identities (see Appendix A: Azure AD Configuration)
 
 ### AI/ML Services
@@ -139,8 +137,6 @@ All components use `research-assistant` as the default namespace.
 ### Step 1.1: Configure InsightEngine & Serverless Pipeline
 
 Create or update `configs/config.yaml` with your environment-specific values :
-
-- [ ] Ensure all const have a description in the comments or we define them outside of the yaml in markdown
 
 ```yaml
 # InsightEngine Deployment Configuration
@@ -577,9 +573,6 @@ Options:
   -u, --uninstall                Uninstall the deployment
   -h, --help                     Show help message
 ```
-
-
-- [ ] `research-assistant-secrets` how can we verify this? Or is this done in a previous step?
 
 ### Step 3.4: Configure DNS/Hosts
 
