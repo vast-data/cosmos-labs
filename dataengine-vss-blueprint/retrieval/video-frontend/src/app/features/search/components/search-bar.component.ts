@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -29,7 +28,6 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
     FormsModule,
     MatButtonModule,
     MatIconModule,
-    MatSlideToggleModule,
     MatDatepickerModule,
     MatNativeDateModule,
     MatFormFieldModule,
@@ -41,7 +39,16 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
   template: `
     <div class="search-bar-container">
       <form [formGroup]="searchForm" (ngSubmit)="onSearch()" class="search-form">
-        
+        <!-- LLM toggle (sparkle when on, star outline when off) - left of search input -->
+        <button
+          type="button"
+          class="llm-star-button"
+          [class.active]="searchForm.get('useLlm')?.value"
+          (click)="searchForm.patchValue({ useLlm: !searchForm.get('useLlm')?.value })"
+          matTooltip="Enable LLM Response"
+          mat-icon-button>
+          <mat-icon>{{ searchForm.get('useLlm')?.value ? 'auto_awesome' : 'star_border' }}</mat-icon>
+        </button>
         <!-- Main Search Field - Native HTML -->
         <div class="custom-search-field">
           <div class="search-icon">
@@ -75,70 +82,75 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
         </button>
       </form>
 
-      <!-- Video Scope Filter (below search bar) -->
-      <div class="scope-filter">
-        <label class="scope-label">Search in:</label>
-        <div class="scope-pills">
+      <!-- Search in + Upload (center) + Discover Metadata Filters (one row) -->
+      <div class="scope-and-actions-row">
+        <div class="scope-filter">
+          <label class="scope-label">Search in:</label>
+          <div class="scope-pills">
+            <button 
+              type="button"
+              class="scope-pill"
+              [class.active]="searchForm.value.scope === 'all'"
+              (click)="searchForm.patchValue({ scope: 'all' })">
+              <mat-icon>public</mat-icon>
+              <span>All Videos</span>
+            </button>
+            <button 
+              type="button"
+              class="scope-pill"
+              [class.active]="searchForm.value.scope === 'mine'"
+              (click)="searchForm.patchValue({ scope: 'mine' })">
+              <mat-icon>person</mat-icon>
+              <span>My Videos</span>
+            </button>
+            <button 
+              type="button"
+              class="scope-pill"
+              [class.active]="searchForm.value.scope === 'public'"
+              (click)="searchForm.patchValue({ scope: 'public' })">
+              <mat-icon>visibility</mat-icon>
+              <span>Public Only</span>
+            </button>
+          </div>
+        </div>
+        <div class="upload-center">
+          <button mat-icon-button
+                  type="button"
+                  class="upload-icon-btn"
+                  (click)="uploadClick.emit()"
+                  matTooltip="Upload video">
+            <mat-icon>cloud_upload</mat-icon>
+          </button>
+        </div>
+        <div class="advanced-filters-toggle">
           <button 
             type="button"
-            class="scope-pill"
-            [class.active]="searchForm.value.scope === 'all'"
-            (click)="searchForm.patchValue({ scope: 'all' })">
-            <mat-icon>public</mat-icon>
-            <span>All Videos</span>
+            class="toggle-button"
+            (click)="toggleAdvancedFilters()"
+            matTooltip="Discover and filter by additional metadata fields">
+            <mat-icon>{{showAdvancedFilters() ? 'expand_less' : 'filter_list'}}</mat-icon>
+            <span>{{showAdvancedFilters() ? 'Hide Filters' : 'Discover Metadata Filters'}}</span>
           </button>
           <button 
             type="button"
-            class="scope-pill"
-            [class.active]="searchForm.value.scope === 'mine'"
-            (click)="searchForm.patchValue({ scope: 'mine' })">
-            <mat-icon>person</mat-icon>
-            <span>My Videos</span>
+            class="toggle-button reveal-query-button"
+            (click)="revealQuery()"
+            [disabled]="!canRevealQuery()"
+            matTooltip="Show the SQL query executed for similarity search">
+            <mat-icon>code</mat-icon>
+            <span>Reveal Similarity Query</span>
           </button>
-          <button 
-            type="button"
-            class="scope-pill"
-            [class.active]="searchForm.value.scope === 'public'"
-            (click)="searchForm.patchValue({ scope: 'public' })">
-            <mat-icon>visibility</mat-icon>
-            <span>Public Only</span>
-          </button>
+          @if (loadingSchema()) {
+            <span class="loading-indicator">Loading schema...</span>
+          }
         </div>
       </div>
 
-      <!-- AI Enhancement Toggle (below search bar, inside form for binding) -->
-      <form [formGroup]="searchForm">
-        <div class="ai-toggle-container">
-          <mat-slide-toggle 
-            formControlName="useLlm"
-            color="primary"
-            class="ai-toggle">
-            <div class="toggle-label">
-              <mat-icon class="toggle-icon">auto_awesome</mat-icon>
-              <span>Enable LLM Response</span>
-            </div>
-          </mat-slide-toggle>
-        </div>
-      </form>
-
-      <!-- Quick Suggestions -->
-      <div class="search-hints" *ngIf="quickSuggestions.length > 0">
-        <span class="hint-label">Try:</span>
-        <div class="hint-chips">
-          <button 
-            type="button" 
-            class="hint-chip" 
-            *ngFor="let suggestion of quickSuggestions"
-            (click)="setQuery(suggestion)">
-            {{ suggestion }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Time Selection Filter -->
-      <div class="time-filter">
-        <span class="time-label">Time Selection:</span>
-        <div class="time-pills">
+      <!-- Time Selection Filter row -->
+      <div class="time-filter-row">
+        <div class="time-filter">
+          <span class="time-label">Time Selection:</span>
+          <div class="time-pills">
           <button 
             type="button"
             class="time-pill"
@@ -196,6 +208,7 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
             <span>Custom Date</span>
           </button>
         </div>
+        </div>
       </div>
 
       <!-- Custom Date & Time Range Picker (always rendered, show/hide with CSS) -->
@@ -250,30 +263,6 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
           </div>
         </div>
       </form>
-
-      <!-- Advanced Filters Toggle -->
-      <div class="advanced-filters-toggle">
-        <button 
-          type="button"
-          class="toggle-button"
-          (click)="toggleAdvancedFilters()"
-          matTooltip="Discover and filter by additional metadata fields">
-          <mat-icon>{{showAdvancedFilters() ? 'expand_less' : 'filter_list'}}</mat-icon>
-          <span>{{showAdvancedFilters() ? 'Hide Filters' : 'Discover Metadata Filters'}}</span>
-        </button>
-        <button 
-          type="button"
-          class="toggle-button reveal-query-button"
-          (click)="revealQuery()"
-          [disabled]="!canRevealQuery()"
-          matTooltip="Show the SQL query executed for similarity search">
-          <mat-icon>code</mat-icon>
-          <span>Reveal Similarity Query</span>
-        </button>
-        @if (loadingSchema()) {
-          <span class="loading-indicator">Loading schema...</span>
-        }
-      </div>
 
       <!-- Dynamic Advanced Filters Panel -->
       @if (showAdvancedFilters() && metadataFields().length > 0) {
@@ -363,6 +352,24 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
       gap: 1rem;
       align-items: stretch;
       margin-bottom: 1.5rem;
+
+      .llm-star-button {
+        flex-shrink: 0;
+        align-self: center;
+        mat-icon {
+          font-size: 1.5rem;
+          width: 1.5rem;
+          height: 1.5rem;
+          color: var(--text-secondary);
+          transition: color 0.2s ease;
+        }
+        &:hover mat-icon {
+          color: var(--text-primary);
+        }
+        &.active mat-icon {
+          color: var(--color-lightblue-400);
+        }
+      }
     }
 
     /* ============================================
@@ -476,11 +483,29 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
     /* ============================================
        VIDEO SCOPE FILTER (Pill-Style Toggle)
        ============================================ */
+    .scope-and-actions-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .upload-center {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
     .scope-filter {
       display: flex;
       align-items: center;
       gap: 1rem;
-      margin-bottom: 1.5rem;
+      margin-bottom: 0;
       
       .scope-label {
         color: var(--text-secondary);
@@ -546,124 +571,32 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
     }
 
     /* ============================================
-       AI ENHANCEMENT TOGGLE
+       UPLOAD + TIME SELECTION (same row)
        ============================================ */
-    .ai-toggle-container {
-      padding: 1rem 0;
-      border-top: 1px solid var(--border-color);
-      transition: border-color 0.3s ease;
-      
-      .ai-toggle {
-        ::ng-deep .mdc-label {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-        
-        .toggle-label {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          color: var(--text-primary);
-          font-size: 0.95rem;
-          font-weight: 500;
-          user-select: none;
-          cursor: pointer;
-          
-          .toggle-icon {
-            font-size: 20px;
-            width: 20px;
-            height: 20px;
-            color: var(--accent-primary);
-          }
-        }
-        
-        ::ng-deep .mdc-switch {
-          .mdc-switch__track {
-            background: rgba(162, 174, 180, 0.3); /* gray-400 with opacity */
-            border-color: rgba(162, 174, 180, 0.5); /* gray-400 with opacity */
-          }
-          
-          &.mdc-switch--selected .mdc-switch__track {
-            background: var(--color-lightblue-400); /* lightblue-400 */
-            border-color: var(--color-lightblue-400);
-          }
-          
-          .mdc-switch__handle-track .mdc-switch__handle {
-            background: #ffffff;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-          }
-          
-          &.mdc-switch--selected .mdc-switch__handle {
-            background: var(--color-blue-1000); /* blue-1000 - dark handle on selected */
-            box-shadow: 0 0 12px rgba(115, 200, 253, 0.6); /* lightblue-400 glow */
-          }
-        }
-      }
-    }
-
-    /* ============================================
-       SEARCH HINTS & SUGGESTIONS
-       ============================================ */
-    .search-hints {
-      display: flex;
-      align-items: flex-start;
-      gap: 1rem;
-      padding-top: 1.5rem;
-      border-top: 1px solid var(--border-color);
-      transition: border-color 0.3s ease;
-      
-      .hint-label {
-        color: var(--text-secondary);
-        font-size: 0.9rem;
-        font-weight: 500;
-        padding-top: 0.5rem;
-        flex-shrink: 0;
-      }
-      
-      .hint-chips {
-        display: flex;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-        flex: 1;
-        
-        .hint-chip {
-          background: var(--bg-secondary);
-          color: var(--text-primary);
-          border: 1px solid var(--border-color);
-          border-radius: 20px;
-          padding: 0.5rem 1rem;
-          font-size: 0.875rem;
-          font-family: 'Roboto', sans-serif;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          white-space: nowrap;
-          
-          &:hover {
-            background: var(--bg-card-hover);
-            border-color: var(--border-hover);
-            transform: translateY(-1px);
-            color: var(--text-primary);
-            box-shadow: var(--shadow);
-          }
-          
-          &:active {
-            transform: translateY(0);
-          }
-        }
-      }
-    }
-
-    /* ============================================
-       TIME SELECTION FILTER
-       ============================================ */
-    .time-filter {
+    .time-filter-row {
       display: flex;
       align-items: center;
       gap: 1rem;
       padding: 1.25rem 0 0.5rem 0;
       border-top: 1px solid var(--border-color);
       margin-top: 1rem;
+      transition: border-color 0.3s ease;
+    }
+
+    .upload-icon-btn {
+      flex-shrink: 0;
+      color: var(--accent-primary);
+    }
+    .upload-icon-btn:hover {
+      background: rgba(115, 200, 253, 0.15);
+    }
+
+    .time-filter {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex: 1;
+      min-width: 0;
       transition: border-color 0.3s ease;
     }
 
@@ -908,9 +841,8 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
       display: flex;
       align-items: center;
       gap: 1rem;
-      margin-top: 1rem;
-      padding-top: 1rem;
-      border-top: 1px solid var(--border-color);
+      margin-top: 0;
+      padding-top: 0;
       transition: border-color 0.3s ease;
       
       .toggle-button {
@@ -1092,10 +1024,10 @@ export class SearchBarComponent implements OnInit {
   dialog = inject(MatDialog);
   searchService = inject(SearchService);
   @Output() search = new EventEmitter<SearchRequest>();
+  @Output() uploadClick = new EventEmitter<void>();
 
   showCustomDatePicker = false;
   placeholderText = 'Search videos...';
-  quickSuggestions: string[] = [];
 
   // Advanced Filters state
   showAdvancedFilters = signal(false);
@@ -1124,13 +1056,9 @@ export class SearchBarComponent implements OnInit {
         if (config.placeholder_examples && config.placeholder_examples.length > 0) {
           this.placeholderText = `Search videos... (e.g., ${config.placeholder_examples.join(', ')})`;
         }
-        if (config.quick_suggestions && config.quick_suggestions.length > 0) {
-          this.quickSuggestions = config.quick_suggestions;
-        }
       },
       error: (err) => {
         console.error('Failed to load search suggestions from backend, using defaults', err);
-        // Keep defaults set in property initialization
       }
     });
   }

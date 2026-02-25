@@ -72,7 +72,7 @@ import { interval } from 'rxjs';
                     }
                     @if (status()?.status?.current_config?.neighborhood) {
                       <div class="info-row">
-                        <span class="label">Neighborhood:</span>
+                        <span class="label">Location:</span>
                         <span class="value">{{ status()?.status?.current_config?.neighborhood }}</span>
                       </div>
                     }

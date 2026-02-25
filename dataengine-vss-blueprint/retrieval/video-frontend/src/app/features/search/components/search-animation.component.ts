@@ -157,6 +157,8 @@ import { MatIconModule } from '@angular/material/icon';
       width: 85%;
       box-shadow: 0 15px 45px rgba(0, 0, 0, 0.5),
                   0 0 80px rgba(0, 206, 209, 0.2);
+      transform: scale(0.95);
+      transform-origin: center center;
     }
 
     .phase {

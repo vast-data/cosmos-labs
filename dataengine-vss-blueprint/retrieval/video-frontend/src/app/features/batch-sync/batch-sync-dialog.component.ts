@@ -200,15 +200,15 @@ import { environment } from '../../../environments/environment';
             <mat-label>Analysis Scenario</mat-label>
             <mat-select formControlName="scenario">
               <mat-option [value]="">-- Use Default (from settings) --</mat-option>
-              <mat-option value="surveillance">Surveillance</mat-option>
-              <mat-option value="traffic">Traffic</mat-option>
-              <mat-option value="nhl">NHL</mat-option>
-              <mat-option value="sports">Sports</mat-option>
-              <mat-option value="retail">Retail</mat-option>
-              <mat-option value="warehouse">Warehouse</mat-option>
-              <mat-option value="nyc_control">NYC Control</mat-option>
-              <mat-option value="egocentric">Egocentric (Kitchen/Barista/Sports/Finding)</mat-option>
-              <mat-option value="general">General</mat-option>
+              <mat-option value="surveillance">Incident & Safety Detection</mat-option>
+              <mat-option value="traffic">Vehicle & Pedestrian Monitoring</mat-option>
+              <mat-option value="nhl">Hockey Game Analysis</mat-option>
+              <mat-option value="sports">General Sports Analysis</mat-option>
+              <mat-option value="retail">Retail Store Monitoring</mat-option>
+              <mat-option value="warehouse">Warehouse Safety & Operations</mat-option>
+              <mat-option value="nyc_control">NYC Traffic & Public Safety</mat-option>
+              <mat-option value="egocentric">First-Person Activity Analysis</mat-option>
+              <mat-option value="general">General Video Analysis</mat-option>
             </mat-select>
             <mat-icon matSuffix>psychology</mat-icon>
           </mat-form-field>

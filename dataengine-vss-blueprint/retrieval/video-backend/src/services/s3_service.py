@@ -4,7 +4,7 @@ S3 service for video uploads and streaming
 import logging
 import boto3
 from botocore.exceptions import ClientError
-from typing import Dict
+from typing import Dict, Optional
 import uuid
 from datetime import datetime
 from src.config import get_settings
@@ -133,7 +133,9 @@ class S3Service:
         is_public: bool,
         tags: list[str],
         allowed_users: list[str],
-        scenario: str = ""
+        scenario: str = "",
+        camera_id: Optional[str] = None,
+        neighborhood: Optional[str] = None
     ) -> str:
         """
         Upload file directly to S3 (backend proxy)
@@ -144,6 +146,9 @@ class S3Service:
             is_public: Whether video is public
             tags: Video tags
             allowed_users: Additional allowed users
+            scenario: Analysis scenario
+            camera_id: Optional camera identifier (for ingest pipeline)
+            neighborhood: Optional area/neighborhood (for ingest pipeline)
             
         Returns:
             S3 object key
@@ -169,7 +174,7 @@ class S3Service:
                 # Add any additional users specified by uploader
                 all_allowed_users.extend([u for u in allowed_users if u and u != username])
             
-            # Prepare metadata
+            # Prepare metadata (keys match ingest video-segmenter S3ObjectMetadataModel)
             metadata = {
                 'is-public': 'true' if actual_is_public else 'false',
                 'allowed-users': ','.join(all_allowed_users),  # Always populated
@@ -184,6 +189,11 @@ class S3Service:
             # Add scenario if present
             if scenario:
                 metadata['scenario'] = scenario
+            
+            if camera_id:
+                metadata['camera-id'] = camera_id
+            if neighborhood:
+                metadata['neighborhood'] = neighborhood
             
             logger.info(f"Uploading {file.filename} to s3://{self.settings.s3_upload_bucket}/{object_key}")
             logger.info(f"Metadata to set: {metadata}")
