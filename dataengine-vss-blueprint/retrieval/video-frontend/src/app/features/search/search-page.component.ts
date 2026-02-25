@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnDestroy, OnInit, effect } from '@angular/core';
+import { Component, inject, signal, OnInit, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
@@ -29,18 +29,7 @@ import { environment } from '../../../environments/environment';
   ],
   template: `
     <div class="search-container">
-      <div class="search-header">
-        <button mat-raised-button 
-                color="accent" 
-                (click)="openUpload()" 
-                [disabled]="isOpeningDialog()"
-                class="upload-button">
-          <mat-icon>{{ isOpeningDialog() ? 'hourglass_empty' : 'cloud_upload' }}</mat-icon>
-          {{ isOpeningDialog() ? 'Opening...' : 'Upload Video' }}
-        </button>
-      </div>
-
-      <app-search-bar (search)="onSearch($event)"></app-search-bar>
+      <app-search-bar (search)="onSearch($event)" (uploadClick)="openUpload()"></app-search-bar>
 
       @if (searchService.state().error) {
         <div class="error-message">
@@ -52,10 +41,10 @@ import { environment } from '../../../environments/environment';
       @if (!hasSearched() && !searchService.state().loading) {
         <div class="empty-state">
           <img src="assets/vast_logo.svg" alt="VAST" class="vast-logo-glow">
-          <h2>Ready to search</h2>
-          <p>Enter a natural language query to find videos with AI-powered semantic search</p>
+          <h2>What are you looking for?</h2>
+          <p>Type what you want to see in plain words — we’ll find the right clips.</p>
           <div class="examples">
-            <h3>Example queries:</h3>
+            <h3>Try something like:</h3>
             <ul>
               @for (example of exampleQueries(); track example) {
                 <li><mat-icon>search</mat-icon> "{{ example }}"</li>
@@ -119,32 +108,6 @@ import { environment } from '../../../environments/environment';
       max-width: 1400px;
       margin: 0 auto;
       min-height: 100vh;
-    }
-    
-    .search-header {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 2rem;
-      
-      .upload-button {
-        background: var(--button-bg-primary) !important;
-        color: var(--button-text) !important;
-        font-weight: 500;
-        border-radius: 4px !important;
-        padding: 0 1.5rem !important;
-        cursor: pointer !important;
-        transition: all 0.2s ease;
-        
-        * {
-          cursor: pointer !important;
-          color: var(--button-text) !important;
-        }
-        
-        &:hover {
-          background: var(--button-bg-hover) !important;
-          box-shadow: var(--shadow-hover);
-        }
-      }
     }
 
     .error-message {
@@ -327,19 +290,17 @@ import { environment } from '../../../environments/environment';
     }
   `]
 })
-export class SearchPageComponent implements OnInit, OnDestroy {
+export class SearchPageComponent implements OnInit {
   searchService = inject(SearchService);
   dialog = inject(MatDialog);
   authService = inject(AuthService);
   http = inject(HttpClient);
   
   hasSearched = signal(false);
-  isOpeningDialog = signal(false);
   exampleQueries = signal<string[]>([]);
-  
-  // Store dialog references to close them on logout
+  isOpeningDialog = signal(false);
   private uploadDialogRef: MatDialogRef<UploadDialogComponent> | null = null;
-  
+
   ngOnInit() {
     this.loadExampleQueries();
   }
@@ -353,22 +314,20 @@ export class SearchPageComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Failed to load example queries, using defaults', err);
-        // Set default fallback examples
+        // Set default fallback examples (friendly & varied)
         this.exampleQueries.set([
-          'suspicious person near fence',
-          'unattended bag',
-          'vehicle running red light'
+          'person waving at the camera',
+          'someone dropping a bag',
+          'car stopping at a red light'
         ]);
       }
     });
   }
   
   constructor() {
-    // Watch auth status to close dialogs on logout
     effect(() => {
       const status = this.authService.status();
       if (status === 'pending' && !this.authService.token()) {
-        // User logged out - close all dialogs
         if (this.uploadDialogRef) {
           this.uploadDialogRef.close();
           this.uploadDialogRef = null;
@@ -376,13 +335,6 @@ export class SearchPageComponent implements OnInit, OnDestroy {
         this.dialog.closeAll();
       }
     });
-  }
-  
-  ngOnDestroy() {
-    // Clean up any open dialogs
-    if (this.uploadDialogRef) {
-      this.uploadDialogRef.close();
-    }
   }
 
   onSearch(request: SearchRequest) {
@@ -405,14 +357,8 @@ export class SearchPageComponent implements OnInit, OnDestroy {
   }
 
   openUpload() {
-    // Prevent multiple clicks
-    if (this.isOpeningDialog()) {
-      return;
-    }
-    
+    if (this.isOpeningDialog()) return;
     this.isOpeningDialog.set(true);
-    
-    // Use setTimeout to ensure proper initialization
     setTimeout(() => {
       this.uploadDialogRef = this.dialog.open(UploadDialogComponent, {
         width: '600px',
@@ -422,11 +368,7 @@ export class SearchPageComponent implements OnInit, OnDestroy {
         autoFocus: true,
         restoreFocus: true
       });
-      
-      // Reset loading state immediately after dialog opens
       this.isOpeningDialog.set(false);
-      
-      // Clean up reference when dialog closes
       this.uploadDialogRef.afterClosed().subscribe(() => {
         this.uploadDialogRef = null;
       });

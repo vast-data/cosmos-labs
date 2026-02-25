@@ -1,7 +1,9 @@
 """
 Video management API endpoints
 """
+import asyncio
 import logging
+from typing import Optional
 from fastapi import APIRouter, HTTPException, status, Query, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from src.services.auth_service import CurrentUser
@@ -12,6 +14,26 @@ from src.config import get_settings
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/videos", tags=["Videos"])
 settings = get_settings()
+
+# Limit concurrent uploads; extra requests wait in queue (no rejection)
+_upload_semaphore: Optional[asyncio.Semaphore] = None
+_upload_semaphore_init_lock: Optional[asyncio.Lock] = None
+
+
+async def _get_upload_semaphore() -> asyncio.Semaphore:
+    """Return the shared upload semaphore; init once, race-free."""
+    global _upload_semaphore, _upload_semaphore_init_lock
+    if _upload_semaphore is not None:
+        return _upload_semaphore
+    if _upload_semaphore_init_lock is None:
+        _upload_semaphore_init_lock = asyncio.Lock()
+    async with _upload_semaphore_init_lock:
+        if _upload_semaphore is None:
+            n = get_settings().max_concurrent_uploads
+            n = max(1, int(n))  # never 0: Semaphore(0) would block all uploads
+            _upload_semaphore = asyncio.Semaphore(n)
+            logger.info(f"Upload concurrency: max {n} parallel, rest queued")
+    return _upload_semaphore
 
 
 @router.post("/upload")
@@ -24,24 +46,23 @@ async def upload_video(
     current_user: CurrentUser = None
 ):
     """
-    Upload video directly through backend (proxied to S3)
-    
-    This endpoint receives the video file from the frontend and uploads it
-    to S3 with the appropriate metadata. This avoids CORS issues.
+    Upload video directly through backend (proxied to S3).
+    Requires authentication.
     
     Args:
         file: Video file to upload
         is_public: Make video publicly accessible
         tags: Comma-separated tags
         allowed_users: Comma-separated list of allowed users
+        scenario: Analysis scenario (e.g. general)
         current_user: Current authenticated user
         
     Returns:
         Upload confirmation with object key
     """
     logger.info(f"Upload request from {current_user.username}: filename='{file.filename}', is_public={is_public}")
-    
-    # Validate file extension
+
+    # Validate before taking a slot (invalid requests don't queue or consume capacity)
     file_ext = file.filename.lower().split('.')[-1] if '.' in file.filename else ''
     if f".{file_ext}" not in settings.allowed_video_extensions:
         logger.warning(f"Invalid file extension: {file_ext}")
@@ -49,51 +70,56 @@ async def upload_video(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid file extension. Allowed: {', '.join(settings.allowed_video_extensions)}"
         )
-    
-    # Validate file size
-    file.file.seek(0, 2)  # Seek to end
+    file.file.seek(0, 2)
     file_size = file.file.tell()
-    file.file.seek(0)  # Reset to beginning
-    
+    file.file.seek(0)
     max_size = settings.max_upload_size_mb * 1024 * 1024
     if file_size > max_size:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail=f"File too large. Max size: {settings.max_upload_size_mb}MB"
         )
-    
+
+    # Queue: take a slot (wait if at capacity); always release in finally
+    sem = await _get_upload_semaphore()
+    await sem.acquire()
     try:
         s3_service = get_s3_service()
-        
-        # Parse tags and allowed_users
         tags_list = [t.strip() for t in tags.split(',') if t.strip()] if tags else []
         allowed_users_list = [u.strip() for u in allowed_users.split(',') if u.strip()] if allowed_users else []
         scenario_value = scenario.strip() if scenario else ""
-        
-        # Upload to S3
+
         object_key = await s3_service.upload_file(
             file=file,
             user=current_user,
             is_public=is_public,
             tags=tags_list,
             allowed_users=allowed_users_list,
-            scenario=scenario_value
+            scenario=scenario_value,
+            camera_id=None,
+            neighborhood=None
         )
-        
+
         logger.info(f"Video uploaded: {object_key}")
-        
         return {
             "success": True,
             "object_key": object_key,
             "message": "Video uploaded successfully and will be processed shortly"
         }
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to upload video: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to upload video: {str(e)}"
         )
+    finally:
+        try:
+            sem.release()
+        except Exception as e:
+            logger.exception("Upload semaphore release failed; slot may be leaked: %s", e)
 
 
 @router.get("/stream")

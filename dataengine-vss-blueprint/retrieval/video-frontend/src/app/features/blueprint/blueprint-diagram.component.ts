@@ -25,150 +25,69 @@ import { MatMenuModule } from '@angular/material/menu';
             </div>
             <div class="platform-value">
               <mat-icon>flash_on</mat-icon>
-              <span class="platform-value-text">Event-Based Serverless Video Processing: Upload → Segmentation → AI Analysis → Vector Search</span>
+              <span class="platform-value-text">Upload → Segment → Reason → Embed → VastDB</span>
             </div>
           </div>
 
-          <!-- Ingestion Pipeline - VLM Flow -->
+          <!-- Ingestion Pipeline -->
           <div class="pipeline-section">
             <div class="section-title">
               <mat-icon>download</mat-icon>
-              <span>Ingestion Pipeline - VLM Flow (Event-Based Serverless)</span>
+              <span>Ingestion Pipeline</span>
             </div>
             <div class="section-subtitle">
               <mat-icon>info</mat-icon>
-              <span>Real-time video processing: Video Upload → Segmentation → VLM Reasoning → Embedding → Vector Storage</span>
+              <span>Video → S3 → Trigger → Segment → Reason → Embed → VastDB</span>
             </div>
             
             <div class="pipeline-flow">
-              <!-- Video Upload Sources -->
               <div class="component-box storage">
-                <div class="component-icon">
-                  <mat-icon>video_library</mat-icon>
-                </div>
+                <div class="component-icon"><mat-icon>video_library</mat-icon></div>
                 <div class="component-title">Video Sources</div>
-                <div class="component-desc">Upload / Streaming<br/>YouTube / S3 Batch</div>
-                <div class="component-badge">S3 Compatible</div>
+                <div class="component-desc">Upload / S3</div>
+                <div class="component-badge">S3</div>
               </div>
-
               <div class="arrow-right"></div>
-
-              <!-- VAST S3 Storage -->
               <div class="component-box storage">
-                <div class="component-icon">
-                  <mat-icon>storage</mat-icon>
-                </div>
+                <div class="component-icon"><mat-icon>storage</mat-icon></div>
                 <div class="component-title">VAST S3</div>
-                <div class="component-desc">Object Storage<br/>video-chunks</div>
-                <div class="component-badge">S3 Compatible</div>
+                <div class="component-desc">Object store</div>
+                <div class="component-badge">S3</div>
               </div>
-
               <div class="arrow-right"></div>
-
-              <!-- VAST Event Broker -->
               <div class="component-box trigger">
-                <div class="component-icon">
-                  <mat-icon>hub</mat-icon>
-                </div>
-                <div class="component-title">VAST Event Broker</div>
-                <div class="component-desc">Event Routing<br/>& Distribution</div>
-                <div class="component-badge">Event Broker</div>
-              </div>
-
-              <div class="arrow-right"></div>
-
-              <!-- S3 Event Trigger -->
-              <div class="component-box trigger">
-                <div class="component-icon">
-                  <mat-icon>bolt</mat-icon>
-                </div>
-                <div class="component-title">S3 Event Trigger</div>
-                <div class="component-desc">Auto-trigger on<br/>video upload</div>
+                <div class="component-icon"><mat-icon>bolt</mat-icon></div>
+                <div class="component-title">Trigger</div>
+                <div class="component-desc">On upload</div>
                 <div class="component-badge">DataEngine</div>
               </div>
-
               <div class="arrow-right"></div>
-
-              <!-- Video Segmenter -->
               <div class="component-box function">
-                <div class="component-icon">
-                  <mat-icon>content_cut</mat-icon>
-                </div>
+                <div class="component-icon"><mat-icon>content_cut</mat-icon></div>
                 <div class="component-title">Video Segmenter</div>
-                <div class="component-desc">Split into Segments<br/>FFmpeg Processing</div>
+                <div class="component-desc">Split segments</div>
                 <div class="component-badge">Serverless</div>
               </div>
-
               <div class="arrow-right"></div>
-
-              <!-- Segments S3 -->
-              <div class="component-box storage">
-                <div class="component-icon">
-                  <mat-icon>storage</mat-icon>
-                </div>
-                <div class="component-title">VAST S3</div>
-                <div class="component-desc">Segments Storage<br/>video-chunks-segments</div>
-                <div class="component-badge">S3 Compatible</div>
-              </div>
-
-              <div class="arrow-right"></div>
-
-              <!-- S3 Event Trigger (Segments) -->
-              <div class="component-box trigger">
-                <div class="component-icon">
-                  <mat-icon>bolt</mat-icon>
-                </div>
-                <div class="component-title">S3 Event Trigger</div>
-                <div class="component-desc">Auto-trigger on<br/>segment creation</div>
-                <div class="component-badge">DataEngine</div>
-              </div>
-
-              <div class="arrow-right"></div>
-
-              <!-- Video Reasoner -->
               <div class="component-box function">
-                <div class="component-icon">
-                  <mat-icon>psychology</mat-icon>
-                </div>
+                <div class="component-icon"><mat-icon>psychology</mat-icon></div>
                 <div class="component-title">Video Reasoner</div>
-                <div class="component-desc">NVIDIA Cosmos VLM<br/>Video Understanding</div>
-                <div class="component-badge">NVIDIA NIM</div>
+                <div class="component-desc">NVIDIA Cosmos VLM</div>
+                <div class="component-badge">NIM</div>
               </div>
-
               <div class="arrow-right"></div>
-
-              <!-- Video Embedder -->
               <div class="component-box function">
-                <div class="component-icon">
-                  <mat-icon>transform</mat-icon>
-                </div>
+                <div class="component-icon"><mat-icon>transform</mat-icon></div>
                 <div class="component-title">Video Embedder</div>
-                <div class="component-desc">NVIDIA NIM<br/>1024-dim vectors</div>
-                <div class="component-badge">NVIDIA NIM</div>
+                <div class="component-desc">Vectors</div>
+                <div class="component-badge">NIM</div>
               </div>
-
               <div class="arrow-right"></div>
-
-              <!-- VastDB Writer -->
               <div class="component-box function">
-                <div class="component-icon">
-                  <mat-icon>save</mat-icon>
-                </div>
-                <div class="component-title">VastDB Writer</div>
-                <div class="component-desc">Ingest to VastDB<br/>Vectors + Metadata</div>
+                <div class="component-icon"><mat-icon>save</mat-icon></div>
+                <div class="component-title">Ingest to VastDB</div>
+                <div class="component-desc">Vectors + metadata</div>
                 <div class="component-badge">Serverless</div>
-              </div>
-
-              <div class="arrow-right"></div>
-
-              <!-- VastDB -->
-              <div class="component-box database">
-                <div class="component-icon">
-                  <mat-icon>storage</mat-icon>
-                </div>
-                <div class="component-title">VastDB</div>
-                <div class="component-desc">Vector Database<br/>Structured + Vectors</div>
-                <div class="component-badge">Lakehouse</div>
               </div>
             </div>
           </div>
@@ -177,94 +96,61 @@ import { MatMenuModule } from '@angular/material/menu';
           <div class="pipeline-section">
             <div class="section-title">
               <mat-icon>search</mat-icon>
-              <span>Retrieval & Search Pipeline</span>
+              <span>Retrieval & Search</span>
             </div>
             <div class="section-subtitle">
               <mat-icon>info</mat-icon>
-              <span>Hybrid search: Text Query → Embedding → Vector Similarity + Metadata Filters → LLM Synthesis</span>
+              <span>Query → Embed → Vector search → LLM → Results</span>
             </div>
             
             <div class="pipeline-flow">
-              <!-- Angular Frontend -->
               <div class="component-box dashboard">
-                <div class="component-icon">
-                  <mat-icon>dashboard</mat-icon>
-                </div>
+                <div class="component-icon"><mat-icon>dashboard</mat-icon></div>
                 <div class="component-title">Angular Frontend</div>
-                <div class="component-desc">Video Search UI<br/>Material Design</div>
-                <div class="component-badge">Material UI</div>
+                <div class="component-desc">Search UI</div>
+                <div class="component-badge">Material</div>
               </div>
-
               <div class="arrow-bidirectional"></div>
-
-              <!-- FastAPI Backend -->
               <div class="component-box backend">
-                <div class="component-icon">
-                  <mat-icon>api</mat-icon>
-                </div>
+                <div class="component-icon"><mat-icon>api</mat-icon></div>
                 <div class="component-title">FastAPI Backend</div>
-                <div class="component-desc">REST API<br/>Search & Auth</div>
+                <div class="component-desc">REST / Auth</div>
                 <div class="component-badge">Python</div>
               </div>
-
               <div class="arrow-bidirectional"></div>
-
-              <!-- Text Embedding -->
               <div class="component-box function">
-                <div class="component-icon">
-                  <mat-icon>psychology</mat-icon>
-                </div>
+                <div class="component-icon"><mat-icon>psychology</mat-icon></div>
                 <div class="component-title">Text Embedding</div>
-                <div class="component-desc">NVIDIA NIM<br/>Query → Vector</div>
-                <div class="component-badge">NVIDIA NIM</div>
+                <div class="component-desc">Query → vector</div>
+                <div class="component-badge">NIM</div>
               </div>
-
               <div class="arrow-right"></div>
-
-              <!-- Hybrid Search -->
               <div class="component-box search">
-                <div class="component-icon">
-                  <mat-icon>merge_type</mat-icon>
-                </div>
+                <div class="component-icon"><mat-icon>merge_type</mat-icon></div>
                 <div class="component-title">Hybrid Search</div>
-                <div class="component-desc">Vector Similarity<br/>+ Metadata Filters</div>
-                <div class="component-badge">ADBC Native</div>
+                <div class="component-desc">Vector + metadata</div>
+                <div class="component-badge">ADBC</div>
               </div>
-
               <div class="arrow-right"></div>
-
-              <!-- VastDB Query -->
               <div class="component-box database">
-                <div class="component-icon">
-                  <mat-icon>storage</mat-icon>
-                </div>
+                <div class="component-icon"><mat-icon>storage</mat-icon></div>
                 <div class="component-title">VastDB Query</div>
-                <div class="component-desc">Cosine Distance<br/>ADBC Native</div>
-                <div class="component-badge">Vector Search</div>
+                <div class="component-desc">Vector search</div>
+                <div class="component-badge">VastDB</div>
               </div>
-
               <div class="arrow-right"></div>
-
-              <!-- LLM Synthesis -->
               <div class="component-box analyzer">
-                <div class="component-icon">
-                  <mat-icon>auto_awesome</mat-icon>
-                </div>
+                <div class="component-icon"><mat-icon>auto_awesome</mat-icon></div>
                 <div class="component-title">LLM Synthesis</div>
-                <div class="component-desc">NVIDIA LLM<br/>Result Summarization</div>
-                <div class="component-badge">NVIDIA NIM</div>
+                <div class="component-desc">Summarize</div>
+                <div class="component-badge">NIM</div>
               </div>
-
               <div class="arrow-right"></div>
-
-              <!-- Results -->
               <div class="component-box dashboard">
-                <div class="component-icon">
-                  <mat-icon>video_library</mat-icon>
-                </div>
+                <div class="component-icon"><mat-icon>video_library</mat-icon></div>
                 <div class="component-title">Video Results</div>
-                <div class="component-desc">Segments + Metadata<br/>AI Summaries</div>
-                <div class="component-badge">Material UI</div>
+                <div class="component-desc">Segments</div>
+                <div class="component-badge">UI</div>
               </div>
             </div>
           </div>
@@ -273,7 +159,7 @@ import { MatMenuModule } from '@angular/material/menu';
           <div class="capabilities-section">
             <div class="section-title">
               <mat-icon>star</mat-icon>
-              <span>Key Capabilities Of the Blueprint</span>
+              <span>Key Capabilities</span>
             </div>
             
             <div class="capabilities-grid">

@@ -26,11 +26,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   // Handle response and catch 401 errors
   return next(clonedReq).pipe(
     catchError((error: HttpErrorResponse) => {
-      // If we get a 401 Unauthorized, the session has expired
       if (error.status === 401) {
-        // Clear auth state without full page reload (we'll use router navigation)
         authService.logout(false);
-        // Redirect to login page
         router.navigate(['/login']);
       }
       return throwError(() => error);

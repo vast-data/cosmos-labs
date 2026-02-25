@@ -44,9 +44,14 @@ class Settings(BaseSettings):
     
     # Upload Settings
     max_upload_size_mb: int = Field(default=25, description="Maximum upload size in MB")
+    max_concurrent_uploads: int = Field(
+        default=10,
+        description="Max parallel uploads; extra requests wait in queue (no rejection)"
+    )
+    # Ingest video-segmenter converts all to MP4 for Cosmos; these match segmenter's supported list for phones
     allowed_video_extensions: list[str] = Field(
-        default=[".mp4"],
-        description="Allowed video file extensions (MP4 only - required by NVIDIA Cosmos Reason VLM)"
+        default=[".mp4", ".mov", ".webm", ".avi", ".mkv"],
+        description="Allowed video extensions at upload (ingest pipeline converts to MP4 for Cosmos)"
     )
     
     # LLM Settings (NVIDIA API)

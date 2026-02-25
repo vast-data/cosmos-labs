@@ -43,8 +43,7 @@ import { UploadRequest } from '../../shared/models/video.model';
                   {{ selectedFile()?.name }}
                 }
               </p>
-              <p class="drop-hint">Max file size: 25MB • Supported: MP4 only (required by NVIDIA Cosmos)</p>
-              <input #fileInput type="file" hidden accept="video/mp4,.mp4" (change)="onFileSelected($event)">
+              <input #fileInput type="file" hidden accept="video/mp4,.mp4,video/quicktime,.mov,video/webm,.webm,video/x-msvideo,.avi,video/x-matroska,.mkv" (change)="onFileSelected($event)">
             </div>
 
             <div class="form-field-wrapper">
@@ -60,15 +59,15 @@ import { UploadRequest } from '../../shared/models/video.model';
               <label class="field-label">Analysis Scenario</label>
               <select class="custom-input" formControlName="scenario">
                 <option value="">-- Use Default (from settings) --</option>
-                <option value="surveillance">Surveillance</option>
-                <option value="traffic">Traffic</option>
-                <option value="nhl">NHL</option>
-                <option value="sports">Sports</option>
-                <option value="retail">Retail</option>
-                <option value="warehouse">Warehouse</option>
-                <option value="nyc_control">NYC Control</option>
-                <option value="egocentric">Egocentric (Kitchen/Barista/Sports/Finding)</option>
-                <option value="general">General</option>
+                <option value="surveillance">Incident & Safety Detection</option>
+                <option value="traffic">Vehicle & Pedestrian Monitoring</option>
+                <option value="nhl">Hockey Game Analysis</option>
+                <option value="sports">General Sports Analysis</option>
+                <option value="retail">Retail Store Monitoring</option>
+                <option value="warehouse">Warehouse Safety & Operations</option>
+                <option value="nyc_control">NYC Traffic & Public Safety</option>
+                <option value="egocentric">First-Person Activity Analysis</option>
+                <option value="general">General Video Analysis</option>
               </select>
               <span class="field-hint">Select the analysis prompt scenario for this video</span>
             </div>
@@ -582,21 +581,22 @@ export class UploadDialogComponent {
     }
   }
 
+  /** Extensions allowed at upload; ingest pipeline converts all to MP4 for Cosmos */
+  private readonly allowedVideoExtensions = ['.mp4', '.mov', '.webm', '.avi', '.mkv'];
+
   handleFile(file: File) {
-    // Validate file type - only MP4 is supported by NVIDIA Cosmos Reason
     const fileName = file.name.toLowerCase();
-    const isMP4ByExtension = fileName.endsWith('.mp4');
-    const isMP4ByType = file.type === 'video/mp4';
-    
-    if (!isMP4ByExtension && !isMP4ByType) {
-      this.error.set('Only MP4 video format is supported (required by NVIDIA Cosmos VLM)');
+    const okByExt = this.allowedVideoExtensions.some(ext => fileName.endsWith(ext));
+    const okByType = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/x-matroska'].includes(file.type);
+    if (!okByExt && !okByType) {
+      this.error.set('Use MP4, MOV, WebM, AVI, or MKV. Ingest converts to MP4 for Cosmos.');
       return;
     }
 
-    // Validate file size (25MB)
-    const maxSize = 25 * 1024 * 1024;
+    // Validate file size (100MB)
+    const maxSize = 100 * 1024 * 1024;
     if (file.size > maxSize) {
-      this.error.set('File size exceeds 25MB limit');
+      this.error.set('File size exceeds 100MB limit');
       return;
     }
 

@@ -7,16 +7,9 @@ data:
   search-suggestions.json: |
     {
       "placeholder_examples": [
-        "suspicious person near fence",
-        "unattended bag",
-        "vehicle running red light"
-      ],
-      "quick_suggestions": [
-        "person near restricted area",
-        "unattended bag",
-        "vehicle running red light or stop sign",
-        "person climbing fence or wall",
-        "unauthorized access"
+        "person waving at the camera",
+        "someone dropping a bag",
+        "car stopping at a red light"
       ]
     }
 
