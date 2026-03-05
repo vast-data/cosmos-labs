@@ -205,7 +205,7 @@ class VastDBService:
                     camera_id,
                     capture_type,
                     neighborhood,
-                    array_cosine_distance(vector::FLOAT[{dimension}], ARRAY{query_embedding}::FLOAT[{dimension}]) as distance
+                    array_cosine_distance(vectors::FLOAT[{dimension}], ARRAY{query_embedding}::FLOAT[{dimension}]) as distance
                 FROM {table_path}
             """
             

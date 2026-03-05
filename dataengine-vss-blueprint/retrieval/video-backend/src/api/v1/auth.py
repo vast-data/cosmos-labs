@@ -15,34 +15,37 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 @router.post("/login", response_model=Token)
 async def login(request: VastLoginRequest):
     """
-    Login with VAST user credentials (username + S3 secret key + tenant name)
-    Supports users from all providers: local, Active Directory, LDAP, NIS
-    Supports both default and non-default tenants
+    Login with VAST user credentials (username + S3 secret key).
+    VMS and tenant are taken from backend config (not from request).
+    Supports users from all providers: local, Active Directory, LDAP, NIS.
     
     Args:
-        request: Login request with username, secret_key, vast_host, and tenant_name
+        request: Login request with username and secret_key only
         
     Returns:
         JWT token and user information
     """
-    logger.info(f"Login attempt for user: {request.username} at host: {request.vast_host} (tenant: {request.tenant_name})")
+    settings = get_settings()
+    vast_host = settings.vast_host
+    tenant_name = settings.tenant_name
+    logger.info(f"Login attempt for user: {request.username} (VMS: {vast_host}, tenant: {tenant_name})")
     
-    # Authenticate user with username + S3 secret key (any provider, any tenant)
+    # Authenticate user with username + S3 secret key (VMS and tenant from config)
     user_data = authenticate_local_user(
-        address=request.vast_host,
+        address=vast_host,
         username=request.username,
         secret_key=request.secret_key,
-        tenant_name=request.tenant_name
+        tenant_name=tenant_name
     )
     
     if not user_data:
         logger.warning(f"Login failed for user: {request.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username, secret key, or tenant"
+            detail="Invalid username or secret key"
         )
     
-    logger.info(f"Login successful for user: {user_data['username']} (tenant: {request.tenant_name})")
+    logger.info(f"Login successful for user: {user_data['username']} (tenant: {tenant_name})")
     
     # Create internal JWT token for our application
     internal_token = create_internal_jwt(user_data)

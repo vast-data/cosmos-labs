@@ -5,11 +5,9 @@ from pydantic import BaseModel, Field
 
 
 class VastLoginRequest(BaseModel):
-    """Login request with VAST user credentials (all providers supported)"""
+    """Login request with VAST user credentials (all providers supported). VMS and tenant come from backend config."""
     username: str
     secret_key: str  # S3 secret key (for local, AD, LDAP, or NIS users)
-    vast_host: str
-    tenant_name: str = Field(default="default", description="Tenant name (default: 'default')")
 
 
 class Token(BaseModel):
