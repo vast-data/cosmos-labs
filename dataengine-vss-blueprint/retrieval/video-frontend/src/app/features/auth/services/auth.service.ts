@@ -46,14 +46,12 @@ export class AuthService {
     });
   }
 
-  login(username: string, secretKey: string, vastHost: string, tenantName: string = 'default') {
+  login(username: string, secretKey: string) {
     this.state.update((state) => ({ ...state, status: 'loading', error: null }));
 
     const loginData: LoginRequest = {
       username,
-      secret_key: secretKey,
-      vast_host: vastHost,
-      tenant_name: tenantName
+      secret_key: secretKey
     };
 
     this.httpClient.post<LoginResponse>(`${environment.apiUrl}/auth/login`, loginData)
@@ -70,7 +68,7 @@ export class AuthService {
           this.router.navigate([SETTINGS.DEFAULT_URL]);
         },
         error: (response) => {
-          const errorDetail = response.error?.detail || 'Authentication failed. Please check your username, secret key, and tenant name.';
+          const errorDetail = response.error?.detail || 'Authentication failed. Please check your username and secret key.';
           this.state.update((state) => ({ 
             ...state, 
             token: null, 

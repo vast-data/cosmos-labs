@@ -33,7 +33,7 @@ async def get_metadata_schema(
         # Columns to EXCLUDE from Advanced Filters (internal/system columns)
         excluded_columns = {
             # Primary key and vectors
-            'pk', 'vector',
+            'pk', 'vectors',
             # Source/file identifiers
             'source', 'segment_source', 'filename',
             # Content fields (too large for filters)
@@ -127,7 +127,7 @@ async def get_field_values(
         
         # Columns to EXCLUDE from value lookup (same as schema discovery)
         excluded_columns = {
-            'pk', 'vector', 'source', 'segment_source', 'filename',
+            'pk', 'vectors', 'source', 'segment_source', 'filename',
             'reasoning_content', 'video_url', 'extra_metadata',
             'cosmos_model', 'embedding_model', 'tokens_used', 'processing_time',
             'timestamp', 'upload_timestamp', 'duration',

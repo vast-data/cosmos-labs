@@ -64,6 +64,9 @@ class Settings(BaseSettings):
     # VAST Admin Credentials (for authenticating local users)
     vast_admin_username: str = Field(..., description="VAST admin username for API queries")
     vast_admin_password: str = Field(..., description="VAST admin password for API queries")
+    # VAST VMS & Tenant (used for login; not sent from frontend)
+    vast_host: str = Field(..., description="VAST management server address (VMS) for user authentication")
+    tenant_name: str = Field(default="default", description="Tenant name for user authentication")
     
     # CORS Settings (defaults only, not required in secret)
     cors_origins: list[str] = Field(

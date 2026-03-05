@@ -34,9 +34,7 @@ export class LoginComponent {
 
   form = this.fb.group({
     username: [localStorage.getItem('cached_username') || '', Validators.required],
-    secretKey: ['', Validators.required],
-    vastHost: [localStorage.getItem('cached_vast_vms') || '', Validators.required],
-    tenantName: [localStorage.getItem('cached_tenant_name') || 'default', Validators.required]
+    secretKey: ['', Validators.required]
   });
   
   // Secret key visibility toggle
@@ -44,14 +42,10 @@ export class LoginComponent {
 
   onLogin() {
     if (this.form.valid) {
-      const { username, secretKey, vastHost, tenantName } = this.form.value;
-      if (username && secretKey && vastHost && tenantName) {
-        // Cache username, VMS, and tenant name for next time (but NOT secret key)
+      const { username, secretKey } = this.form.value;
+      if (username && secretKey) {
         localStorage.setItem('cached_username', username);
-        localStorage.setItem('cached_vast_vms', vastHost);
-        localStorage.setItem('cached_tenant_name', tenantName || 'default');
-        
-        this.authService.login(username, secretKey, vastHost, tenantName || 'default');
+        this.authService.login(username, secretKey);
       }
     }
   }
