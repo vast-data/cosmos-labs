@@ -13,9 +13,12 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 // Storage keys for localStorage
 export const LLM_SETTINGS_STORAGE_KEY = 'video_lab_llm_settings';
 
+/** Max value for search top_k (must match backend VideoSearchRequest.top_k le=100) */
+export const MAX_SEARCH_RESULTS = 100;
+
 export interface LLMSettings {
   llmTopNSummaries: number;    // How many results sent to LLM (3, 5, 10)
-  searchTopK: number;          // Max search results from VastDB (5, 10, 15)
+  searchTopK: number;          // Max search results from VastDB (1, 3, 5, 10, 15, or MAX_SEARCH_RESULTS)
   minSimilarityScore: number;  // Minimum similarity threshold (0.1 - 0.8)
 }
 
@@ -102,9 +105,12 @@ export function getLLMSettings(): LLMSettings {
           </div>
           <mat-form-field appearance="outline" class="setting-field">
             <mat-select [(ngModel)]="settings.searchTopK">
-              <mat-option [value]="5">5 results</mat-option>
-              <mat-option [value]="10">10 results</mat-option>
-              <mat-option [value]="15">15 results</mat-option>
+              <mat-option [value]="1">1</mat-option>
+              <mat-option [value]="3">3</mat-option>
+              <mat-option [value]="5">5</mat-option>
+              <mat-option [value]="10">10</mat-option>
+              <mat-option [value]="15">15</mat-option>
+              <mat-option [value]="maxSearchResults">Max ({{ maxSearchResults }})</mat-option>
             </mat-select>
           </mat-form-field>
         </div>
@@ -434,6 +440,9 @@ export function getLLMSettings(): LLMSettings {
 export class AdvancedLLMSettingsDialogComponent implements OnInit {
   private dialogRef = inject(MatDialogRef<AdvancedLLMSettingsDialogComponent>);
   private snackBar = inject(MatSnackBar);
+
+  /** Max search results value (matches backend limit); used in template for "Max" option */
+  maxSearchResults = MAX_SEARCH_RESULTS;
 
   settings: LLMSettings = { ...DEFAULT_LLM_SETTINGS };
 

@@ -141,6 +141,7 @@ class VastDBService:
         user: User,
         tags: List[str] = None,
         include_public: bool = True,
+        public_only: bool = False,
         time_filter: str = "all",
         custom_start_date: Optional[str] = None,
         custom_end_date: Optional[str] = None,
@@ -157,6 +158,7 @@ class VastDBService:
             user: Current authenticated user
             tags: Optional tag filter
             include_public: Whether to include public videos in results
+            public_only: If True, only return rows where is_public=True (exclude private)
             time_filter: Time range filter ('all', '5m', '15m', '1h', '24h', '7d', 'custom')
             custom_start_date: Custom start date (ISO 8601 string) for 'custom' filter
             custom_end_date: Custom end date (ISO 8601 string) for 'custom' filter
@@ -368,9 +370,9 @@ class VastDBService:
                         logger.error(f"[ROW {row_index}] Error inspecting field types: {e}")
                         raise
                     
-                    # Check if user has access (respecting include_public filter)
+                    # Check if user has access (respecting include_public and public_only)
                     try:
-                        has_access = self._user_has_access(row, user, include_public)
+                        has_access = self._user_has_access(row, user, include_public, public_only)
                         logger.debug(f"[ROW {row_index}] User access check result: {has_access}")
                     except Exception as e:
                         logger.error(f"[ROW {row_index}] Error in _user_has_access: {e}", exc_info=True)
@@ -618,7 +620,7 @@ class VastDBService:
             logger.error(f"[SAFE_SCALAR] Unexpected error: {e}", exc_info=True)
             return default
     
-    def _user_has_access(self, row, user: User, include_public: bool = True) -> bool:
+    def _user_has_access(self, row, user: User, include_public: bool = True, public_only: bool = False) -> bool:
         """
         NEW LOGIC: Check if user has access to a video segment
         
@@ -630,12 +632,23 @@ class VastDBService:
             row: DataFrame row with video data
             user: Current user
             include_public: Whether to include public videos (False = "My Videos" only)
+            public_only: If True, only allow access when is_public=True ("Public Only" scope)
             
         Returns:
             True if user has access, False otherwise
         """
         try:
-            logger.debug(f"[ACCESS_CHECK] Starting access check for user {user.username}, include_public={include_public}")
+            logger.debug(f"[ACCESS_CHECK] Starting access check for user {user.username}, include_public={include_public}, public_only={public_only}")
+            
+            # If public_only=True ("Public Only" scope), only allow rows where is_public is True
+            if public_only:
+                is_public_raw = row.get('is_public', False)
+                is_public_value = self._safe_scalar_value(is_public_raw, default=False)
+                if is_public_value is None or pd.isna(is_public_value):
+                    return False
+                if not bool(is_public_value):
+                    return False
+                return True
             
             # If include_public=False ("My Videos" mode), only show videos where user is in allowed_users
             if not include_public:

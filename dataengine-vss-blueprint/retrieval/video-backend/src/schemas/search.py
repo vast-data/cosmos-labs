@@ -14,6 +14,7 @@ class VideoSearchRequest(BaseModel):
     tags: List[str] = Field(default_factory=list, description="Filter by tags")
     owner: str | None = Field(default=None, description="Filter by owner")
     include_public: bool = Field(default=True, description="Include public videos")
+    public_only: bool = Field(default=False, description="If true, return only public videos (exclude private even if user has access)")
     use_llm: bool = Field(default=False, description="Enable AI-powered synthesis of results")
     system_prompt: Optional[str] = Field(default=None, description="Custom LLM system prompt (overrides default from ConfigMap)")
     time_filter: str = Field(default="all", description="Time filter: 'all', '5m', '15m', '1h', '24h', '7d', 'custom'")
