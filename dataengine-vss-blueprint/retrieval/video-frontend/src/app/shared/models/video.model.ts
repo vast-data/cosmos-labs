@@ -25,6 +25,7 @@ export interface SearchRequest {
   top_k?: number;
   tags?: string[];
   include_public?: boolean;
+  public_only?: boolean;  // When true, only public videos (scope "Public Only")
   use_llm?: boolean;
   system_prompt?: string;  // Custom LLM system prompt (overrides backend default)
   time_filter?: string;  // 'all', '5m', '15m', '1h', '24h', '7d', 'custom'

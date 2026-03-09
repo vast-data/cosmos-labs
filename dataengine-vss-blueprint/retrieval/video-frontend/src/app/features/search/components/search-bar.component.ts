@@ -47,7 +47,7 @@ import { SqlQueryDialogComponent } from './sql-query-dialog.component';
           (click)="searchForm.patchValue({ useLlm: !searchForm.get('useLlm')?.value })"
           matTooltip="Enable LLM Response"
           mat-icon-button>
-          <mat-icon>{{ searchForm.get('useLlm')?.value ? 'auto_awesome' : 'star_border' }}</mat-icon>
+          <mat-icon>{{ searchForm.get('useLlm')?.value ? 'auto_awesome' : 'psychology' }}</mat-icon>
         </button>
         <!-- Main Search Field - Native HTML -->
         <div class="custom-search-field">
@@ -1097,11 +1097,12 @@ export class SearchBarComponent implements OnInit {
     const formValue = this.searchForm.value;
     if (!formValue.query) return;
 
-    // Map scope to include_public flag
+    // Map scope to include_public and public_only
     // 'all' = show everything (public + mine)
     // 'mine' = show only mine (no public)
-    // 'public' = show only public
+    // 'public' = show only public (no private videos)
     const includePublic = formValue.scope === 'all' || formValue.scope === 'public';
+    const publicOnly = formValue.scope === 'public';
 
     const llmSettings = getLLMSettings();
 
@@ -1110,6 +1111,7 @@ export class SearchBarComponent implements OnInit {
       top_k: llmSettings.searchTopK,
       tags: [], // Removed for now
       include_public: includePublic,
+      public_only: publicOnly,
       use_llm: formValue.useLlm || false,
       time_filter: formValue.timeFilter || 'all',
       min_similarity: llmSettings.minSimilarityScore,

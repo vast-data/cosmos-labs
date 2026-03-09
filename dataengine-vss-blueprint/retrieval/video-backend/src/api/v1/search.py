@@ -54,6 +54,7 @@ async def search_videos(
             user=current_user,
             tags=request.tags if request.tags else None,
             include_public=request.include_public,
+            public_only=request.public_only,
             time_filter=request.time_filter,
             custom_start_date=request.custom_start_date,
             custom_end_date=request.custom_end_date,
@@ -78,7 +79,7 @@ async def search_videos(
             logger.info(f"[LLM] Generating AI synthesis for top {len(llm_results)} results (llm_top_n={request.llm_top_n})")
             try:
                 llm_service = get_llm_service()
-                # Convert results to dict format for LLM service
+                # Convert results to dict format for LLM service (include timestamps so LLM can reference them)
                 results_dict = [
                     {
                         "summary": r.reasoning_content,
@@ -86,7 +87,9 @@ async def search_videos(
                         "filename": r.filename,
                         "original_video": r.original_video,
                         "segment_number": r.segment_number,
-                        "similarity_score": r.similarity_score
+                        "total_segments": r.total_segments,
+                        "similarity_score": r.similarity_score,
+                        "upload_timestamp": r.upload_timestamp,
                     }
                     for r in llm_results
                 ]
