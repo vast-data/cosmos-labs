@@ -162,7 +162,7 @@ class VastDBService:
             time_filter: Time range filter ('all', '5m', '15m', '1h', '24h', '7d', 'custom')
             custom_start_date: Custom start date (ISO 8601 string) for 'custom' filter
             custom_end_date: Custom end date (ISO 8601 string) for 'custom' filter
-            metadata_filters: Dynamic metadata filters (e.g., {'camera_id': 'CAM-001', 'neighborhood': 'Midtown'})
+            metadata_filters: Dynamic metadata filters (e.g., {'camera_id': 'CAM-001', 'location': 'Midtown'})
             min_similarity: Minimum similarity score threshold (0.3-0.8 recommended, default 0.1)
             user_query_text: Original user query text (for SQL query formatting)
             
@@ -206,7 +206,7 @@ class VastDBService:
                     tokens_used,
                     camera_id,
                     capture_type,
-                    neighborhood,
+                    location,
                     array_cosine_distance(vectors::FLOAT[{dimension}], ARRAY{query_embedding}::FLOAT[{dimension}]) as distance
                 FROM {table_path}
             """
@@ -420,7 +420,7 @@ class VastDBService:
                                 tokens_used=int(row.get('tokens_used')) if pd.notna(row.get('tokens_used')) else None,
                                 camera_id=str(row.get('camera_id')) if pd.notna(row.get('camera_id')) else None,
                                 capture_type=str(row.get('capture_type')) if pd.notna(row.get('capture_type')) else None,
-                                neighborhood=str(row.get('neighborhood')) if pd.notna(row.get('neighborhood')) else None
+                                location=str(row.get('location')) if pd.notna(row.get('location')) else None
                             )
                             filtered_results.append(result)
                             logger.debug(f"[ROW {row_index}] Successfully created VideoSearchResult")
@@ -754,7 +754,7 @@ class VastDBService:
                     tokens_used,
                     camera_id,
                     capture_type,
-                    neighborhood
+                    location
                 FROM {table_path}
                 WHERE source = '{source}'
                 LIMIT 1
@@ -812,7 +812,7 @@ class VastDBService:
                 tokens_used=row.get('tokens_used'),
                 camera_id=row.get('camera_id'),
                 capture_type=row.get('capture_type'),
-                neighborhood=row.get('neighborhood')
+                location=row.get('location')
             )
                 
         except Exception as e:

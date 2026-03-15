@@ -38,7 +38,7 @@ class S3ObjectMetadataModel(BaseModel):
     # Metadata fields from video-streaming service
     camera_id: str | None = Field(None, alias="camera-id")  # Camera identifier
     capture_type: str | None = Field(None, alias="capture-type")  # traffic, streets, crowds, malls
-    neighborhood: str | None = Field(None, alias="neighborhood")  # Geographic area
+    location: str | None = Field(None, alias="location")  # Geographic area
     capture_timestamp: str | None = Field(None, alias="capture-timestamp")  # When captured
     
     # Analysis scenario metadata

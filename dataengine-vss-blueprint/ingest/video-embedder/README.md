@@ -7,7 +7,7 @@ A VAST DataEngine serverless function that converts video reasoning text into ve
 - Receives reasoning text from the `video-reasoner` function
 - Converts reasoning text into vector embeddings using NVIDIA NIM embedding models
 - Passes embeddings and metadata to the next function in the pipeline
-- Preserves all metadata (camera_id, capture_type, neighborhood, etc.)
+- Preserves all metadata (camera_id, capture_type, location, etc.)
 
 ## Easy to Adjust
 

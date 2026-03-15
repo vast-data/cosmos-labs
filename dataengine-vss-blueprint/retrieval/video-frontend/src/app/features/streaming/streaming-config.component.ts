@@ -143,13 +143,18 @@ import { StreamingService, StreamingStartRequest } from '../../shared/services/s
                     <mat-option value="streets">Streets</mat-option>
                     <mat-option value="crowds">Crowds</mat-option>
                     <mat-option value="malls">Malls</mat-option>
+                    <mat-option value="general">General</mat-option>
+                    <mat-option value="sports">Sports</mat-option>
+                    <mat-option value="robotics">Robotics</mat-option>
+                    <mat-option value="warehouse">Warehouse</mat-option>
+                    <mat-option value="retail">Retail</mat-option>
                   </mat-select>
                   <mat-icon matSuffix>category</mat-icon>
                 </mat-form-field>
 
                 <mat-form-field appearance="outline">
-                  <mat-label>Neighborhood / Area</mat-label>
-                  <input matInput formControlName="neighborhood" placeholder="e.g., Midtown, Downtown, Times Square">
+                  <mat-label>Location</mat-label>
+                  <input matInput formControlName="location" placeholder="e.g., Midtown, Downtown, Times Square">
                   <mat-icon matSuffix>location_on</mat-icon>
                 </mat-form-field>
 
@@ -645,7 +650,7 @@ export class StreamingConfigComponent {
       // Stream capture metadata (optional)
       camera_id: [''],
       capture_type: [''],
-      neighborhood: [''],
+      location: [''],
       scenario: ['']
     });
 

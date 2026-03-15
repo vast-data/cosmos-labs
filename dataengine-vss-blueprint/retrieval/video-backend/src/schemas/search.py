@@ -20,7 +20,7 @@ class VideoSearchRequest(BaseModel):
     time_filter: str = Field(default="all", description="Time filter: 'all', '5m', '15m', '1h', '24h', '7d', 'custom'")
     custom_start_date: Optional[str] = Field(default=None, description="Custom start date (ISO 8601 format)")
     custom_end_date: Optional[str] = Field(default=None, description="Custom end date (ISO 8601 format)")
-    metadata_filters: Dict[str, Any] = Field(default_factory=dict, description="Dynamic metadata filters (e.g., {'camera_id': 'CAM-001', 'neighborhood': 'Midtown'})")
+    metadata_filters: Dict[str, Any] = Field(default_factory=dict, description="Dynamic metadata filters (e.g., {'camera_id': 'CAM-001', 'location': 'Midtown'})")
     min_similarity: float = Field(default=0.1, ge=0.0, le=1.0, description="Minimum similarity score threshold (0.3-0.8 recommended)")
     llm_top_n: int = Field(default=3, ge=1, le=20, description="Number of top results to send to LLM for analysis")
 

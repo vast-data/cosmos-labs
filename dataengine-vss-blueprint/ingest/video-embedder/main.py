@@ -46,7 +46,7 @@ def handler(ctx, event: VastEvent):
                 
                 camera_id = reasoning_event.get("camera_id", "")
                 capture_type = reasoning_event.get("capture_type", "")
-                neighborhood = reasoning_event.get("neighborhood", "")
+                location = reasoning_event.get("location", "")
                 scenario = reasoning_event.get("scenario", "")
                 
                 allowed_users_count = len(allowed_users.split(",")) if allowed_users else 0
@@ -69,7 +69,7 @@ def handler(ctx, event: VastEvent):
                     "original_video": original_video,
                     "camera_id": camera_id,
                     "capture_type": capture_type,
-                    "neighborhood": neighborhood,
+                    "location": location,
                     "scenario": scenario
                 })
 
@@ -118,7 +118,7 @@ def handler(ctx, event: VastEvent):
                 "original_video": original_video,
                 "camera_id": camera_id,
                 "capture_type": capture_type,
-                "neighborhood": neighborhood,
+                "location": location,
                 "scenario": scenario
             }
             

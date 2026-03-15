@@ -97,7 +97,7 @@ def handler(ctx, event: VastEvent):
                     
                     camera_id = s3_metadata.get("camera-id", "")
                     capture_type = s3_metadata.get("capture-type", "")
-                    neighborhood = s3_metadata.get("neighborhood", "")
+                    location = s3_metadata.get("location", "")
                     
                     # Extract scenario from metadata, fall back to settings default
                     scenario = s3_metadata.get("scenario", "").strip()
@@ -108,7 +108,7 @@ def handler(ctx, event: VastEvent):
                     total_segments = int(total_segments_str) if total_segments_str else 1
                     segment_duration = float(segment_duration_str) if segment_duration_str else 5.0
                     
-                    ctx.logger.info(f"[METADATA] segment {segment_number}/{total_segments} | camera={camera_id or 'none'} | type={capture_type or 'none'} | area={neighborhood or 'none'} | scenario={scenario}")
+                    ctx.logger.info(f"[METADATA] segment {segment_number}/{total_segments} | camera={camera_id or 'none'} | type={capture_type or 'none'} | area={location or 'none'} | scenario={scenario}")
                     
                     metadata_span.set_attributes({
                         "is_public": str(is_public),
@@ -117,7 +117,7 @@ def handler(ctx, event: VastEvent):
                         "original_video": original_video,
                         "camera_id": camera_id,
                         "capture_type": capture_type,
-                        "neighborhood": neighborhood,
+                        "location": location,
                         "scenario": scenario
                     })
                 except Exception as e:
@@ -132,7 +132,7 @@ def handler(ctx, event: VastEvent):
                     original_video = filename
                     camera_id = ""
                     capture_type = ""
-                    neighborhood = ""
+                    location = ""
                     scenario = ctx.settings.scenario  # Fall back to default from settings
 
             with ctx.tracer.start_as_current_span("Video Reasoning Analysis") as reasoning_span:
@@ -184,7 +184,7 @@ def handler(ctx, event: VastEvent):
                 "original_video": original_video,
                 "camera_id": camera_id,
                 "capture_type": capture_type,
-                "neighborhood": neighborhood,
+                "location": location,
                 "scenario": scenario
             }
             

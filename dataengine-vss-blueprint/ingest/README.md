@@ -8,7 +8,7 @@ The system currently supports four metadata fields:
 
 - **`camera_id`** - Camera identifier (e.g., "cam-01", "intersection-5th-ave")
 - **`capture_type`** - Type of capture (e.g., "traffic", "streets", "crowds", "malls")
-- **`neighborhood`** - Location/area (e.g., "manhattan", "downtown", "warehouse-a")
+- **`location`** - Location/area (e.g., "manhattan", "downtown", "warehouse-a")
 - **`scenario`** - Analysis prompt scenario (e.g., "surveillance", "traffic", "egocentric", "general")
 
 ## How It Works
@@ -40,7 +40,7 @@ Add the field to the metadata model in each function's `common/models.py`:
 class VideoMetadata(BaseModel):
     camera_id: Optional[str] = None
     capture_type: Optional[str] = None
-    neighborhood: Optional[str] = None
+    location: Optional[str] = None
     your_new_field: Optional[str] = None  # Add your new field here
 ```
 
@@ -87,7 +87,7 @@ Once metadata fields are configured:
 ## Example Use Cases
 
 - **Multi-Camera Systems**: Use `camera_id` to filter by specific cameras
-- **Location-Based Search**: Use `neighborhood` to search within specific areas
+- **Location-Based Search**: Use `location` to search within specific areas
 - **Content Type Filtering**: Use `capture_type` to filter by video type (traffic, retail, etc.)
 - **Custom Classifications**: Add fields like `priority`, `status`, `department` for custom workflows
 

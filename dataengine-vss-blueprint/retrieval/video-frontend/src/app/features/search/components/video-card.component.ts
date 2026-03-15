@@ -79,10 +79,10 @@ import { VideoService } from '../../../shared/services/video.service';
               {{ video.capture_type }}
             </span>
           }
-          @if (video.neighborhood && video.neighborhood.trim()) {
+          @if (video.location && video.location.trim()) {
             <span class="metadata-item">
               <mat-icon>location_on</mat-icon>
-              {{ video.neighborhood }}
+              {{ video.location }}
             </span>
           }
         </div>

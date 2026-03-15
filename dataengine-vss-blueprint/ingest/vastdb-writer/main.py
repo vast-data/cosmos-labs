@@ -42,7 +42,7 @@ def handler(ctx, event: VastEvent):
                 
                 camera_id = embedding_event.get("camera_id", "")
                 capture_type = embedding_event.get("capture_type", "")
-                neighborhood = embedding_event.get("neighborhood", "")
+                location = embedding_event.get("location", "")
                 
                 allowed_users_count = len(allowed_users.split(",")) if allowed_users else 0
                 
@@ -63,7 +63,7 @@ def handler(ctx, event: VastEvent):
                     "original_video": original_video,
                     "camera_id": camera_id,
                     "capture_type": capture_type,
-                    "neighborhood": neighborhood
+                    "location": location
                 })
 
             with ctx.tracer.start_as_current_span("Embedding Validation") as validation_span:

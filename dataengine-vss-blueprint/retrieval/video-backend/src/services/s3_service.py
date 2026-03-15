@@ -135,7 +135,7 @@ class S3Service:
         allowed_users: list[str],
         scenario: str = "",
         camera_id: Optional[str] = None,
-        neighborhood: Optional[str] = None
+        location: Optional[str] = None
     ) -> str:
         """
         Upload file directly to S3 (backend proxy)
@@ -148,7 +148,7 @@ class S3Service:
             allowed_users: Additional allowed users
             scenario: Analysis scenario
             camera_id: Optional camera identifier (for ingest pipeline)
-            neighborhood: Optional area/neighborhood (for ingest pipeline)
+            location: Optional area/location (for ingest pipeline)
             
         Returns:
             S3 object key
@@ -192,8 +192,8 @@ class S3Service:
             
             if camera_id:
                 metadata['camera-id'] = camera_id
-            if neighborhood:
-                metadata['neighborhood'] = neighborhood
+            if location:
+                metadata['location'] = location
             
             logger.info(f"Uploading {file.filename} to s3://{self.settings.s3_upload_bucket}/{object_key}")
             logger.info(f"Metadata to set: {metadata}")

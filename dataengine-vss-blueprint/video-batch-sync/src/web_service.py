@@ -293,8 +293,10 @@ class BatchSyncService:
                 metadata['camera-id'] = config['camera_id']
             if config.get('capture_type'):
                 metadata['capture-type'] = config['capture_type']
-            if config.get('neighborhood'):
-                metadata['neighborhood'] = config['neighborhood']
+            if config.get('location'):
+                metadata['location'] = config['location']
+            if config.get('scenario'):
+                metadata['scenario'] = config['scenario']
             
             # Copy files with rate limiting
             # batch_size is now delay in seconds between files (not files per second)

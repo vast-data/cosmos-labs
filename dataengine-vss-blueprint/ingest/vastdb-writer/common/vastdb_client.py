@@ -38,7 +38,7 @@ class VastDBClient:
             ("tags", pa.list_(pa.utf8())),
             ("camera_id", pa.utf8()),
             ("capture_type", pa.utf8()),
-            ("neighborhood", pa.utf8()),
+            ("location", pa.utf8()),
             ("extra_metadata", pa.string())
         ])
 
@@ -114,7 +114,7 @@ class VastDBClient:
             
             camera_id = embedding_event.get("camera_id", "")
             capture_type = embedding_event.get("capture_type", "")
-            neighborhood = embedding_event.get("neighborhood", "")
+            location = embedding_event.get("location", "")
             
             allowed_users = [u.strip() for u in allowed_users_str.split(",") if u.strip()] if allowed_users_str else []
             tags = [t.strip() for t in tags_str.split(",") if t.strip()] if tags_str else []
@@ -180,7 +180,7 @@ class VastDBClient:
                 "tags": tags,
                 "camera_id": camera_id,
                 "capture_type": capture_type,
-                "neighborhood": neighborhood,
+                "location": location,
                 "extra_metadata": str(extra_metadata)
             }
             

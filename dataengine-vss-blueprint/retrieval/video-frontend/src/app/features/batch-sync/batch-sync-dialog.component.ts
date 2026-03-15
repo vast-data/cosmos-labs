@@ -186,13 +186,13 @@ import { environment } from '../../../environments/environment';
 
           <mat-form-field appearance="outline">
             <mat-label>Capture Type</mat-label>
-            <input matInput formControlName="capture_type" placeholder="traffic, streets, crowds, malls">
+            <input matInput formControlName="capture_type" placeholder="traffic, streets, crowds, malls, general, sports, robotics, warehouse, retail">
             <mat-icon matSuffix>category</mat-icon>
           </mat-form-field>
 
           <mat-form-field appearance="outline">
-            <mat-label>Neighborhood / Area</mat-label>
-            <input matInput formControlName="neighborhood" placeholder="e.g., Midtown, Downtown">
+            <mat-label>Location</mat-label>
+            <input matInput formControlName="location" placeholder="e.g., Midtown, Downtown">
             <mat-icon matSuffix>location_on</mat-icon>
           </mat-form-field>
 
@@ -648,6 +648,15 @@ import { environment } from '../../../environments/environment';
         color: var(--text-secondary) !important;
       }
 
+      /* Keep floating label (placeholder when moved up) visible in dark mode */
+      .mat-mdc-floating-label {
+        color: var(--text-secondary) !important;
+      }
+      &.mat-focused .mat-mdc-floating-label,
+      &.mat-form-field-has-label .mat-mdc-floating-label {
+        color: var(--text-secondary) !important;
+      }
+
       .mat-icon {
         color: var(--accent-primary) !important;
       }
@@ -690,7 +699,7 @@ export class BatchSyncDialogComponent implements OnInit {
       // Streaming metadata
       camera_id: [''],
       capture_type: [''],
-      neighborhood: [''],
+      location: [''],
       scenario: ['']
     });
   }
@@ -885,7 +894,7 @@ export class BatchSyncDialogComponent implements OnInit {
       allowed_users: allowedUsers.length > 0 ? allowedUsers : undefined,
       camera_id: formValue.camera_id || undefined,
       capture_type: formValue.capture_type || undefined,
-      neighborhood: formValue.neighborhood || undefined,
+      location: formValue.location || undefined,
       scenario: formValue.scenario || undefined
     };
 

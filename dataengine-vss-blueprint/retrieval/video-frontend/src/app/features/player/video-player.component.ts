@@ -139,10 +139,10 @@ import { VideoService } from '../../shared/services/video.service';
                 <span>{{ data.video.capture_type }}</span>
               </div>
             }
-            @if (data.video.neighborhood && data.video.neighborhood.trim()) {
+            @if (data.video.location && data.video.location.trim()) {
               <div class="meta-chip">
                 <mat-icon>location_on</mat-icon>
-                <span>{{ data.video.neighborhood }}</span>
+                <span>{{ data.video.location }}</span>
               </div>
             }
           </div>

@@ -55,7 +55,7 @@ class VideoSearchResult(BaseModel):
     # Stream capture metadata (from video-streaming service)
     camera_id: Optional[str] = None
     capture_type: Optional[str] = None
-    neighborhood: Optional[str] = None
+    location: Optional[str] = None
 
 
 class VideoUploadMetadata(BaseModel):

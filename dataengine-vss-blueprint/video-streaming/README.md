@@ -27,7 +27,7 @@ The video streaming service:
    - **Metadata** (optional - Easy to adjust for different usecases):
      - `camera_id`: Camera identifier (e.g., "cam-01", "intersection-5th-ave")
      - `capture_type`: Type of capture (e.g., "traffic", "streets", "crowds", "malls")
-     - `neighborhood`: Location/area (e.g., "manhattan", "downtown", "warehouse-a")
+     - `location`: Location/area (e.g., "manhattan", "downtown", "warehouse-a")
 3. Click "Start Stream" to begin capture
 4. Segments are automatically uploaded to S3 and processed by the ingest pipeline
 5. Use "Stop Stream" to stop the capture at any time
@@ -53,7 +53,7 @@ http://video-streamer.<cluster_name>.vastdata.com
      "name": "my-capture",
      "camera_id": "cam-01",
      "capture_type": "traffic",
-     "neighborhood": "downtown",
+     "location": "downtown",
      "max_duration": 3600
    }
    ```
@@ -66,7 +66,7 @@ http://video-streamer.<cluster_name>.vastdata.com
    - `name` (optional): Prefix for uploaded files (default: `capture`)
    - `camera_id` (optional): Camera identifier metadata
    - `capture_type` (optional): Capture type metadata
-   - `neighborhood` (optional): Location metadata
+   - `location` (optional): Location metadata
    - `max_duration` (optional): Maximum capture duration in seconds for VOD videos (default: 3600 = 1 hour)
 
 2. **Stop Capture** - `POST /stop`

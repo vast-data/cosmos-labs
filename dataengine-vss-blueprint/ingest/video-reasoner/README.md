@@ -7,7 +7,7 @@ A VAST DataEngine serverless function that analyzes video segments using NVIDIA 
 - Downloads video segments from S3 when they are created in the `video-chunks-segments` bucket
 - Analyzes video content using NVIDIA VLM (Cosmos or Nemotron)
 - Generates text descriptions based on configurable prompts/scenarios
-- Extracts metadata (camera_id, capture_type, neighborhood, etc.) from S3 object metadata
+- Extracts metadata (camera_id, capture_type, location, etc.) from S3 object metadata
 - Passes reasoning text and metadata to the next function in the pipeline
 
 ## Provider Selection
