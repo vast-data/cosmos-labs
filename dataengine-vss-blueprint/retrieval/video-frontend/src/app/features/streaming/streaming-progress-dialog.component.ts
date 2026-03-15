@@ -55,7 +55,7 @@ import { interval } from 'rxjs';
                 
                 @if (status()?.status?.current_config?.camera_id || 
                      status()?.status?.current_config?.capture_type || 
-                     status()?.status?.current_config?.neighborhood) {
+                     status()?.status?.current_config?.location) {
                   <div class="metadata-section">
                     <h4>Stream Metadata</h4>
                     @if (status()?.status?.current_config?.camera_id) {
@@ -70,10 +70,10 @@ import { interval } from 'rxjs';
                         <span class="value">{{ status()?.status?.current_config?.capture_type }}</span>
                       </div>
                     }
-                    @if (status()?.status?.current_config?.neighborhood) {
+                    @if (status()?.status?.current_config?.location) {
                       <div class="info-row">
                         <span class="label">Location:</span>
-                        <span class="value">{{ status()?.status?.current_config?.neighborhood }}</span>
+                        <span class="value">{{ status()?.status?.current_config?.location }}</span>
                       </div>
                     }
                   </div>

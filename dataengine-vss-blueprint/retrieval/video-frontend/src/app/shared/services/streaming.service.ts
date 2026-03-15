@@ -14,7 +14,7 @@ export interface StreamingStartRequest {
   // Stream capture metadata (optional)
   camera_id?: string;
   capture_type?: string;  // traffic, streets, crowds, malls
-  neighborhood?: string;
+  location?: string;
   scenario?: string;  // Analysis scenario (surveillance, traffic, egocentric, etc.)
 }
 

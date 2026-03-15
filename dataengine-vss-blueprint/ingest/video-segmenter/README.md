@@ -8,7 +8,7 @@ A VAST DataEngine serverless function that splits uploaded videos into smaller s
 - Splits videos into time-based segments (default: 5 seconds each)
 - Converts videos to MP4 format (H.264 codec) if needed
 - Uploads segments to the `video-chunks-segments` bucket
-- Preserves metadata (camera_id, capture_type, neighborhood, etc.) from the original video
+- Preserves metadata (camera_id, capture_type, location, etc.) from the original video
 
 ## Easy to Adjust
 

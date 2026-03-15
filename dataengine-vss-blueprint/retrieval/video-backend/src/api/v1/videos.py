@@ -97,7 +97,7 @@ async def upload_video(
             allowed_users=allowed_users_list,
             scenario=scenario_value,
             camera_id=None,
-            neighborhood=None
+            location=None
         )
 
         logger.info(f"Video uploaded: {object_key}")

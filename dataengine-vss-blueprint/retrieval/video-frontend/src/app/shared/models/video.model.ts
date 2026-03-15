@@ -16,7 +16,7 @@ export interface VideoSearchResult {
   // Stream capture metadata
   camera_id?: string;
   capture_type?: string;
-  neighborhood?: string;
+  location?: string;
   scenario?: string;  // Analysis scenario (surveillance, traffic, egocentric, etc.)
 }
 

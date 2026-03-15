@@ -39,7 +39,7 @@ export interface BatchSyncStartRequest {
   // Streaming metadata (optional)
   camera_id?: string;
   capture_type?: string;
-  neighborhood?: string;
+  location?: string;
   scenario?: string;  // Analysis scenario (surveillance, traffic, egocentric, etc.)
 }
 

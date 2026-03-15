@@ -245,7 +245,7 @@ class VideoCaptureService:
         return stream_url
     
     def _capture_with_ytdlp_download(self, config, capture_interval, bucket_name, s3_prefix,
-                                     camera_id, capture_type, neighborhood, max_duration):
+                                     camera_id, capture_type, location, scenario, max_duration):
         """
         Fallback method: Use yt-dlp to download segments directly when OpenCV streaming fails.
         This works around OpenCV's inability to handle complex YouTube URLs.
@@ -315,8 +315,10 @@ class VideoCaptureService:
                         s3_metadata['camera-id'] = camera_id
                     if capture_type:
                         s3_metadata['capture-type'] = capture_type
-                    if neighborhood:
-                        s3_metadata['neighborhood'] = neighborhood
+                    if location:
+                        s3_metadata['location'] = location
+                    if scenario:
+                        s3_metadata['scenario'] = scenario
                     s3_metadata['capture-timestamp'] = timestamp
                     
                     # Upload to S3
@@ -372,7 +374,8 @@ class VideoCaptureService:
             # Metadata fields
             camera_id = config.get('camera_id', '')
             capture_type = config.get('capture_type', '')  # traffic, streets, crowds, malls
-            neighborhood = config.get('neighborhood', '')
+            location = config.get('location', '')
+            scenario = config.get('scenario', '')  # analysis scenario (nhl, surveillance, etc.)
             
             logger.info(f"Starting continuous capture every {capture_interval} seconds")
             logger.info(f"Stream URL: {stream_url}")
@@ -382,8 +385,10 @@ class VideoCaptureService:
                 logger.info(f"Camera ID: {camera_id}")
             if capture_type:
                 logger.info(f"Capture Type: {capture_type}")
-            if neighborhood:
-                logger.info(f"Neighborhood: {neighborhood}")
+            if location:
+                logger.info(f"Location: {location}")
+            if scenario:
+                logger.info(f"Scenario: {scenario}")
             
             # Get the actual stream source
             actual_stream_url = self.get_stream_source(stream_url)
@@ -406,8 +411,8 @@ class VideoCaptureService:
                 # This works for videos that OpenCV can't stream (complex URLs, HLS playlists, etc.)
                 if self.is_youtube_url(stream_url):
                     logger.warning("OpenCV failed to open stream, using yt-dlp download method as fallback")
-                    return self._capture_with_ytdlp_download(config, capture_interval, bucket_name, s3_prefix, 
-                                                             camera_id, capture_type, neighborhood, max_duration)
+                    return self._capture_with_ytdlp_download(config, capture_interval, bucket_name, s3_prefix,
+                                                             camera_id, capture_type, location, scenario, max_duration)
                 else:
                     logger.error(f"Cannot open stream: {stream_url}")
                     return
@@ -540,8 +545,10 @@ class VideoCaptureService:
                         s3_metadata['camera-id'] = camera_id
                     if capture_type:
                         s3_metadata['capture-type'] = capture_type
-                    if neighborhood:
-                        s3_metadata['neighborhood'] = neighborhood
+                    if location:
+                        s3_metadata['location'] = location
+                    if scenario:
+                        s3_metadata['scenario'] = scenario
                     s3_metadata['capture-timestamp'] = timestamp
                     
                     # Upload to S3 with metadata

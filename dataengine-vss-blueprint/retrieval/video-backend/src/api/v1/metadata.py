@@ -81,7 +81,7 @@ async def get_metadata_schema(
                     field_info["ui_type"] = "select"
                 else:
                     # No values or too many - use text input
-                    # This is expected for free-form fields like camera_id, neighborhood
+                    # This is expected for free-form fields like camera_id, location
                     field_info["ui_type"] = "text"
                     logger.info(f"[METADATA] Column {col_name} will use text input (no predefined values)")
             except Exception as e:

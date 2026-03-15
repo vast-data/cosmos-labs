@@ -104,7 +104,7 @@ def handler(ctx, event: VastEvent):
                     allowed_users = []
                 
                 scenario = s3_metadata.scenario or ""
-                ctx.logger.info(f"[METADATA] public={is_public} | camera={s3_metadata.camera_id or 'none'} | type={s3_metadata.capture_type or 'none'} | area={s3_metadata.neighborhood or 'none'} | scenario={scenario or 'none'}")
+                ctx.logger.info(f"[METADATA] public={is_public} | camera={s3_metadata.camera_id or 'none'} | type={s3_metadata.capture_type or 'none'} | area={s3_metadata.location or 'none'} | scenario={scenario or 'none'}")
                 
                 metadata_span.set_attributes({
                     "is_public": str(is_public),
@@ -115,7 +115,7 @@ def handler(ctx, event: VastEvent):
                     "filename": filename,
                     "camera_id": s3_metadata.camera_id or "",
                     "capture_type": s3_metadata.capture_type or "",
-                    "neighborhood": s3_metadata.neighborhood or "",
+                    "location": s3_metadata.location or "",
                     "scenario": scenario
                 })
 

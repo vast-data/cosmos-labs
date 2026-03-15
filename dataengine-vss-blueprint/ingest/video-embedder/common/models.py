@@ -47,7 +47,7 @@ class ReasoningEvent(BaseModel):
     # Stream capture metadata (from video-streaming service)
     camera_id: str | None = None
     capture_type: str | None = None
-    neighborhood: str | None = None
+    location: str | None = None
     
     # Analysis scenario metadata
     scenario: str | None = None
@@ -80,7 +80,7 @@ class EmbeddingResult(BaseModel):
     # Stream capture metadata (from video-streaming service)
     camera_id: str | None = None
     capture_type: str | None = None
-    neighborhood: str | None = None
+    location: str | None = None
     
     # Analysis scenario metadata
     scenario: str | None = None
