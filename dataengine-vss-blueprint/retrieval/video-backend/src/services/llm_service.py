@@ -34,7 +34,12 @@ class LLMService:
     def __init__(self):
         self.settings = get_settings()
         self.api_key = self.settings.nvidia_api_key
+        # Always use configured host/port; llm_local_nim only controls API key usage
         self.base_url = f"{self.settings.llm_http_scheme}://{self.settings.llm_host}:{self.settings.llm_port}"
+        if self.settings.llm_local_nim:
+            print(f"[LLM] Using local NIM: {self.base_url}")
+        else:
+            print(f"[LLM] Using NVIDIA Cloud: {self.base_url}")
         self.model_name = self.settings.llm_model_name
         self.timeout = self.settings.llm_timeout_seconds
         # Default prompt is only used as fallback if frontend doesn't send one
@@ -177,10 +182,9 @@ Please synthesize this information to answer the user's query."""
         # Use provided system prompt or fall back to default
         effective_system_prompt = system_prompt if system_prompt else self.default_prompt
         
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
+        headers = {"Content-Type": "application/json"}
+        if not self.settings.llm_local_nim and self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
         
         payload = {
             "model": self.model_name,

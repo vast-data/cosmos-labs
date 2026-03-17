@@ -9,25 +9,20 @@ class EmbeddingClient:
     def __init__(self, settings):
         self.model = settings.embeddingmodel
         self.dimensions = settings.embeddingdimensions
-        self.nvidia_api_key = settings.nvidia_api_key
-        
-        # Determine if using NVIDIA cloud or hosted NIM
-        if self.nvidia_api_key:
-            # Use NVIDIA cloud endpoint
-            self.base_url = "https://integrate.api.nvidia.com/v1"
-            self.is_cloud = True
-            logging.info(f"[EMBEDDING] Using NVIDIA Cloud API endpoint: {self.base_url}")
+        self.nvidia_api_key = getattr(settings, "nvidia_api_key", None) or ""
+        # embedding_local_nim only controls API key usage; always use configured host/port
+        self.is_cloud = not getattr(settings, "embedding_local_nim", False)
+        self.base_url = f"{settings.embeddinghttpscheme}://{settings.embeddinghost}:{settings.embeddingport}/v1"
+        if self.is_cloud:
+            logging.info(f"[EMBEDDING] Using NVIDIA Cloud: {self.base_url}")
         else:
-            # Use hosted NIM endpoint
-            self.base_url = f"{settings.embeddinghttpscheme}://{settings.embeddinghost}:{settings.embeddingport}/v1"
-            self.is_cloud = False
-            logging.info(f"[EMBEDDING] Using hosted NIM endpoint: {self.base_url}")
+            logging.info(f"[EMBEDDING] Using local NIM: {self.base_url}")
 
     def get_embeddings(self, texts: List[str]) -> List[List[float]]:
         """Get embeddings from NVIDIA NIM (hosted or cloud)"""
         headers = {"Content-Type": "application/json"}
         
-        # Add Authorization header for cloud API
+        # Add API key when using NVIDIA Cloud (not when using local NIM)
         if self.is_cloud and self.nvidia_api_key:
             headers["Authorization"] = f"Bearer {self.nvidia_api_key}"
         

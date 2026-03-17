@@ -14,7 +14,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { HttpClient } from '@angular/common/http';
 import { SearchRequest, MetadataField, MetadataSchema } from '../../../shared/models/video.model';
 import { environment } from '../../../../environments/environment';
-import { SYSTEM_PROMPT_STORAGE_KEY, DEFAULT_SYSTEM_PROMPT } from '../../../features/settings/system-prompt-dialog.component';
+import { SYSTEM_PROMPT_STORAGE_KEY } from '../../../features/settings/system-prompt-dialog.component';
 import { getLLMSettings } from '../../../features/settings/advanced-llm-settings-dialog.component';
 import { SearchService } from '../services/search.service';
 import { SqlQueryDialogComponent } from './sql-query-dialog.component';
@@ -1120,7 +1120,9 @@ export class SearchBarComponent implements OnInit {
 
     if (request.use_llm) {
       const storedPrompt = localStorage.getItem(SYSTEM_PROMPT_STORAGE_KEY);
-      request.system_prompt = (storedPrompt && storedPrompt.trim()) ? storedPrompt.trim() : DEFAULT_SYSTEM_PROMPT;
+      if (storedPrompt && storedPrompt.trim()) {
+        request.system_prompt = storedPrompt.trim();
+      }
     }
 
     // Custom date range (sent as local time to match VastDB timestamps)

@@ -5,6 +5,7 @@ import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { VideoService } from '../../shared/services/video.service';
 import { UploadRequest } from '../../shared/models/video.model';
 
@@ -17,7 +18,8 @@ import { UploadRequest } from '../../shared/models/video.model';
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressBarModule
+    MatProgressBarModule,
+    MatTooltipModule
   ],
   template: `
     <div class="upload-dialog-container">
@@ -88,6 +90,50 @@ import { UploadRequest } from '../../shared/models/video.model';
                        formControlName="allowedUsers" 
                        placeholder="john.doe, jane.smith">
                 <span class="field-hint">Specify users who can access this video (you are always included)</span>
+              </div>
+            }
+
+            <div class="metadata-toggle" (click)="showMetadata.set(!showMetadata())">
+              <mat-icon>{{ showMetadata() ? 'expand_less' : 'expand_more' }}</mat-icon>
+              <span>Advanced Metadata</span>
+              <mat-icon class="info-icon" 
+                        matTooltip="Add metadata like camera ID, capture type, and location (same as streaming flow)">
+                info_outline
+              </mat-icon>
+            </div>
+
+            @if (showMetadata()) {
+              <div class="metadata-section">
+                <div class="form-field-wrapper">
+                  <label class="field-label">Camera ID</label>
+                  <input type="text" 
+                         class="custom-input" 
+                         formControlName="camera_id" 
+                         placeholder="e.g., CAM-001, manhattan-cam-1">
+                </div>
+                
+                <div class="form-field-wrapper">
+                  <label class="field-label">Capture Type</label>
+                  <select class="custom-input" formControlName="capture_type">
+                    <option value="">-- None --</option>
+                    <option value="traffic">Traffic</option>
+                    <option value="streets">Streets</option>
+                    <option value="crowds">Crowds</option>
+                    <option value="malls">Malls</option>
+                    <option value="warehouse">Warehouse</option>
+                    <option value="retail">Retail</option>
+                    <option value="sports">Sports</option>
+                    <option value="general">General</option>
+                  </select>
+                </div>
+                
+                <div class="form-field-wrapper">
+                  <label class="field-label">Location</label>
+                  <input type="text" 
+                         class="custom-input" 
+                         formControlName="location" 
+                         placeholder="e.g., Midtown, Downtown, Times Square">
+                </div>
               </div>
             }
 
@@ -327,6 +373,52 @@ import { UploadRequest } from '../../shared/models/video.model';
       }
     }
 
+    .metadata-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      cursor: pointer;
+      padding: 0.5rem 0;
+      margin-bottom: 0.5rem;
+      transition: color 0.2s ease;
+      
+      &:hover {
+        color: var(--accent-primary);
+      }
+      
+      mat-icon {
+        font-size: 1.25rem;
+        width: 1.25rem;
+        height: 1.25rem;
+      }
+      
+      .info-icon {
+        font-size: 1rem;
+        width: 1rem;
+        height: 1rem;
+        opacity: 0.6;
+        margin-left: auto;
+      }
+    }
+
+    .metadata-section {
+      background: rgba(0, 71, 171, 0.05);
+      border: 1px solid rgba(0, 71, 171, 0.2);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      
+      .form-field-wrapper {
+        margin-bottom: 1rem;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+    }
+
     .error-message {
       display: flex;
       align-items: center;
@@ -541,7 +633,10 @@ export class UploadDialogComponent {
     tags: [''],
     isPrivate: [false],  // Default to false = public
     allowedUsers: [''],
-    scenario: ['']  // Analysis scenario (optional, falls back to default)
+    scenario: [''],  // Analysis scenario (optional, falls back to default)
+    camera_id: [''],
+    capture_type: [''],
+    location: ['']
   });
 
   selectedFile = signal<File | null>(null);
@@ -550,6 +645,7 @@ export class UploadDialogComponent {
   uploadComplete = signal(false);
   uploadPhase = signal<'requesting' | 'uploading'>('requesting');
   error = signal<string | null>(null);
+  showMetadata = signal(false);
 
   onDragOver(event: DragEvent) {
     event.preventDefault();
@@ -639,12 +735,19 @@ export class UploadDialogComponent {
       
       const scenario = formValue.scenario || '';
       
+      const metadata = {
+        camera_id: formValue.camera_id || undefined,
+        capture_type: formValue.capture_type || undefined,
+        location: formValue.location || undefined
+      };
+      
       const response = await this.videoService.uploadVideo(
         file,
         isPublic,
         tags,
         allowedUsers,
-        scenario
+        scenario,
+        metadata
       ).toPromise();
       
       console.log('Upload completed successfully:', response);

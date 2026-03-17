@@ -10,16 +10,16 @@ class Settings(BaseModel):
     embeddinghost: str
     embeddingport: int
     embeddinghttpscheme: str = "http"
-    embeddingdefault: bool = True
+    embedding_local_nim: bool = False
     embeddingmodel: str
     embeddingdimensions: int
     nvidia_api_key: Optional[str] = None  # Optional NVIDIA Cloud API key
     
     @classmethod
     def from_ctx_secrets(cls, secrets: Dict[str, str]) -> 'Settings':
-        """Load all settings from runtime context secrets"""
-        field_names = cls.__annotations__.keys()
-        config = {field: secrets["videoreasonsecret"][field] for field in field_names}
+        """Load settings from runtime context secrets (uses model defaults for missing optional fields)"""
+        raw = secrets["videoreasonsecret"]
+        config = {field: raw[field] for field in cls.__annotations__.keys() if field in raw}
         return cls(**config)
 
 

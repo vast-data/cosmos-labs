@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     embedding_model: str = Field(default="nvidia/nv-embedqa-e5-v5", description="Embedding model")
     embedding_dimensions: int = Field(default=1024, description="Embedding dimensions")
     nvidia_api_key: Optional[str] = Field(default="", description="NVIDIA API key (for cloud)")
-    embedding_default: bool = Field(default=True, description="Use default NVIDIA Cloud")
+    embedding_local_nim: bool = Field(default=False, description="True = use local NIM (embedding_host/port), False = NVIDIA Cloud")
     
     # Upload Settings
     max_upload_size_mb: int = Field(default=25, description="Maximum upload size in MB")
@@ -60,6 +60,7 @@ class Settings(BaseSettings):
     llm_port: int = Field(default=443, description="LLM API port")
     llm_http_scheme: str = Field(default="https", description="LLM HTTP scheme")
     llm_timeout_seconds: int = Field(default=10, description="LLM API timeout in seconds")
+    llm_local_nim: bool = Field(default=False, description="True = use local NIM (llm_host/port), False = NVIDIA Cloud")
     
     # VAST Admin Credentials (for authenticating local users)
     vast_admin_username: str = Field(..., description="VAST admin username for API queries")

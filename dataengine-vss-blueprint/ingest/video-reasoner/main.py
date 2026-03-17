@@ -27,7 +27,6 @@ def init(ctx):
             ctx.reasoning_client = NemotronReasoningClient(settings)
             ctx.logger.info(f"[INIT] Using Nemotron provider: {settings.nemotron_model}")
         else:
-            # Default to Cosmos
             ctx.reasoning_client = CosmosReasoningClient(settings)
             ctx.logger.info(f"[INIT] Using Cosmos provider: {settings.cosmos_model}")
         

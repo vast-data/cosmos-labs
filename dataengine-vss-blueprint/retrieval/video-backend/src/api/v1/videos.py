@@ -43,6 +43,9 @@ async def upload_video(
     tags: str = Form(""),
     allowed_users: str = Form(""),
     scenario: str = Form(""),
+    camera_id: str = Form(""),
+    capture_type: str = Form(""),
+    location: str = Form(""),
     current_user: CurrentUser = None
 ):
     """
@@ -55,6 +58,9 @@ async def upload_video(
         tags: Comma-separated tags
         allowed_users: Comma-separated list of allowed users
         scenario: Analysis scenario (e.g. general)
+        camera_id: Camera identifier (optional metadata)
+        capture_type: Capture type - traffic, streets, crowds, malls, etc. (optional metadata)
+        location: Geographic area/location (optional metadata)
         current_user: Current authenticated user
         
     Returns:
@@ -89,6 +95,10 @@ async def upload_video(
         allowed_users_list = [u.strip() for u in allowed_users.split(',') if u.strip()] if allowed_users else []
         scenario_value = scenario.strip() if scenario else ""
 
+        camera_id_value = camera_id.strip() if camera_id else None
+        capture_type_value = capture_type.strip() if capture_type else None
+        location_value = location.strip() if location else None
+        
         object_key = await s3_service.upload_file(
             file=file,
             user=current_user,
@@ -96,8 +106,9 @@ async def upload_video(
             tags=tags_list,
             allowed_users=allowed_users_list,
             scenario=scenario_value,
-            camera_id=None,
-            location=None
+            camera_id=camera_id_value,
+            capture_type=capture_type_value,
+            location=location_value
         )
 
         logger.info(f"Video uploaded: {object_key}")

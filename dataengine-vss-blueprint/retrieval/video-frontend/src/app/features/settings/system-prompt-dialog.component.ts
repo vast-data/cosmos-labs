@@ -8,24 +8,10 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 
 const STORAGE_KEY = 'video_lab_system_prompt';
-
-// Default system prompt - single source of truth (no backend ConfigMap needed)
-export const DEFAULT_SYSTEM_PROMPT = `Always use relevant Emojis in every line in your response!
-Role: You are a witty, sharp-eyed Video Analyst. Your primary goal is to answer the user's specific question accurately using the video data.
-
-The Rules:
-
-Direct Answer First: Start immediately with a clear, direct answer to the user's question. No fluff.
-
-Contextual Vibe Check: Follow the answer with a 1-sentence snarky or relatable observation about the scene (e.g., "Standard city chaos—everyone’s in a rush.").
-
-The Evidence (Play-by-Play): Provide short, titled chapters with timestamps. Only include segments that are relevant to the user's question or provide necessary context. Use bold for the action.
-
-Human Commentary: Be opinionated but brief. If a driver is being aggressive or a logo is distinct, call it out. ALWAYS ! Use relevant emojis sparingly !
-
-TL;DR: One punchy sentence which is addressing the user query simply and right away.`;
 
 @Component({
   selector: 'app-system-prompt-dialog',
@@ -337,38 +323,52 @@ TL;DR: One punchy sentence which is addressing the user query simply and right a
 export class SystemPromptDialogComponent implements OnInit {
   private dialogRef = inject(MatDialogRef<SystemPromptDialogComponent>);
   private snackBar = inject(MatSnackBar);
+  private http = inject(HttpClient);
 
   systemPrompt: string = '';
 
   ngOnInit() {
-    // Load saved prompt from localStorage, or use default
     const savedPrompt = localStorage.getItem(STORAGE_KEY);
-    this.systemPrompt = savedPrompt || DEFAULT_SYSTEM_PROMPT;
+    if (savedPrompt) {
+      this.systemPrompt = savedPrompt;
+    } else {
+      this.loadDefaultFromBackend();
+    }
   }
 
-  resetToDefault() {
-    this.systemPrompt = DEFAULT_SYSTEM_PROMPT;
-    this.snackBar.open('Reset to default prompt', 'OK', { duration: 2000 });
+  private loadDefaultFromBackend(): void {
+    this.http.get<{ llm?: { default_system_prompt?: string } }>(`${environment.apiUrl}/config`).subscribe({
+      next: (config: { llm?: { default_system_prompt?: string } }) => { this.systemPrompt = config?.llm?.default_system_prompt ?? ''; },
+      error: () => { this.systemPrompt = ''; }
+    });
+  }
+
+  resetToDefault(): void {
+    this.http.get<{ llm?: { default_system_prompt?: string } }>(`${environment.apiUrl}/config`).subscribe({
+      next: (config: { llm?: { default_system_prompt?: string } }) => {
+        this.systemPrompt = config?.llm?.default_system_prompt ?? '';
+        this.snackBar.open('Reset to default prompt', 'OK', { duration: 2000 });
+      },
+      error: () => this.snackBar.open('Could not load default prompt', 'OK', { duration: 2000 })
+    });
   }
 
   save() {
-    // Save to localStorage
     if (this.systemPrompt && this.systemPrompt.trim()) {
       localStorage.setItem(STORAGE_KEY, this.systemPrompt.trim());
       this.snackBar.open('System prompt saved!', 'OK', {
         duration: 3000,
         panelClass: 'success-snackbar'
       });
+      this.dialogRef.close(true);
     } else {
-      // If empty, save the default prompt
-      localStorage.setItem(STORAGE_KEY, DEFAULT_SYSTEM_PROMPT);
-      this.systemPrompt = DEFAULT_SYSTEM_PROMPT;
-      this.snackBar.open('Reset to default prompt', 'OK', {
+      localStorage.removeItem(STORAGE_KEY);
+      this.snackBar.open('Cleared; backend default will be used for search.', 'OK', {
         duration: 3000,
         panelClass: 'info-snackbar'
       });
+      this.dialogRef.close(true);
     }
-    this.dialogRef.close(true);
   }
 
   close() {

@@ -5,6 +5,7 @@ This directory contains documentation for the video backend service, including a
 ## Table of Contents
 
 - [User Authentication](#user-authentication)
+- [Embedding and LLM: Local NIM vs NVIDIA Cloud](#embedding-and-llm-local-nim-vs-nvidia-cloud)
 - [Advanced LLM & Search Settings (GUI)](#advanced-llm--search-settings-gui)
 - [Custom LLM System Prompt (GUI)](#custom-llm-system-prompt-gui)
 - [Time-Based Filtering](#time-based-filtering)
@@ -98,6 +99,25 @@ The system supports both default and non-default tenants:
 - **S3 Secret Key**: The S3 secret key is obtained from VAST user management (VMS > Users)
 - **Tenant Scoping**: Access keys are tenant-scoped - they only work with their tenant's S3 endpoint
 - **Endpoint Matching**: If authentication fails, check that `s3_endpoint` in `backend-secret.yaml` matches the tenant's S3 endpoint
+
+---
+
+## Embedding and LLM: Local NIM vs NVIDIA Cloud
+
+The backend can use either **your own NIM endpoints** (local/on-prem) or **NVIDIA Cloud** for embeddings and LLM. Two flags in `backend-secret.yaml` control whether to send the API key:
+
+| Setting | `true` (Local NIM) | `false` (NVIDIA Cloud) |
+|---------|-------------------|------------------------|
+| **`embedding_local_nim`** | No API key sent | Sends `nvidia_api_key` |
+| **`llm_local_nim`** | No API key sent | Sends `nvidia_api_key` |
+
+**Always configure `host`/`port`/`scheme`** for the endpoint you want to use:
+- **Local NIM**: Set flag to `true`, configure host/port/scheme for your NIM endpoint.
+- **NVIDIA Cloud**: Set flag to `false`, configure host to `integrate.api.nvidia.com`, port `443`, scheme `https`, and set `nvidia_api_key`.
+
+The `nvidia_api_key` is required when either flag is `false`.
+
+---
 
 ## Troubleshooting
 

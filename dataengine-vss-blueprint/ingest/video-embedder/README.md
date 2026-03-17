@@ -13,11 +13,15 @@ A VAST DataEngine serverless function that converts video reasoning text into ve
 
 Configure in `ingest/vde-video-ingest-secret-template.yaml`:
 
-- **`embeddinghost`**: NVIDIA NIM embedding endpoint host
-- **`embeddingport`**: NVIDIA NIM embedding endpoint port
-- **`embeddingmodel`**: Embedding model name (e.g., `nvidia/nv-embedqa-e5-v5`)
-- **`embeddingdimensions`**: Vector dimensions (must match model output)
-- **`nvidia_api_key`**: Optional NVIDIA Cloud API key (if using cloud endpoints)
+| Setting | Description |
+|---------|-------------|
+| **`embedding_local_nim`** | `true` = local NIM (no API key), `false` = NVIDIA Cloud (sends API key) |
+| **`embeddinghost`** / **`embeddingport`** / **`embeddinghttpscheme`** | Endpoint to use (always required) |
+| **`embeddingmodel`** | Embedding model name (e.g., `nvidia/nv-embedqa-e5-v5`) |
+| **`embeddingdimensions`** | Vector dimensions (must match model output) |
+| **`nvidia_api_key`** | Required when `embedding_local_nim: false` (NVIDIA Cloud) |
+
+For NVIDIA Cloud, set: `embeddinghost: integrate.api.nvidia.com`, `embeddingport: 443`, `embeddinghttpscheme: https`
 
 ## About the Function
 
