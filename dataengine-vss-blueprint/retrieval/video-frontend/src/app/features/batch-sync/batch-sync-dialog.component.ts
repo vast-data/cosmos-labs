@@ -213,6 +213,25 @@ import { environment } from '../../../environments/environment';
             <mat-icon matSuffix>psychology</mat-icon>
           </mat-form-field>
 
+          <div class="custom-prompt-toggle">
+            <label class="toggle-wrapper">
+              <input type="checkbox" formControlName="useCustomPrompt" class="toggle-checkbox">
+              <span class="toggle-label">Use custom prompt (overrides scenario)</span>
+            </label>
+          </div>
+
+          @if (useCustomPrompt()) {
+            <mat-form-field appearance="outline" class="custom-prompt-field">
+              <mat-label>Custom Prompt</mat-label>
+              <textarea matInput formControlName="custom_prompt" 
+                        placeholder="Enter your custom reasoning prompt for the AI model..."
+                        rows="4"
+                        maxlength="800"></textarea>
+              <mat-icon matSuffix>edit_note</mat-icon>
+              <mat-hint align="end">{{ customPromptLength() }}/800</mat-hint>
+            </mat-form-field>
+          }
+
           @if (error()) {
             <div class="error-message">
               <mat-icon>error_outline</mat-icon>
@@ -667,6 +686,39 @@ import { environment } from '../../../environments/environment';
         border-color: var(--border-color) !important;
       }
     }
+
+    .custom-prompt-toggle {
+      margin: 0.5rem 0 1rem 0;
+
+      .toggle-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        cursor: pointer;
+
+        .toggle-checkbox {
+          width: 18px;
+          height: 18px;
+          cursor: pointer;
+          accent-color: #06ffa5;
+        }
+
+        .toggle-label {
+          color: var(--text-secondary);
+          font-size: 0.9rem;
+        }
+      }
+    }
+
+    .custom-prompt-field {
+      width: 100%;
+      margin-bottom: 1rem;
+
+      textarea {
+        min-height: 100px;
+        resize: vertical;
+      }
+    }
   `]
 })
 export class BatchSyncDialogComponent implements OnInit {
@@ -700,7 +752,18 @@ export class BatchSyncDialogComponent implements OnInit {
       camera_id: [''],
       capture_type: [''],
       location: [''],
-      scenario: ['']
+      scenario: [''],
+      useCustomPrompt: [false],
+      custom_prompt: ['']
+    });
+
+    // Disable/enable scenario based on custom prompt toggle
+    this.syncForm.get('useCustomPrompt')?.valueChanges.subscribe((useCustom: boolean | null) => {
+      if (useCustom) {
+        this.syncForm.get('scenario')?.disable();
+      } else {
+        this.syncForm.get('scenario')?.enable();
+      }
     });
   }
 
@@ -726,6 +789,14 @@ export class BatchSyncDialogComponent implements OnInit {
 
   getDestinationBucket(): string {
     return this.defaultConfig?.bucket_name || 'default-bucket';
+  }
+
+  useCustomPrompt(): boolean {
+    return this.syncForm.get('useCustomPrompt')?.value || false;
+  }
+
+  customPromptLength(): number {
+    return this.syncForm.get('custom_prompt')?.value?.length || 0;
   }
 
   onUseDefaultChange() {
@@ -881,6 +952,9 @@ export class BatchSyncDialogComponent implements OnInit {
 
     const { bucket, prefix } = this.parseBucketPath(formValue.source_bucket_path);
     
+    // Get raw form value (including disabled fields)
+    const rawFormValue = this.syncForm.getRawValue();
+    
     const request: BatchSyncStartRequest = {
       source_access_key: formValue.source_access_key,
       source_secret_key: sourceSecretKey,
@@ -895,7 +969,8 @@ export class BatchSyncDialogComponent implements OnInit {
       camera_id: formValue.camera_id || undefined,
       capture_type: formValue.capture_type || undefined,
       location: formValue.location || undefined,
-      scenario: formValue.scenario || undefined
+      scenario: rawFormValue.useCustomPrompt ? undefined : (rawFormValue.scenario || undefined),
+      custom_prompt: rawFormValue.useCustomPrompt ? (rawFormValue.custom_prompt || undefined) : undefined
     };
 
     this.batchSyncService.start(request).subscribe({

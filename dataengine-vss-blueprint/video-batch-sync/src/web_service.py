@@ -17,6 +17,7 @@ from flask import Flask, request, jsonify
 import boto3
 from botocore.exceptions import ClientError
 from typing import Dict, List, Optional, Tuple
+from urllib.parse import quote
 from boto3.s3.transfer import TransferConfig
 
 # Configure logging
@@ -297,6 +298,8 @@ class BatchSyncService:
                 metadata['location'] = config['location']
             if config.get('scenario'):
                 metadata['scenario'] = config['scenario']
+            if config.get('custom_prompt'):
+                metadata['custom-prompt'] = quote(config['custom_prompt'], safe='')
             
             # Copy files with rate limiting
             # batch_size is now delay in seconds between files (not files per second)

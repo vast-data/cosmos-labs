@@ -43,6 +43,7 @@ async def upload_video(
     tags: str = Form(""),
     allowed_users: str = Form(""),
     scenario: str = Form(""),
+    custom_prompt: str = Form(""),
     camera_id: str = Form(""),
     capture_type: str = Form(""),
     location: str = Form(""),
@@ -57,7 +58,8 @@ async def upload_video(
         is_public: Make video publicly accessible
         tags: Comma-separated tags
         allowed_users: Comma-separated list of allowed users
-        scenario: Analysis scenario (e.g. general)
+        scenario: Analysis scenario (e.g. general) - ignored if custom_prompt is set
+        custom_prompt: Custom prompt for video reasoning (overrides scenario, max 800 chars)
         camera_id: Camera identifier (optional metadata)
         capture_type: Capture type - traffic, streets, crowds, malls, etc. (optional metadata)
         location: Geographic area/location (optional metadata)
@@ -98,6 +100,7 @@ async def upload_video(
         camera_id_value = camera_id.strip() if camera_id else None
         capture_type_value = capture_type.strip() if capture_type else None
         location_value = location.strip() if location else None
+        custom_prompt_value = custom_prompt.strip()[:800] if custom_prompt else None
         
         object_key = await s3_service.upload_file(
             file=file,
@@ -106,6 +109,7 @@ async def upload_video(
             tags=tags_list,
             allowed_users=allowed_users_list,
             scenario=scenario_value,
+            custom_prompt=custom_prompt_value,
             camera_id=camera_id_value,
             capture_type=capture_type_value,
             location=location_value

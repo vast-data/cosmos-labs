@@ -48,7 +48,7 @@ export class VideoService {
 
   /**
    * Upload video file directly to backend (backend proxies to S3)
-   * @param metadata Optional metadata: camera_id, capture_type, location
+   * @param metadata Optional metadata: camera_id, capture_type, location, custom_prompt
    */
   uploadVideo(
     file: File, 
@@ -56,7 +56,7 @@ export class VideoService {
     tags: string[], 
     allowed_users: string[], 
     scenario: string = '',
-    metadata?: { camera_id?: string; capture_type?: string; location?: string }
+    metadata?: { camera_id?: string; capture_type?: string; location?: string; custom_prompt?: string }
   ): Observable<any> {
     console.log('uploadVideo called:', { 
       fileName: file.name, 
@@ -92,6 +92,9 @@ export class VideoService {
     }
     if (metadata?.location) {
       formData.append('location', metadata.location);
+    }
+    if (metadata?.custom_prompt) {
+      formData.append('custom_prompt', metadata.custom_prompt);
     }
     
     console.log('Uploading to backend...');

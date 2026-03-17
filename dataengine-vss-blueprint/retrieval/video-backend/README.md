@@ -259,6 +259,30 @@ Synthesize these video search results into a narrative description. Write in a s
 
 ---
 
+## Custom AI Prompts for Video Analysis
+
+When uploading videos (manual upload, streaming, or batch sync), you can provide a custom prompt for AI reasoning instead of using predefined scenarios.
+
+### How to Use
+
+In any upload flow, check **"Use custom prompt"** to enable a text area for your custom prompt. This overrides the selected scenario.
+
+### Features
+
+- Max 800 characters
+- Overrides scenario selection when enabled
+- URL-encoded for S3 metadata storage
+- Available in: Manual Upload, Streaming Config, Batch Sync dialogs
+
+### Use Cases
+
+- Domain-specific analysis (e.g., hockey player tracking, retail theft detection)
+- Custom output format requirements
+- Language-specific responses
+- Focused analysis on specific aspects
+
+---
+
 ## Time-Based Filtering
 
 Search results can be filtered by time to focus on recent content or specific time periods. The time filter applies to the `upload_timestamp` column in VastDB.

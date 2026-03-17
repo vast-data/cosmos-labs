@@ -43,6 +43,7 @@ class StreamingStartRequest(BaseModel):
     capture_type: Optional[str] = Field(default="", description="Capture type: traffic, streets, crowds, malls")
     location: Optional[str] = Field(default="", description="Geographic area/location")
     scenario: Optional[str] = Field(default="", description="Analysis scenario: surveillance, traffic, egocentric, etc.")
+    custom_prompt: Optional[str] = Field(default="", description="Custom prompt for video reasoning (overrides scenario, max 800 chars)")
 
 
 class StreamingStatusResponse(BaseModel):
@@ -172,10 +173,11 @@ async def start_streaming(
             "camera_id": request.camera_id or "",
             "capture_type": request.capture_type or "",
             "location": request.location or "",
-            "scenario": request.scenario or ""
+            "scenario": request.scenario or "",
+            "custom_prompt": (request.custom_prompt or "")[:800]
         }
         
-        logger.info(f"[STREAMING] Metadata: camera_id={request.camera_id}, capture_type={request.capture_type}, location={request.location}, scenario={request.scenario}")
+        logger.info(f"[STREAMING] Metadata: camera_id={request.camera_id}, capture_type={request.capture_type}, location={request.location}, scenario={request.scenario}, custom_prompt={'set' if request.custom_prompt else 'none'}")
         
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(

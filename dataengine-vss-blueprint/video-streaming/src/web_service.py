@@ -19,6 +19,7 @@ import subprocess
 import tempfile
 import re
 from datetime import datetime
+from urllib.parse import quote
 from flask import Flask, request, jsonify
 import boto3
 from botocore.exceptions import ClientError
@@ -245,7 +246,7 @@ class VideoCaptureService:
         return stream_url
     
     def _capture_with_ytdlp_download(self, config, capture_interval, bucket_name, s3_prefix,
-                                     camera_id, capture_type, location, scenario, max_duration):
+                                     camera_id, capture_type, location, scenario, custom_prompt, max_duration):
         """
         Fallback method: Use yt-dlp to download segments directly when OpenCV streaming fails.
         This works around OpenCV's inability to handle complex YouTube URLs.
@@ -319,6 +320,8 @@ class VideoCaptureService:
                         s3_metadata['location'] = location
                     if scenario:
                         s3_metadata['scenario'] = scenario
+                    if custom_prompt:
+                        s3_metadata['custom-prompt'] = quote(custom_prompt, safe='')
                     s3_metadata['capture-timestamp'] = timestamp
                     
                     # Upload to S3
@@ -376,6 +379,7 @@ class VideoCaptureService:
             capture_type = config.get('capture_type', '')  # traffic, streets, crowds, malls
             location = config.get('location', '')
             scenario = config.get('scenario', '')  # analysis scenario (nhl, surveillance, etc.)
+            custom_prompt = config.get('custom_prompt', '')  # custom prompt (overrides scenario)
             
             logger.info(f"Starting continuous capture every {capture_interval} seconds")
             logger.info(f"Stream URL: {stream_url}")
@@ -389,6 +393,8 @@ class VideoCaptureService:
                 logger.info(f"Location: {location}")
             if scenario:
                 logger.info(f"Scenario: {scenario}")
+            if custom_prompt:
+                logger.info(f"Custom Prompt: set ({len(custom_prompt)} chars)")
             
             # Get the actual stream source
             actual_stream_url = self.get_stream_source(stream_url)
@@ -412,7 +418,7 @@ class VideoCaptureService:
                 if self.is_youtube_url(stream_url):
                     logger.warning("OpenCV failed to open stream, using yt-dlp download method as fallback")
                     return self._capture_with_ytdlp_download(config, capture_interval, bucket_name, s3_prefix,
-                                                             camera_id, capture_type, location, scenario, max_duration)
+                                                             camera_id, capture_type, location, scenario, custom_prompt, max_duration)
                 else:
                     logger.error(f"Cannot open stream: {stream_url}")
                     return
@@ -549,6 +555,8 @@ class VideoCaptureService:
                         s3_metadata['location'] = location
                     if scenario:
                         s3_metadata['scenario'] = scenario
+                    if custom_prompt:
+                        s3_metadata['custom-prompt'] = quote(custom_prompt, safe='')
                     s3_metadata['capture-timestamp'] = timestamp
                     
                     # Upload to S3 with metadata

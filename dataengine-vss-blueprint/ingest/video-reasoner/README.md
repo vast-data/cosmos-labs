@@ -34,6 +34,10 @@ Configure in `ingest/vde-video-ingest-secret-template.yaml`:
   - Available scenarios: `surveillance`, `traffic`, `nhl`, `sports`, `retail`, `warehouse`, `nyc_control`, `egocentric`, `general`
   - See [Available Scenarios](#available-scenarios) below for details
   - **Per-video override**: You can also set `scenario` in S3 object metadata when uploading videos. If present, it will override the default from settings for that specific video.
+- **`custom_prompt`**: Custom reasoning prompt (via S3 object metadata)
+  - Set `custom-prompt` in S3 metadata to provide a fully custom prompt for that video
+  - **Overrides scenario**: If `custom-prompt` is present, it takes precedence over any scenario setting
+  - Max 800 characters, URL-encoded in S3 metadata
 - **`max_video_size_mb`**: Maximum video size in MB (default: `100`)
 
 ### Cosmos Settings (when `reasoning_provider == "cosmos"`)
@@ -97,6 +101,29 @@ The system comes with pre-configured prompts optimized for different use cases:
 | `nyc_control` | Urban command & control, license plates, anomalies |
 | `egocentric` | First-person perspective: kitchen work, barista tasks, sports activities, object finding |
 | `general` | Generic video description |
+
+## Custom Prompts
+
+For full control over AI reasoning, you can provide a custom prompt via S3 object metadata:
+
+```python
+s3_client.put_object(
+    Bucket=bucket,
+    Key=key,
+    Body=video_content,
+    Metadata={
+        "custom-prompt": "Analyze this video focusing on safety violations...",
+        # Note: custom-prompt overrides scenario if both are present
+    }
+)
+```
+
+Custom prompts are also available in the GUI:
+- **Manual Upload**: Check "Use custom prompt" in the upload dialog
+- **Streaming**: Check "Use custom prompt" in the streaming config
+- **Batch Sync**: Check "Use custom prompt" in the batch sync dialog
+
+Max 800 characters. URL-encoded automatically when stored in S3 metadata.
 
 ## How to Change the Scenario
 
