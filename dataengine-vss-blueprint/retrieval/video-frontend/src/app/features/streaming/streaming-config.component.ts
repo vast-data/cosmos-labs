@@ -11,7 +11,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { StreamingService, StreamingStartRequest } from '../../shared/services/streaming.service';
+import { StreamingService, StreamingStartRequest, StreamingPrefillConfig } from '../../shared/services/streaming.service';
 
 @Component({
   selector: 'app-streaming-config',
@@ -174,6 +174,25 @@ import { StreamingService, StreamingStartRequest } from '../../shared/services/s
                   </mat-select>
                   <mat-icon matSuffix>psychology</mat-icon>
                 </mat-form-field>
+
+                <div class="custom-prompt-toggle">
+                  <label class="toggle-wrapper">
+                    <input type="checkbox" formControlName="useCustomPrompt" class="toggle-checkbox">
+                    <span class="toggle-label">Use custom prompt (overrides scenario)</span>
+                  </label>
+                </div>
+
+                @if (useCustomPrompt()) {
+                  <mat-form-field appearance="outline" class="custom-prompt-field">
+                    <mat-label>Custom Prompt</mat-label>
+                    <textarea matInput formControlName="custom_prompt" 
+                              placeholder="Enter your custom reasoning prompt for the AI model..."
+                              rows="4"
+                              maxlength="800"></textarea>
+                    <mat-icon matSuffix>edit_note</mat-icon>
+                    <mat-hint align="end">{{ customPromptLength() }}/800</mat-hint>
+                  </mat-form-field>
+                }
               </div>
 
               <button mat-raised-button class="action-btn" (click)="startCapture()" 
@@ -591,6 +610,39 @@ import { StreamingService, StreamingStartRequest } from '../../shared/services/s
       --mdc-circular-progress-active-indicator-color: #00CED1;
     }
 
+    .custom-prompt-toggle {
+      margin: 0.5rem 0 1rem 0;
+
+      .toggle-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        cursor: pointer;
+
+        .toggle-checkbox {
+          width: 18px;
+          height: 18px;
+          cursor: pointer;
+          accent-color: #06ffa5;
+        }
+
+        .toggle-label {
+          color: var(--text-secondary);
+          font-size: 0.9rem;
+        }
+      }
+    }
+
+    .custom-prompt-field {
+      width: 100%;
+      margin-bottom: 1rem;
+
+      textarea {
+        min-height: 100px;
+        resize: vertical;
+      }
+    }
+
     // Style the mat-select dropdown panel to match the clean metadata dropdowns
     ::ng-deep .mat-mdc-select-panel {
       background: var(--bg-card) !important;
@@ -651,12 +703,23 @@ export class StreamingConfigComponent {
       camera_id: [''],
       capture_type: [''],
       location: [''],
-      scenario: ['']
+      scenario: [''],
+      useCustomPrompt: [false],
+      custom_prompt: ['']
+    });
+
+    // Disable/enable scenario based on custom prompt toggle
+    this.startForm.get('useCustomPrompt')?.valueChanges.subscribe((useCustom: boolean | null) => {
+      if (useCustom) {
+        this.startForm.get('scenario')?.disable();
+      } else {
+        this.startForm.get('scenario')?.enable();
+      }
     });
 
     // Load streaming prefill config from backend (includes actual credentials)
     this.streamingService.getPrefillConfig().subscribe({
-      next: (config) => {
+      next: (config: StreamingPrefillConfig) => {
         this.startForm.patchValue({
           s3_endpoint: config.s3_endpoint || '',
           bucket_name: config.bucket_name || '',
@@ -702,13 +765,35 @@ export class StreamingConfigComponent {
     });
   }
 
+  useCustomPrompt(): boolean {
+    return this.startForm.get('useCustomPrompt')?.value || false;
+  }
+
+  customPromptLength(): number {
+    return this.startForm.get('custom_prompt')?.value?.length || 0;
+  }
+
   startCapture() {
     if (!this.startForm.valid) return;
 
     this.startLoading.set(true);
     this.startResult.set(null);
 
-    const request: StreamingStartRequest = this.startForm.value;
+    const formValue = this.startForm.getRawValue();
+    const request: StreamingStartRequest = {
+      youtube_url: formValue.youtube_url,
+      access_key: formValue.access_key,
+      secret_key: formValue.secret_key,
+      s3_endpoint: formValue.s3_endpoint,
+      bucket_name: formValue.bucket_name,
+      name: formValue.name,
+      capture_interval: formValue.capture_interval,
+      camera_id: formValue.camera_id,
+      capture_type: formValue.capture_type,
+      location: formValue.location,
+      scenario: formValue.useCustomPrompt ? '' : formValue.scenario,
+      custom_prompt: formValue.useCustomPrompt ? formValue.custom_prompt : undefined
+    };
 
     this.streamingService.start(request).subscribe({
       next: (data: any) => {

@@ -69,6 +69,7 @@ class BatchSyncStartRequest(BaseModel):
     capture_type: Optional[str] = Field(default=None, description="Capture type: traffic, streets, crowds, malls")
     location: Optional[str] = Field(default=None, description="Geographic area/location")
     scenario: Optional[str] = Field(default=None, description="Analysis scenario: surveillance, traffic, egocentric, etc.")
+    custom_prompt: Optional[str] = Field(default=None, description="Custom prompt for video reasoning (overrides scenario, max 800 chars)")
 
 
 class BatchSyncStatusResponse(BaseModel):
@@ -241,12 +242,13 @@ async def start_batch_sync(
             "camera_id": request.camera_id or "",
             "capture_type": request.capture_type or "",
             "location": request.location or "",
-            "scenario": request.scenario or ""
+            "scenario": request.scenario or "",
+            "custom_prompt": (request.custom_prompt or "")[:800]
         }
         
         logger.info(f"[BATCH_SYNC] Destination: s3://{dest_bucket}")
         logger.info(f"[BATCH_SYNC] Delay between files: {request.batch_size} seconds")
-        logger.info(f"[BATCH_SYNC] Metadata: camera_id={request.camera_id}, capture_type={request.capture_type}, location={request.location}, scenario={request.scenario}")
+        logger.info(f"[BATCH_SYNC] Metadata: camera_id={request.camera_id}, capture_type={request.capture_type}, location={request.location}, scenario={request.scenario}, custom_prompt={'set' if request.custom_prompt else 'none'}")
         
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(

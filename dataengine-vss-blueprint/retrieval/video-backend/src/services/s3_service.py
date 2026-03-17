@@ -7,6 +7,7 @@ from botocore.exceptions import ClientError
 from typing import Dict, Optional
 import uuid
 from datetime import datetime
+from urllib.parse import quote, unquote
 from src.config import get_settings
 from src.models.user import User
 
@@ -134,6 +135,7 @@ class S3Service:
         tags: list[str],
         allowed_users: list[str],
         scenario: str = "",
+        custom_prompt: Optional[str] = None,
         camera_id: Optional[str] = None,
         capture_type: Optional[str] = None,
         location: Optional[str] = None
@@ -147,7 +149,8 @@ class S3Service:
             is_public: Whether video is public
             tags: Video tags
             allowed_users: Additional allowed users
-            scenario: Analysis scenario
+            scenario: Analysis scenario (ignored if custom_prompt is set)
+            custom_prompt: Custom prompt for video reasoning (overrides scenario, max 800 chars, URL-encoded for S3)
             camera_id: Optional camera identifier (for ingest pipeline)
             capture_type: Optional capture type (traffic, streets, crowds, malls, etc.)
             location: Optional area/location (for ingest pipeline)
@@ -191,6 +194,10 @@ class S3Service:
             # Add scenario if present
             if scenario:
                 metadata['scenario'] = scenario
+            
+            # Add custom prompt if present (URL-encoded to handle newlines and special chars)
+            if custom_prompt:
+                metadata['custom-prompt'] = quote(custom_prompt, safe='')
             
             if camera_id:
                 metadata['camera-id'] = camera_id

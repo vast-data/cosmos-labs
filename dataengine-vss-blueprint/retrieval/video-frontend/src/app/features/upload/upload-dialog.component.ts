@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -73,6 +73,28 @@ import { UploadRequest } from '../../shared/models/video.model';
               </select>
               <span class="field-hint">Select the analysis prompt scenario for this video</span>
             </div>
+
+            <label class="checkbox-wrapper">
+              <input type="checkbox" formControlName="useCustomPrompt" class="custom-checkbox">
+              <span class="checkbox-label">
+                <mat-icon class="checkbox-icon">{{ uploadForm.get('useCustomPrompt')?.value ? 'check_box' : 'check_box_outline_blank' }}</mat-icon>
+                Use custom prompt (overrides scenario)
+              </span>
+            </label>
+
+            @if (useCustomPrompt()) {
+              <div class="form-field-wrapper custom-prompt-wrapper">
+                <label class="field-label">Custom Prompt</label>
+                <textarea class="custom-input custom-prompt-textarea" 
+                          formControlName="customPrompt"
+                          placeholder="Enter your custom reasoning prompt for the AI model..."
+                          rows="4"
+                          maxlength="800"></textarea>
+                <span class="field-hint">
+                  {{ customPromptLength() }}/800 characters. Describe what you want the AI to analyze in the video.
+                </span>
+              </div>
+            }
 
             <label class="checkbox-wrapper">
               <input type="checkbox" formControlName="isPrivate" class="custom-checkbox">
@@ -419,6 +441,18 @@ import { UploadRequest } from '../../shared/models/video.model';
       }
     }
 
+    .custom-prompt-wrapper {
+      margin-bottom: 1.5rem;
+      
+      .custom-prompt-textarea {
+        width: 100%;
+        min-height: 100px;
+        resize: vertical;
+        font-family: inherit;
+        line-height: 1.5;
+      }
+    }
+
     .error-message {
       display: flex;
       align-items: center;
@@ -624,7 +658,7 @@ import { UploadRequest } from '../../shared/models/video.model';
     }
   `]
 })
-export class UploadDialogComponent {
+export class UploadDialogComponent implements OnInit {
   private fb = inject(FormBuilder);
   private videoService = inject(VideoService);
   private dialogRef = inject(MatDialogRef<UploadDialogComponent>);
@@ -634,6 +668,8 @@ export class UploadDialogComponent {
     isPrivate: [false],  // Default to false = public
     allowedUsers: [''],
     scenario: [''],  // Analysis scenario (optional, falls back to default)
+    useCustomPrompt: [false],  // Checkbox to enable custom prompt
+    customPrompt: [''],  // Custom prompt text (overrides scenario)
     camera_id: [''],
     capture_type: [''],
     location: ['']
@@ -646,6 +682,26 @@ export class UploadDialogComponent {
   uploadPhase = signal<'requesting' | 'uploading'>('requesting');
   error = signal<string | null>(null);
   showMetadata = signal(false);
+
+  ngOnInit() {
+    // Toggle scenario field enabled/disabled based on useCustomPrompt checkbox
+    this.uploadForm.get('useCustomPrompt')?.valueChanges.subscribe((useCustom) => {
+      const scenarioControl = this.uploadForm.get('scenario');
+      if (useCustom) {
+        scenarioControl?.disable();
+      } else {
+        scenarioControl?.enable();
+      }
+    });
+  }
+
+  useCustomPrompt(): boolean {
+    return this.uploadForm.get('useCustomPrompt')?.value ?? false;
+  }
+
+  customPromptLength(): number {
+    return (this.uploadForm.get('customPrompt')?.value || '').length;
+  }
 
   onDragOver(event: DragEvent) {
     event.preventDefault();
@@ -733,12 +789,15 @@ export class UploadDialogComponent {
       // isPrivate=true → is_public=false (private)
       const isPublic = !formValue.isPrivate;
       
-      const scenario = formValue.scenario || '';
+      const scenario = formValue.useCustomPrompt ? '' : (formValue.scenario || '');
       
       const metadata = {
         camera_id: formValue.camera_id || undefined,
         capture_type: formValue.capture_type || undefined,
-        location: formValue.location || undefined
+        location: formValue.location || undefined,
+        custom_prompt: formValue.useCustomPrompt && formValue.customPrompt 
+          ? formValue.customPrompt.trim() 
+          : undefined
       };
       
       const response = await this.videoService.uploadVideo(

@@ -67,6 +67,8 @@ http://video-streamer.<cluster_name>.vastdata.com
    - `camera_id` (optional): Camera identifier metadata
    - `capture_type` (optional): Capture type metadata
    - `location` (optional): Location metadata
+   - `scenario` (optional): Analysis scenario (surveillance, traffic, nhl, etc.)
+   - `custom_prompt` (optional): Custom reasoning prompt (overrides scenario, max 800 chars)
    - `max_duration` (optional): Maximum capture duration in seconds for VOD videos (default: 3600 = 1 hour)
 
 2. **Stop Capture** - `POST /stop`

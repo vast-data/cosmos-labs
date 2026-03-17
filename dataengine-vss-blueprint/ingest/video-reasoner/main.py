@@ -1,5 +1,6 @@
 from opentelemetry import trace
 from vast_runtime.vast_event import VastEvent  # type: ignore
+from urllib.parse import unquote
 
 from common.models import Settings, VideoReasoningResult
 from common.clients import S3Client, CosmosReasoningClient, NemotronReasoningClient
@@ -98,16 +99,21 @@ def handler(ctx, event: VastEvent):
                     capture_type = s3_metadata.get("capture-type", "")
                     location = s3_metadata.get("location", "")
                     
-                    # Extract scenario from metadata, fall back to settings default
+                    # Extract scenario and custom_prompt from metadata
                     scenario = s3_metadata.get("scenario", "").strip()
                     if not scenario:
                         scenario = ctx.settings.scenario
+                    
+                    # Custom prompt overrides scenario when set (URL-decoded from S3 metadata)
+                    custom_prompt_raw = s3_metadata.get("custom-prompt", "").strip()
+                    custom_prompt = unquote(custom_prompt_raw) if custom_prompt_raw else ""
                     
                     segment_number = int(segment_number_str) if segment_number_str else 0
                     total_segments = int(total_segments_str) if total_segments_str else 1
                     segment_duration = float(segment_duration_str) if segment_duration_str else 5.0
                     
-                    ctx.logger.info(f"[METADATA] segment {segment_number}/{total_segments} | camera={camera_id or 'none'} | type={capture_type or 'none'} | area={location or 'none'} | scenario={scenario}")
+                    prompt_info = f"custom_prompt=set ({len(custom_prompt)} chars)" if custom_prompt else f"scenario={scenario}"
+                    ctx.logger.info(f"[METADATA] segment {segment_number}/{total_segments} | camera={camera_id or 'none'} | type={capture_type or 'none'} | area={location or 'none'} | {prompt_info}")
                     
                     metadata_span.set_attributes({
                         "is_public": str(is_public),
@@ -117,7 +123,8 @@ def handler(ctx, event: VastEvent):
                         "camera_id": camera_id,
                         "capture_type": capture_type,
                         "location": location,
-                        "scenario": scenario
+                        "scenario": scenario,
+                        "custom_prompt": "set" if custom_prompt else ""
                     })
                 except Exception as e:
                     ctx.logger.warning(f"[METADATA] Extraction failed, using defaults: {e}")
@@ -133,17 +140,26 @@ def handler(ctx, event: VastEvent):
                     capture_type = ""
                     location = ""
                     scenario = ctx.settings.scenario  # Fall back to default from settings
+                    custom_prompt = ""  # No custom prompt on error
 
             with ctx.tracer.start_as_current_span("Video Reasoning Analysis") as reasoning_span:
                 provider = ctx.settings.reasoning_provider.lower()
                 provider_name = "NEMOTRON" if provider == "nemotron" else "COSMOS"
                 
+                # Use custom_prompt if provided, otherwise use scenario
+                prompt_info = f"custom_prompt=set ({len(custom_prompt)} chars)" if custom_prompt else f"scenario={scenario}"
                 if provider == "nemotron":
-                    ctx.logger.info(f"[{provider_name}] Starting analysis → {ctx.settings.nemotron_model} | scenario={scenario}")
+                    ctx.logger.info(f"[{provider_name}] Starting analysis → {ctx.settings.nemotron_model} | {prompt_info}")
                 else:
-                    ctx.logger.info(f"[{provider_name}] Starting analysis → {ctx.reasoning_client.settings.cosmos_host} | scenario={scenario}")
+                    ctx.logger.info(f"[{provider_name}] Starting analysis → {ctx.reasoning_client.settings.cosmos_host} | {prompt_info}")
                 
-                reasoning_result = ctx.reasoning_client.analyze_video(video_content, filename, scenario=scenario)
+                # Pass custom_prompt as prompt parameter (overrides scenario)
+                reasoning_result = ctx.reasoning_client.analyze_video(
+                    video_content, 
+                    filename, 
+                    prompt=custom_prompt if custom_prompt else None,
+                    scenario=scenario
+                )
                 
                 content_length = len(reasoning_result.get("reasoning_content", ""))
                 tokens_used = reasoning_result.get("tokens_used", 0)
@@ -158,7 +174,8 @@ def handler(ctx, event: VastEvent):
                     "tokens_used": tokens_used,
                     "processing_time_seconds": processing_time,
                     "model": model_name,
-                    "scenario": scenario
+                    "scenario": scenario,
+                    "custom_prompt": "set" if custom_prompt else ""
                 })
                 
                 ctx.logger.info(f"[{provider_name}] Complete | {content_length} chars | {tokens_used} tokens | {processing_time:.2f}s")

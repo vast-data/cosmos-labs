@@ -16,6 +16,7 @@ export interface StreamingStartRequest {
   capture_type?: string;  // traffic, streets, crowds, malls
   location?: string;
   scenario?: string;  // Analysis scenario (surveillance, traffic, egocentric, etc.)
+  custom_prompt?: string;  // Custom prompt for video reasoning (overrides scenario)
 }
 
 export interface StreamingStatus {

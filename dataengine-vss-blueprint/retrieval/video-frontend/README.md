@@ -5,7 +5,7 @@ An Angular web application that provides the user interface for the VSS Blueprin
 ## What It Does
 
 - **Video Search**: Semantic search across processed video segments using natural language queries
-- **Video Upload**: Upload videos with metadata (camera_id, capture_type, location)
+- **Video Upload**: Upload videos with metadata (camera_id, capture_type, location) and optional custom AI prompt
 - **Video Playback**: Play video segments with reasoning text overlays
 - **User Authentication**: Login with VAST credentials (username + S3 secret key)
 - **Settings Management**: Configure LLM settings, system prompts, and video streaming

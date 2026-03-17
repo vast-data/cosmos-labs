@@ -7,6 +7,7 @@ REST API service for batch copying MP4 video files from a source S3 bucket to a 
 - Copies MP4 files from source S3 to destination S3 using server-side operations
 - Supports rate limiting (delay between files)
 - Applies metadata (tags, privacy, streaming metadata) to all copied files
+- Supports custom prompts for AI reasoning (overrides default scenario)
 - Tracks progress in real-time
 - Handles errors gracefully (continues with remaining files on failure)
 
