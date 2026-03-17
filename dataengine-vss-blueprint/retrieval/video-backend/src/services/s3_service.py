@@ -135,6 +135,7 @@ class S3Service:
         allowed_users: list[str],
         scenario: str = "",
         camera_id: Optional[str] = None,
+        capture_type: Optional[str] = None,
         location: Optional[str] = None
     ) -> str:
         """
@@ -148,6 +149,7 @@ class S3Service:
             allowed_users: Additional allowed users
             scenario: Analysis scenario
             camera_id: Optional camera identifier (for ingest pipeline)
+            capture_type: Optional capture type (traffic, streets, crowds, malls, etc.)
             location: Optional area/location (for ingest pipeline)
             
         Returns:
@@ -192,6 +194,8 @@ class S3Service:
             
             if camera_id:
                 metadata['camera-id'] = camera_id
+            if capture_type:
+                metadata['capture-type'] = capture_type
             if location:
                 metadata['location'] = location
             

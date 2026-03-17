@@ -6,6 +6,7 @@ from typing import Dict, Any
 from ...services.auth_service import get_current_user
 from ...models.user import User
 from ...config import get_settings
+from ...services.llm_service import DEFAULT_SYSTEM_PROMPT
 
 router = APIRouter(prefix="/config", tags=["config"])
 
@@ -24,7 +25,7 @@ async def get_configuration(current_user: User = Depends(get_current_user)):
     Requires authentication
     Sensitive values (access keys, secrets, API keys) are masked
     
-    Note: LLM settings (top_n, system_prompt) are now controlled by the frontend
+    LLM default_system_prompt is provided by backend; frontend may send a custom prompt per request.
     """
     settings = get_settings()
     
@@ -53,14 +54,16 @@ async def get_configuration(current_user: User = Depends(get_current_user)):
             "embedding_model": settings.embedding_model,
             "embedding_dimensions": settings.embedding_dimensions,
             "nvidia_api_key": _mask_sensitive(settings.nvidia_api_key),
-            "embedding_default": settings.embedding_default,
+            "embedding_local_nim": settings.embedding_local_nim,
         },
         "llm": {
             "llm_model_name": settings.llm_model_name,
             "llm_host": settings.llm_host,
             "llm_port": settings.llm_port,
             "llm_http_scheme": settings.llm_http_scheme,
-            "llm_timeout_seconds": settings.llm_timeout_seconds
+            "llm_timeout_seconds": settings.llm_timeout_seconds,
+            "llm_local_nim": settings.llm_local_nim,
+            "default_system_prompt": DEFAULT_SYSTEM_PROMPT,
         },
         "app": {
             "app_name": settings.app_name,

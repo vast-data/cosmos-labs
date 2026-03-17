@@ -17,13 +17,12 @@ class EmbeddingService:
     def __init__(self):
         self.settings = settings
         
-        # Use NVIDIA Cloud if default is enabled
-        if self.settings.embedding_default:
-            self.base_url = "https://integrate.api.nvidia.com/v1"
-            logger.info("Using NVIDIA Cloud API for embeddings")
+        # Always use configured host/port; embedding_local_nim only controls API key usage
+        self.base_url = f"{self.settings.embedding_http_scheme}://{self.settings.embedding_host}:{self.settings.embedding_port}/v1"
+        if self.settings.embedding_local_nim:
+            logger.info(f"Using local NIM for embeddings: {self.base_url}")
         else:
-            self.base_url = f"{self.settings.embedding_http_scheme}://{self.settings.embedding_host}:{self.settings.embedding_port}/v1"
-            logger.info(f"Using custom NVIDIA NIM endpoint: {self.base_url}")
+            logger.info(f"Using NVIDIA Cloud for embeddings: {self.base_url}")
         
         self.embedding_url = f"{self.base_url}/embeddings"
         self.model = self.settings.embedding_model
@@ -66,8 +65,8 @@ class EmbeddingService:
                 "Content-Type": "application/json"
             }
             
-            # Add API key if using NVIDIA Cloud
-            if self.settings.embedding_default and self.settings.nvidia_api_key:
+            # Add API key when using NVIDIA Cloud (not when using local NIM)
+            if not self.settings.embedding_local_nim and self.settings.nvidia_api_key:
                 headers["Authorization"] = f"Bearer {self.settings.nvidia_api_key}"
             
             payload = {
