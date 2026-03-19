@@ -1,0 +1,97 @@
+kubernetes_cluster_vrn: <your-kubernetes-cluster-vrn>
+namespace: <your-namespace>
+manifest:
+  config:
+    environment_variables: []
+    secrets:
+      - videoreasonsecret
+  function_deployments:
+    - function_vrn: vast:dataengine:functions:video-segmenter
+      name: video-segmenter-2
+      revision: 1
+      config:
+        log_level: INFO
+      resources:
+        min_cpu: 1000m
+        max_cpu: 5000m
+        min_memory: 1280Mi
+        max_memory: 2560Mi
+        min_concurrency: 1
+        max_concurrency: 10
+        timeout: 120
+    - function_vrn: vast:dataengine:functions:video-reasoner
+      name: video-reasoner-3
+      revision: 1
+      config:
+        log_level: INFO
+      resources:
+        min_cpu: 1000m
+        max_cpu: 5000m
+        min_memory: 1280Mi
+        max_memory: 2560Mi
+        min_concurrency: 1
+        max_concurrency: 5
+        timeout: 120
+    - function_vrn: vast:dataengine:functions:video-embedder
+      name: video-embedder-4
+      revision: 1
+      config:
+        log_level: INFO
+      resources:
+        min_cpu: 1000m
+        max_cpu: 5000m
+        min_memory: 1280Mi
+        max_memory: 2560Mi
+        min_concurrency: 1
+        max_concurrency: 5
+        timeout: 120
+    - function_vrn: vast:dataengine:functions:video-vastdb-writer
+      name: video-vastdb-writer-5
+      revision: 1
+      config:
+        log_level: INFO
+      resources:
+        min_cpu: 1000m
+        max_cpu: 5000m
+        min_memory: 1280Mi
+        max_memory: 2560Mi
+        min_concurrency: 1
+        max_concurrency: 10
+        timeout: 120
+  links:
+    - source:
+        - video-chunk-land-trigger-1
+      destination:
+        - video-segmenter-2
+      topic: vast:dataengine:topics:<your-broker-name>/<your-topic>
+      config:
+        events_order: unordered
+        retries: 3
+    - source:
+        - video-segment-land-trigger-6
+      destination:
+        - video-reasoner-3
+      topic: vast:dataengine:topics:<your-broker-name>/<your-topic>
+      config:
+        events_order: unordered
+        retries: 3
+    - source:
+        - video-reasoner-3
+      destination:
+        - video-embedder-4
+      config:
+        events_order: unordered
+        retries: 3
+    - source:
+        - video-embedder-4
+      destination:
+        - video-vastdb-writer-5
+      config:
+        events_order: unordered
+        retries: 3
+  triggers:
+    - name: video-chunk-land-trigger-1
+      vrn: vast:dataengine:triggers:video-chunk-land-trigger
+    - name: video-segment-land-trigger-6
+      vrn: vast:dataengine:triggers:video-segment-land-trigger
+
