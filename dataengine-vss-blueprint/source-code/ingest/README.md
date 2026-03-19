@@ -30,10 +30,10 @@ To add new metadata fields to the system:
 Add the field to the metadata model in each function's `common/models.py`:
 
 **Files to update:**
-- `ingest/video-segmenter/common/models.py`
-- `ingest/video-reasoner/common/models.py`
-- `ingest/video-embedder/common/models.py`
-- `ingest/vastdb-writer/common/models.py`
+- `source-code/ingest/video-segmenter/common/models.py`
+- `source-code/ingest/video-reasoner/common/models.py`
+- `source-code/ingest/video-embedder/common/models.py`
+- `source-code/ingest/vastdb-writer/common/models.py`
 
 **Example:**
 ```python
@@ -55,7 +55,7 @@ Ensure each function's handler receives and passes the metadata:
 
 ### Step 3: Update VastDB Schema
 
-Add the new field to the VastDB schema in `ingest/vastdb-writer/common/vastdb_client.py`:
+Add the new field to the VastDB schema in `source-code/ingest/vastdb-writer/common/vastdb_client.py`:
 
 ```python
 # In the schema definition
@@ -77,7 +77,7 @@ The backend automatically discovers metadata columns from the VastDB schema on s
 
 Once metadata fields are configured:
 
-1. **Upload with Metadata**: When uploading videos via GUI or [streaming service](../video-streaming/README.md#via-gui), set the metadata values
+1. **Upload with Metadata**: When uploading videos via GUI or [streaming service](../../video-streaming/README.md), set the metadata values
 2. **Automatic Discovery**: The frontend automatically discovers available metadata fields from the database
 3. **Filter Dropdowns**: Each metadata field appears as a filter dropdown in the search interface
 4. **Dynamic Values**: Dropdown values are populated from actual data in the database
