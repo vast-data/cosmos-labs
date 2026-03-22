@@ -23,6 +23,23 @@ class S3Client:
         response = self.client.head_object(Bucket=bucket, Key=key)
         return response
     
+    def list_objects_prefix(self, bucket: str, prefix: str, max_keys: int = 1) -> List[str]:
+        """List objects with a given prefix. Returns list of keys."""
+        try:
+            response = self.client.list_objects_v2(
+                Bucket=bucket,
+                Prefix=prefix,
+                MaxKeys=max_keys
+            )
+            keys = [obj["Key"] for obj in response.get("Contents", [])]
+            return keys
+        except ClientError as e:
+            error_code = e.response["Error"]["Code"]
+            if error_code == "NoSuchBucket":
+                logging.warning(f"Bucket not found: {bucket}")
+                return []
+            raise
+    
     def download_file(self, bucket: str, key: str) -> bytes:
         """Download file from S3"""
         logging.info(f"Downloading s3://{bucket}/{key}")

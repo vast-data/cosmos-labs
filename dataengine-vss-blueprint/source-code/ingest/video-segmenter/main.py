@@ -64,19 +64,25 @@ def handler(ctx, event: VastEvent):
             
             # Idempotency check: skip if already segmented
             output_bucket = get_output_bucket_name(bucket, ctx.processor.settings.output_bucket_suffix)
-            segment_key = get_segment_key(filename, 1, 1)
+            base_name = filename.rsplit('.', 1)[0]
+            segment_prefix = f"segments/{base_name}_segment_"
+            
             try:
-                existing_segment = ctx.s3_client.head_object(bucket=output_bucket, key=segment_key)
-                if existing_segment:
-                    ctx.logger.info(f"[SKIP] {filename} already segmented in {output_bucket}")
+                existing_segments = ctx.s3_client.list_objects_prefix(
+                    bucket=output_bucket, 
+                    prefix=segment_prefix, 
+                    max_keys=1
+                )
+                if existing_segments:
+                    ctx.logger.info(f"[SKIP] {filename} already segmented in {output_bucket} (found: {existing_segments[0]})")
                     return {
                         "status": "skipped", 
                         "reason": "Already segmented",
                         "source": source,
                         "output_bucket": output_bucket
                     }
-            except Exception:
-                pass
+            except Exception as e:
+                ctx.logger.warning(f"[IDEMPOTENCY] Check failed, proceeding with segmentation: {e}")
 
             with ctx.tracer.start_as_current_span("S3 Download") as download_span:
                 video_content = ctx.s3_client.download_file(bucket, key)

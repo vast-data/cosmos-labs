@@ -34,15 +34,14 @@ import { LLMSynthesis } from '../../../shared/models/video.model';
       
       <div class="synthesis-content" [class.error]="synthesis.error">
         <div *ngIf="!synthesis.error">
-          <div class="response-text">
-            {{synthesis.response}}
-          </div>
+          <div class="response-text" [innerHTML]="formatResponse(synthesis.response)"></div>
           <div class="segments-list" *ngIf="synthesis.segments_analyzed && synthesis.segments_analyzed.length > 0">
-            <div class="segments-header">
+            <button class="segments-toggle" (click)="showSegments = !showSegments">
               <mat-icon>movie_filter</mat-icon>
-              <span>Segments Analyzed:</span>
-            </div>
-            <div class="segment-chips">
+              <span>Segments Analyzed ({{synthesis.segments_analyzed.length}})</span>
+              <mat-icon class="toggle-icon" [class.expanded]="showSegments">expand_more</mat-icon>
+            </button>
+            <div class="segment-chips" *ngIf="showSegments">
               <span class="segment-chip" *ngFor="let segment of synthesis.segments_analyzed">
                 {{segment}}
               </span>
@@ -162,10 +161,63 @@ import { LLMSynthesis } from '../../../shared/models/video.model';
       .response-text {
         color: var(--text-primary);
         font-size: 1rem;
-        line-height: 1.6;
-        white-space: pre-wrap;
+        line-height: 1.7;
         word-wrap: break-word;
         margin-bottom: 1rem;
+
+        h4 {
+          color: var(--accent-primary);
+          font-size: 1.1rem;
+          font-weight: 600;
+          margin: 1rem 0 0.5rem 0;
+          padding-bottom: 0.25rem;
+          border-bottom: 1px solid var(--border-color);
+        }
+
+        h4:first-child {
+          margin-top: 0;
+        }
+
+        h5 {
+          color: var(--text-primary);
+          font-size: 1rem;
+          font-weight: 600;
+          margin: 0.75rem 0 0.4rem 0;
+        }
+
+        p {
+          margin: 0.5rem 0;
+        }
+
+        ul {
+          margin: 0.5rem 0;
+          padding-left: 1.5rem;
+          list-style: none;
+        }
+
+        li {
+          position: relative;
+          margin: 0.4rem 0;
+          padding-left: 0.5rem;
+        }
+
+        li::before {
+          content: '•';
+          position: absolute;
+          left: -1rem;
+          color: var(--accent-primary);
+          font-weight: bold;
+        }
+
+        strong {
+          color: var(--text-primary);
+          font-weight: 600;
+        }
+
+        em {
+          font-style: italic;
+          color: var(--text-secondary);
+        }
       }
 
       .segments-list {
@@ -174,19 +226,39 @@ import { LLMSynthesis } from '../../../shared/models/video.model';
         border-top: 1px solid var(--border-color);
         transition: border-color 0.3s ease;
 
-        .segments-header {
+        .segments-toggle {
           display: flex;
           align-items: center;
           gap: 0.5rem;
           color: var(--accent-primary);
           font-size: 0.875rem;
           font-weight: 500;
-          margin-bottom: 0.75rem;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          padding: 0.5rem 0.75rem;
+          border-radius: 8px;
+          transition: background 0.2s ease;
+          width: 100%;
+          text-align: left;
+
+          &:hover {
+            background: var(--bg-card);
+          }
 
           mat-icon {
             font-size: 18px;
             width: 18px;
             height: 18px;
+          }
+
+          .toggle-icon {
+            margin-left: auto;
+            transition: transform 0.2s ease;
+
+            &.expanded {
+              transform: rotate(180deg);
+            }
           }
         }
 
@@ -194,6 +266,9 @@ import { LLMSynthesis } from '../../../shared/models/video.model';
           display: flex;
           flex-wrap: wrap;
           gap: 0.5rem;
+          margin-top: 0.75rem;
+          padding-left: 0.75rem;
+          animation: fadeIn 0.2s ease;
 
           .segment-chip {
             background: var(--bg-secondary);
@@ -205,6 +280,17 @@ import { LLMSynthesis } from '../../../shared/models/video.model';
             font-family: 'Roboto Mono', monospace;
             transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
           }
+        }
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-5px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
         }
       }
 
@@ -240,5 +326,42 @@ import { LLMSynthesis } from '../../../shared/models/video.model';
 })
 export class LLMSynthesisComponent {
   @Input() synthesis: LLMSynthesis | null = null;
+  showSegments = false;
+
+  formatResponse(text: string): string {
+    if (!text) return '';
+    
+    let formatted = text
+      // Escape HTML to prevent XSS
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      // Headers: **Title** or ## Title at start of line
+      .replace(/^\*\*(.+?)\*\*$/gm, '<h4>$1</h4>')
+      .replace(/^##\s+(.+)$/gm, '<h4>$1</h4>')
+      .replace(/^###\s+(.+)$/gm, '<h5>$1</h5>')
+      // Bold: **text** or __text__
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/__(.+?)__/g, '<strong>$1</strong>')
+      // Italic: *text* or _text_
+      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+      .replace(/_([^_]+)_/g, '<em>$1</em>')
+      // Bullet points: - item or * item at start of line
+      .replace(/^[\-\*]\s+(.+)$/gm, '<li>$1</li>')
+      // Numbered lists: 1. item, 2. item, etc.
+      .replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>')
+      // Wrap consecutive <li> elements in <ul>
+      .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+      // Line breaks
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/\n/g, '<br>');
+    
+    // Wrap in paragraph if not starting with a block element
+    if (!formatted.startsWith('<h') && !formatted.startsWith('<ul')) {
+      formatted = '<p>' + formatted + '</p>';
+    }
+    
+    return formatted;
+  }
 }
 
