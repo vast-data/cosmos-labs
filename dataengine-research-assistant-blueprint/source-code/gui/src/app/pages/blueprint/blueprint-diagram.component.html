@@ -1,0 +1,226 @@
+<div class="blueprint-page">
+  <div class="page-header">
+    <button class="back-button" routerLink="/chat/new" aria-label="Back to chat">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <mat-icon class="header-icon">architecture</mat-icon>
+    <h2>VAST DataEngine - Research Assistant Blueprint</h2>
+  </div>
+
+  <div class="page-content">
+    <div class="blueprint-container">
+
+      <!-- ─── VAST AI Operating System ─── -->
+      <div class="platform-section">
+        <div class="section-title">
+          <mat-icon>layers</mat-icon>
+          <span>The VAST AI Operating System</span>
+        </div>
+        <div class="section-subtitle highlight-text">
+          <mat-icon>info</mat-icon>
+          <span>This blueprint leverages DataEngine for ingestion and InsightEngine for retrieval</span>
+        </div>
+
+        <div class="platform-grid">
+          <!-- Top Row: Engines -->
+          <div class="platform-row engines-row">
+            <div class="platform-component highlighted" matTooltip="Ingest Pipeline runs here: Triggers, Functions, Containers">
+              <div class="component-header">
+                <mat-icon>settings</mat-icon>
+                <span class="component-name">DataEngine</span>
+              </div>
+              <div class="component-tagline">Scalable, Event-Driven Computing</div>
+              <div class="component-features">Triggers, Functions, Containers</div>
+              <div class="usage-badge ingest">INGEST PIPELINE</div>
+            </div>
+
+            <div class="platform-component">
+              <div class="component-header">
+                <mat-icon>hub</mat-icon>
+                <span class="component-name">AgentEngine</span>
+              </div>
+              <div class="component-tagline">Agent Tools &amp; Orchestration</div>
+              <div class="component-features">AI Agents, Workflows</div>
+            </div>
+
+            <div class="platform-component highlighted" matTooltip="RAG retrieval runs here: Knowledge Retrieval, Reranking">
+              <div class="component-header">
+                <mat-icon>insights</mat-icon>
+                <span class="component-name">InsightEngine</span>
+              </div>
+              <div class="component-tagline">Real-Time RAG</div>
+              <div class="component-features">Knowledge Retrieval</div>
+              <div class="usage-badge retrieval">RETRIEVAL &amp; SEARCH</div>
+            </div>
+          </div>
+
+          <!-- Middle Row: Storage & Database -->
+          <div class="platform-row storage-row">
+            <div class="platform-component wide">
+              <div class="component-header">
+                <mat-icon>dns</mat-icon>
+                <span class="component-name">DataStore</span>
+              </div>
+              <div class="component-tagline">Universal Storage Infrastructure</div>
+              <div class="component-features">NFS, SMB, S3, NVMe/TCP, VAAI, CSI, vLLM</div>
+            </div>
+
+            <div class="platform-component wide highlighted" matTooltip="Vector Search & Session Storage: SQL, Spark, Python">
+              <div class="component-header">
+                <mat-icon>grid_view</mat-icon>
+                <span class="component-name">DataBase</span>
+              </div>
+              <div class="component-tagline">Transactional &amp; Analytical Data Warehouse</div>
+              <div class="component-features">SQL, Spark, Python</div>
+              <div class="usage-badge retrieval">VECTOR STORE</div>
+            </div>
+          </div>
+
+          <!-- Bottom Row: DataSpace -->
+          <div class="platform-row dataspace-row">
+            <div class="platform-component dataspace">
+              <div class="component-header">
+                <mat-icon>public</mat-icon>
+                <span class="component-name">DataSpace</span>
+              </div>
+              <div class="component-tagline">Globally-Distributed Data Computing</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── Ingestion Pipeline ─── -->
+      <div class="pipeline-section">
+        <div class="section-title">
+          <mat-icon>download</mat-icon>
+          <span>Ingestion Pipeline</span>
+        </div>
+        <div class="section-subtitle">
+          <mat-icon>info</mat-icon>
+          <span>Source Sync → Chunking → Embedding → Vector Storage with Rich Metadata</span>
+        </div>
+
+        <div class="pipeline-flow">
+          <div class="component-box storage">
+            <div class="component-icon"><mat-icon>source</mat-icon></div>
+            <div class="component-title">Document Sources</div>
+            <div class="component-desc">Confluence / PDF<br/>SharePoint / S3</div>
+            <div class="component-badge">Multi-Source</div>
+          </div>
+
+          <div class="arrow-right"></div>
+
+          <div class="component-box trigger">
+            <div class="component-icon"><mat-icon>sync</mat-icon></div>
+            <div class="component-title">SyncEngine</div>
+            <div class="component-desc">Incremental Sync<br/>Change Detection</div>
+            <div class="component-badge">Connector</div>
+          </div>
+
+          <div class="arrow-right"></div>
+
+          <div class="component-box storage">
+            <div class="component-icon"><mat-icon>storage</mat-icon></div>
+            <div class="component-title">VAST S3</div>
+            <div class="component-desc">Raw Documents<br/>+ Metadata JSON</div>
+            <div class="component-badge">S3</div>
+          </div>
+
+          <div class="arrow-right"></div>
+
+          <div class="component-box function">
+            <div class="component-icon"><mat-icon>content_cut</mat-icon></div>
+            <div class="component-title">Document Chunker</div>
+            <div class="component-desc">Recursive Text Split<br/>Overlap Strategy</div>
+            <div class="component-badge">Serverless</div>
+          </div>
+
+          <div class="arrow-right"></div>
+
+          <div class="component-box function">
+            <div class="component-icon"><mat-icon>transform</mat-icon></div>
+            <div class="component-title">Text Embedder</div>
+            <div class="component-desc">NVIDIA NIM<br/>1024-dim Vectors</div>
+            <div class="component-badge nim">NIM</div>
+          </div>
+
+          <div class="arrow-right"></div>
+
+          <div class="component-box database">
+            <div class="component-icon"><mat-icon>storage</mat-icon></div>
+            <div class="component-title">VastDB</div>
+            <div class="component-desc">Vectors + Chunks<br/>extra_metadata JSON</div>
+            <div class="component-badge">Lakehouse</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── Retrieval & Search ─── -->
+      <div class="pipeline-section">
+        <div class="section-title">
+          <mat-icon>search</mat-icon>
+          <span>Retrieval &amp; Search</span>
+        </div>
+        <div class="section-subtitle">
+          <mat-icon>info</mat-icon>
+          <span>Query → Hybrid Metadata Analysis → Vector + Metadata Retrieval → LLM Answer</span>
+        </div>
+
+        <div class="pipeline-flow">
+          <div class="component-box query">
+            <div class="component-icon"><mat-icon>edit_note</mat-icon></div>
+            <div class="component-title">User Query</div>
+            <div class="component-desc">Natural language</div>
+            <div class="component-badge">Prompt</div>
+          </div>
+
+          <div class="arrow-right"></div>
+
+          <div class="component-box analyzer">
+            <div class="component-icon"><mat-icon>auto_awesome</mat-icon></div>
+            <div class="component-title">Hybrid Metadata<br/>Analysis</div>
+            <div class="component-desc">Split Prompt →<br/>Filters + Query</div>
+            <div class="component-badge">Agent Tool</div>
+          </div>
+
+          <div class="arrow-right"></div>
+
+          <div class="component-box search">
+            <div class="component-icon"><mat-icon>manage_search</mat-icon></div>
+            <div class="component-title">Retrieve Chunks</div>
+            <div class="component-desc">json_extract Filters<br/>+ Vector Similarity</div>
+            <div class="component-badge">Agent Tool</div>
+          </div>
+
+          <div class="arrow-right"></div>
+
+          <div class="component-box database">
+            <div class="component-icon"><mat-icon>storage</mat-icon></div>
+            <div class="component-title">VastDB Query</div>
+            <div class="component-desc">Cosine Distance<br/>ADBC Native SQL</div>
+            <div class="component-badge">VastDB</div>
+          </div>
+
+          <div class="arrow-right"></div>
+
+          <div class="component-box analyzer">
+            <div class="component-icon"><mat-icon>auto_awesome</mat-icon></div>
+            <div class="component-title">LLM Synthesis</div>
+            <div class="component-desc">Context-Grounded</div>
+            <div class="component-badge nim">NIM</div>
+          </div>
+
+          <div class="arrow-right"></div>
+
+          <div class="component-box dashboard">
+            <div class="component-icon"><mat-icon>wysiwyg</mat-icon></div>
+            <div class="component-title">Rich Results</div>
+            <div class="component-desc">Sources + Citations</div>
+            <div class="component-badge">UI</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

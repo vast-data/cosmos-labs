@@ -1,0 +1,51 @@
+<div mat-dialog-title>Upload Documents</div>
+
+<mat-dialog-content>
+  <p class="upload-dialog__subtitle">
+    Upload files or a folder to the <strong>{{ collectionName() }}</strong> collection
+  </p>
+
+  <div class="content">
+    <app-file-input
+      [config]="fileInputConfig"
+      (filesSelected)="onFilesSelected($event)"
+      (fileRemoved)="onFileRemoved()"
+      (validationError)="onValidationError($event)"
+    ></app-file-input>
+  </div>
+
+  @if (isUploading()) {
+    <div class="upload-progress">
+      <p class="upload-progress__text">
+        Uploading... {{ uploadedCount() }}/{{ selectedFiles().length }} files
+      </p>
+      <mat-progress-bar
+        [mode]="uploadProgress() < 100 ? 'buffer' : 'determinate'"
+        [value]="uploadProgress()"
+        class="upload-progress__bar"
+      ></mat-progress-bar>
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button
+    mat-button
+    (click)="cancel()"
+    [disabled]="isUploading()"
+  >
+    Cancel
+  </button>
+  <button
+    mat-raised-button
+    color="primary"
+    (click)="uploadFiles()"
+    [disabled]="selectedFiles().length === 0 || isUploading()"
+  >
+    @if (isUploading()) {
+      Uploading...
+    } @else {
+      Upload {{ selectedFiles().length > 1 ? selectedFiles().length + ' Files' : '' }}
+    }
+  </button>
+</mat-dialog-actions>

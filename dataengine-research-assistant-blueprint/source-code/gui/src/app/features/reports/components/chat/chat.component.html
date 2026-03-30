@@ -1,0 +1,52 @@
+<form class="chat" [class.chat_transparent]="transparentMode" [class.focused]="focused" (ngSubmit)="onSubmit()">
+    <div class="chat__input">
+        <textarea
+            (keydown.enter)="$event.preventDefault(); $event.stopPropagation(); onSubmit()"
+            (focusin)="focused = true"
+            (focusout)="focused = false" 
+            matInput
+            cdkTextareaAutosize
+            [cdkAutosizeMinRows]="2"
+            [cdkAutosizeMaxRows]="5"
+            placeholder="Reply to your agent..." 
+            [(ngModel)]="message"
+            [ngModelOptions]="{standalone: true}"></textarea>
+    </div>
+    <div class="chat__actions">
+        <div class="chat__settings-actions">
+            <app-collection-selector (collectionSelected)="onCollectionSelected($event)"></app-collection-selector>
+            <button 
+                type="button" 
+                class="chat__toggle"
+                [class.chat__toggle--active]="isInternetSearchEnabled()"
+                (click)="toggleInternetSearch()"
+                [attr.aria-pressed]="isInternetSearchEnabled()"
+                aria-label="Toggle internet search"
+                matTooltip="When enabled, the model will search the internet for additional information">
+                <mat-icon>language</mat-icon>
+                <span class="chat__toggle-text">Internet Search</span>
+            </button>
+            <button 
+                type="button" 
+                class="chat__toggle"
+                [class.chat__toggle--active]="promptService.deepResearchEnabled()"
+                (click)="toggleDeepResearch()"
+                [attr.aria-pressed]="promptService.deepResearchEnabled()"
+                aria-label="Toggle deep research"
+                matTooltip="When enabled, the model uses multi-step reasoning with multiple searches for thorough answers">
+                <mat-icon>biotech</mat-icon>
+                <span class="chat__toggle-text">Deep Research</span>
+            </button>
+        </div>
+       
+        <div class="chat__main-actions">
+            <button
+                class="chat__send button-icon-s"
+                [disabled]="!selectedCollection()"
+                [matTooltip]="!selectedCollection() ? 'Select a collection first' : ''"
+            >
+                <mat-icon svgIcon="send"></mat-icon>
+            </button>
+        </div>
+    </div>
+</form>

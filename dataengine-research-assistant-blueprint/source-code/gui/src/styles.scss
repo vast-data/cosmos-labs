@@ -1,0 +1,121 @@
+/* You can add global styles to this file, and also import other style files */
+@import "styles/typography";
+@import "styles/buttons";
+@import "styles/icons";
+@import "styles/colors";
+@import "styles/material";
+@import "styles/markdown";
+@import "styles/media";
+
+@font-face {
+    font-family: 'Assistant';
+    src: url('assets/fonts/Assistant-VariableFont_wght.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Source Code Pro';
+    src: url('assets/fonts/SourceCodePro-VariableFont_wght.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
+}
+
+:root {
+    --default-font-family: 'Assistant', sans-serif;
+}
+
+pre {
+    font-family: "Source Code Pro", sans-serif;
+}
+
+html, body {
+    height: 100%;
+    width: 100%;
+}
+
+
+* {
+    scrollbar-color: #929292 transparent
+}
+
+*:hover {
+    scrollbar-color: #6b6b6b transparent
+}
+
+*::-webkit-scrollbar-track {
+    background-color: transparent;
+}
+
+body {
+    margin: 0;
+    background: var(--primary-bg);
+    background-size: cover;
+
+    font-family: 'Assistant', sans-serif !important;
+
+    overflow: hidden;
+
+    --raw-chart-height: 136px;
+    --chart-bottom: 2rem;
+    --chart-height: calc(136px + var(--chart-bottom));
+}
+
+.mat-typography, textarea, input {
+    font-family: 'Assistant', sans-serif !important;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:focus {
+    transition: background-color 0s 600000s, color 0s 600000s !important;
+}
+
+.unstyled-link {
+    &a {
+        text-decoration: none;
+        color: inherit;
+    }
+}
+
+.thinking-loading {
+    font-weight: 600;
+    font-size: 1rem;
+    background: linear-gradient(
+            120deg,
+            var(--primary-text, #9aa1b6) 0%,
+            var(--primary-text-bg, #ffffff) 50%,
+            var(--primary-text, #9aa1b6) 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+    animation: thinking-shine 2.2s linear infinite;
+}
+
+@keyframes thinking-shine {
+    to {
+        background-position: -200% center;
+    }
+}
+
+.system-prompt-dialog-panel {
+  max-width: 90vw !important;
+
+  .mat-mdc-dialog-container {
+    padding: 0 !important;
+
+    .mdc-dialog__surface {
+      background: #162340 !important;
+      border-radius: 1rem !important;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+      overflow: visible !important;
+    }
+  }
+}
+
+.system-prompt-dialog-backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}

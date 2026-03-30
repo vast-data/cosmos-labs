@@ -1,0 +1,55 @@
+@if (message) {
+    <div class="ai">
+        <div class="ai__content">
+            <div class="ai__logo">
+                <img alt="ai-logo" src="assets/icons/ai-logo.svg">
+            </div>
+            <div class="ai__message">
+                @for (block of contentBlocks; track trackByIndex($index)) {
+                    @if (isTextBlock(block)) {
+                        <app-markdown-viewer 
+                            clipboard 
+                            lineNumbers 
+                            [content]="animate ? (getTextContent(block) | stringToFlow | async) : getTextContent(block)">
+                        </app-markdown-viewer>
+                    } @else if (isToolBlock(block)) {
+                        <app-tool-block [tool]="getToolBlock(block)"></app-tool-block>
+                    } @else if (isLoadingBlock(block)) {
+                        <div class="processing-loader">
+                            <div class="processing-loader__spinner"></div>
+                            <span class="processing-loader__text">{{ getLoadingMessage(block) }}</span>
+                        </div>
+                    }
+                }
+                <div class="ai__actions">
+                    <button [matMenuTriggerFor]="messageMenu" class="ai__actions-btn" matTooltip="More options">
+                        <mat-icon>more_vert</mat-icon>
+                    </button>
+                    <mat-menu #messageMenu="matMenu" xPosition="before">
+                        <button mat-menu-item (click)="copyToClipboard()">
+                            <mat-icon>content_copy</mat-icon>
+                            <span>Copy to clipboard</span>
+                        </button>
+                        <button mat-menu-item (click)="exportToPdf()">
+                            <mat-icon>picture_as_pdf</mat-icon>
+                            <span>Export to PDF</span>
+                        </button>
+                    </mat-menu>
+                </div>
+            </div>
+        </div>
+    </div>
+} @else if (showLoading) {
+    <div class="ai">
+        <div class="ai__content">
+            <div class="ai__logo">
+                <img alt="ai-logo" src="assets/icons/ai-logo.svg">
+            </div>
+            <div class="ai__message">
+                <div class="thinking-loading">
+                    Thinking...
+                </div>
+            </div>
+        </div>
+    </div>
+}
