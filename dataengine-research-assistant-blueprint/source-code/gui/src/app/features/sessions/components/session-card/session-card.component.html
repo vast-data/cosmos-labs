@@ -1,0 +1,14 @@
+<div class="session-card-wrapper">
+  <a class="session-card" [routerLink]="['/chat', session().session_id]" [routerLinkActive]="['active']" [class]="className()" (click)="onSessionClick()">
+    <h3 class="session-title">{{ sessionTitle }}</h3>
+  </a>
+  <button [matMenuTriggerFor]="sessionMenu" class="session-menu-btn" (click)="$event.stopPropagation(); $event.preventDefault()">
+    <mat-icon>more_vert</mat-icon>
+  </button>
+  <mat-menu #sessionMenu="matMenu">
+    <button mat-menu-item (click)="exportToPdf()">
+      <mat-icon>picture_as_pdf</mat-icon>
+      <span>Export to PDF</span>
+    </button>
+  </mat-menu>
+</div>

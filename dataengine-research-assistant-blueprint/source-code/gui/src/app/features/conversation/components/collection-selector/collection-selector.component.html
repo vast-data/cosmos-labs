@@ -1,0 +1,87 @@
+<button
+  class="selector-button"
+  type="button"
+  [matMenuTriggerFor]="collectionMenu"
+  (menuOpened)="onMenuOpened()">
+  <span class="selector-button__text">
+    @if (selectedCollection(); as collection) {
+      <mat-icon>{{ collection.private ? 'person' : 'groups' }}</mat-icon> {{ collection.title }}
+    } @else if (isLoading()) {
+      Loading...
+    } @else {
+      <mat-icon>import_contacts</mat-icon> Choose collection
+    }
+  </span>
+  <mat-icon class="selector-button__icon">expand_more</mat-icon>
+</button>
+
+<mat-menu #collectionMenu="matMenu" class="collection-menu">
+  <div class="collection-dropdown" tabindex="-1" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+    <!-- Search field -->
+    <div class="collection-dropdown__search">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-icon matPrefix>search</mat-icon>
+        <input
+          matInput
+          [formControl]="searchControl"
+          placeholder="Search collections..."
+          (keydown)="$event.stopPropagation()">
+        @if (searchControl.value) {
+          <button
+            matSuffix
+            type="button"
+            mat-icon-button
+            (click)="onClearSearch()"
+            aria-label="Clear search">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </mat-form-field>
+    </div>
+
+    <!-- Collections list -->
+    <div class="collection-dropdown__list">
+      @for (collection of filteredCollections(); track collection.id) {
+        <div class="collection-item-row">
+          <button
+            class="collection-item"
+            type="button"
+            [class.collection-item--selected]="selectedCollection()?.id === collection.id"
+            [class.collection-item--disabled]="collection.num_entities === 0"
+            [disabled]="collection.num_entities === 0"
+            (click)="onSelectCollection(collection)">
+            <span class="collection-item__header">
+              <mat-icon class="collection-item__privacy-icon">{{ collection.private ? 'person' : 'groups' }}</mat-icon>
+              <span class="collection-item__name">{{ collection.title }}</span>
+            </span>
+            @if (collection.description) {
+              <span class="collection-item__description">{{ descriptionDisplay(collection.description) }}</span>
+            }
+            @if (collection.num_entities === 0) {
+              <span class="collection-item__empty-badge">Empty</span>
+            }
+            @if (selectedCollection()?.id === collection.id) {
+              <mat-icon class="collection-item__check">check</mat-icon>
+            }
+          </button>
+          <button
+            class="collection-item__upload-btn"
+            type="button"
+            mat-icon-button
+            matTooltip="Upload documents"
+            (click)="onUploadToCollection(collection, $event)">
+            <mat-icon>upload_file</mat-icon>
+          </button>
+        </div>
+      } @empty {
+        <div class="collection-dropdown__empty">
+          @if (isLoading()) {
+            Loading collections...
+          } @else {
+            No collections found
+          }
+        </div>
+      }
+    </div>
+  </div>
+</mat-menu>

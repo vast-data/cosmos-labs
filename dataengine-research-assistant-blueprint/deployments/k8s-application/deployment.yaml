@@ -1,0 +1,134 @@
+# Research Assistant - Deployment
+# Apply with: kubectl apply -f deployment.yaml -n <namespace>
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: research-assistant
+  labels:
+    app: research-assistant
+    component: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: research-assistant
+      component: api
+  template:
+    metadata:
+      labels:
+        app: research-assistant
+        component: api
+    spec:
+      # Security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      
+      containers:
+      - name: research-assistant
+        # Image is set via envsubst during installation
+        image: docker.io/vastdatasolutions/research-assistant:v2
+        imagePullPolicy: Always
+        
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+        
+        # Resource limits
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        # Environment variables from ConfigMap (non-sensitive)
+        envFrom:
+        - configMapRef:
+            name: research-assistant-config
+        
+        # Environment variables from Secret (sensitive)
+        env:
+        - name: VASTDB_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: research-assistant-secrets
+              key: VASTDB_ENDPOINT
+        - name: VASTDB_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: research-assistant-secrets
+              key: VASTDB_ACCESS_KEY
+        - name: VASTDB_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: research-assistant-secrets
+              key: VASTDB_SECRET_KEY
+        - name: AGENT_OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: research-assistant-secrets
+              key: AGENT_OPENAI_API_KEY
+              optional: true
+        - name: GOOGLE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: research-assistant-secrets
+              key: GOOGLE_API_KEY
+              optional: true
+        - name: AUTH__AZURE__CLIENTID
+          valueFrom:
+            secretKeyRef:
+              name: research-assistant-secrets
+              key: AUTH__AZURE__CLIENTID
+              optional: true
+        - name: AUTH__AZURE__CLIENTSECRET
+          valueFrom:
+            secretKeyRef:
+              name: research-assistant-secrets
+              key: AUTH__AZURE__CLIENTSECRET
+              optional: true
+        - name: AUTH__AZURE__NEXTAUTHSECRET
+          valueFrom:
+            secretKeyRef:
+              name: research-assistant-secrets
+              key: AUTH__AZURE__NEXTAUTHSECRET
+              optional: true
+        
+        # Security context for container
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+
+      # Image pull secrets (if using private registry)
+      # imagePullSecrets:
+      # - name: registry-credentials
+      
+      # Restart policy
+      restartPolicy: Always

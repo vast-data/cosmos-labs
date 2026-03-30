@@ -1,0 +1,134 @@
+# Insight Engine Deployment Configuration Template
+# Copy this file to config.yaml and customize for your environment
+
+# ==========================================
+# GLOBAL CONFIGURATION
+# ==========================================
+pipeline_name: ""
+kubernetes_cluster: ""
+vippool_host: ""
+qe_vippool_host: ""
+
+# VAST Management System (VMS)
+vms:
+  host: "" # VMS IP address or hostname
+  username: "" # VMS admin username
+  password: "" # Override with VMS__PASSWORD env var
+  dns_suffix: "" # DNS suffix for VIP pools
+
+# DataEngine Configuration (used for serverless deployment)
+dataengine:
+  username: "" # User for deploying functions/pipelines
+  password: "" # Override with DATAENGINE__PASSWORD env var
+  tenant: "" # Tenant for DataEngine resources
+
+# Deployment Settings (Shared between Backend and Serverless)
+# These settings define the common infrastructure and naming for your deployment
+
+# S3 Storage Configuration
+s3:
+  user: "" # S3 user for deployment (will be created if not exists)
+  bucket_name: "${pipeline_name}-bucket"
+  vdb_schema: "${pipeline_name}-schema"
+  view_policy: "s3_default_policy" # View policy for buckets
+  access_key: "" # Set at runtime from credential generation
+  secret_key: "" # Set at runtime from credential generation
+
+deployment:
+  name: "${pipeline_name}" # Deployment name (used for naming resources like VDB, Bucket)
+  namespace: "${pipeline_name}" # Kubernetes Namespace
+  cluster_name: "" # Cluster name for ingress
+  rotate_keys:  # Automatically rotate S3 keys if limit reached
+
+# Database Migration Configuration
+dbMigration:
+  enabled: false  # Disable automatic database migration on deployment
+
+# ==========================================
+# MODELS CONFIGURATIONs
+# ==========================================
+models:
+  # Shared DGX/GPU host for AI model services
+  # This is the primary host where NVIDIA NIMs and AI models are deployed
+  dgx_host: ""
+
+  llm:
+    - model_name: "meta/llama-3.1-8b-instruct"
+      host: ""
+      port: 
+      http_scheme: "http"
+      default: true
+
+  embedding:
+    - model_name: "nvidia/llama-3.2-nv-embedqa-1b-v2"
+      host: ""
+      port: 
+      http_scheme: "http"
+      dimensions: 2048
+      default: true
+
+  reranker:
+    - model_name: ""
+      host: ""
+      port: 8028
+      http_scheme: "http"
+      default: true
+
+# ==========================================
+# BACKEND CONFIGURATION
+# ==========================================
+backend:
+  image:
+    repository: "docker.io/vastdataorg/insight-engine"
+    tag: "backend-a86d92c0"
+    pullPolicy: "IfNotPresent"
+
+  # OAuth2 Configuration
+  oauth2:
+    sam_account_domain: "aad-vasteng.lab" # SAM account domain for Active Directory
+
+  # OpenTelemetry Configuration (Observability)
+  monitoring:
+    otel:
+      endpoint: "http://otel-collector.monitoring.svc.cluster.local:4317"
+      insecure: "true"
+      service_name: "backend-webserver"
+
+# ==========================================
+# COLLECTIONUI CONFIGURATION
+# ==========================================
+collectionsui:
+  image:
+    repository: "docker.io/vastdataorg/insight-engine"
+    tag: "collections-ui-df334de8"
+    pullPolicy: "IfNotPresent"
+
+# ==========================================
+# SERVERLESS CONFIGURATION
+# ==========================================
+serverless:
+  with_media: false # Include media ingestion function (set to false to deploy only document ingestion)
+
+  image:
+    repository: "vastdataorg/insight-engine"
+    tag: "serverless-ingest-0ca1c368"
+    registry: "dockerio"
+
+  # Ingestion Settings
+  ingestion:
+    chunk_size: "500"
+    chunk_overlap: "25"
+    max_tokens: "8192"
+
+  # NVIDIA Ingest Service (for Media Mode)
+  nvingest:
+    host: "nv-ingest.nv-ingest.svc.cluster.local"
+    port: "7670"
+    scheme: "https"
+
+  # OpenTelemetry Configuration (Observability)
+  monitoring:
+    otel:
+      endpoint: "http://otel-collector.monitoring.svc.cluster.local:4317"
+      insecure: "true"
+      service_name: "serverless-ingestion"

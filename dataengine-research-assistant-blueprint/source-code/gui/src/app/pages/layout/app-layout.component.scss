@@ -1,0 +1,37 @@
+.app-layout {
+  height: 100dvh;
+  width: 100%;
+  overflow: hidden;
+  background-color: #0E182B;
+  color: #C5CCCE;
+}
+
+.layout-content {
+  padding-top: 64px; // Height of top bar (h-16 = 64px)
+  height: 100%;
+  width: 100%;
+}
+
+.main-container {
+  width: 100%;
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
+.sidebar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  background-color: rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+.main-content {
+  min-width: 0;
+  height: 100%;
+  overflow: auto;
+}

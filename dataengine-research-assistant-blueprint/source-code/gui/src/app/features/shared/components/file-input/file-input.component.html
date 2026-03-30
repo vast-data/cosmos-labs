@@ -1,0 +1,90 @@
+<input
+  #fileInput
+  type="file"
+  class="file-input__input"
+  [accept]="config().accept"
+  [disabled]="isDisabled()"
+  [multiple]="config().multiple ?? true"
+  (change)="onFileSelected($event)"
+/>
+
+<input
+  #folderInput
+  type="file"
+  class="file-input__input"
+  [accept]="config().accept"
+  [disabled]="isDisabled()"
+  webkitdirectory
+  (change)="onFileSelected($event)"
+/>
+
+<!-- Upload Area -->
+<div
+  class="file-input__upload-area"
+  [class.file-input__upload-area--drag-over]="dragOver()"
+  [class.file-input__upload-area--disabled]="isDisabled()"
+  [attr.tabindex]="isDisabled() ? -1 : 0"
+  role="button"
+  [attr.aria-label]="selectedFiles().length ? 'Selected ' + selectedFiles().length + ' files' : 'Drop files here or click to browse'"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave($event)"
+  (drop)="onDrop($event)"
+  (click)="browseFiles()"
+  (keydown.enter)="browseFiles()"
+  (keydown.space)="browseFiles(); $event.preventDefault()"
+>
+  @if (selectedFiles().length === 0) {
+    <div class="file-input__content">
+      <mat-icon class="file-input__icon">cloud_upload</mat-icon>
+      <h3 class="file-input__title">Drop files or folders here</h3>
+      <p class="file-input__description">or use the buttons below</p>
+      <div class="file-input__buttons" (click)="$event.stopPropagation()">
+        <button
+          mat-raised-button
+          color="primary"
+          class="file-input__button"
+          [disabled]="isDisabled()"
+          type="button"
+          (click)="browseFiles()"
+        >
+          Browse Files
+        </button>
+        <button
+          mat-stroked-button
+          class="file-input__button file-input__button--folder"
+          [disabled]="isDisabled()"
+          type="button"
+          (click)="browseFolder()"
+        >
+          Browse Folder
+        </button>
+      </div>
+    </div>
+  } @else {
+    <div class="file-input__selected-files" (click)="$event.stopPropagation()">
+      @for (file of selectedFiles(); track file.name + file.size; let i = $index) {
+        <div class="file-input__file-content">
+          <mat-icon class="file-input__file-icon">description</mat-icon>
+          <div class="file-input__file-info">
+            <div class="file-input__file-name">{{ file.name }}</div>
+            <div class="file-input__file-size">{{ getFileSizeString(file.size) }}</div>
+          </div>
+          <button
+            mat-icon-button
+            class="file-input__file-remove"
+            [disabled]="isDisabled()"
+            (click)="removeFile(i)"
+            type="button"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      }
+      <div class="file-input__add-more">
+        <button mat-button (click)="browseFiles()" [disabled]="isDisabled()" type="button">
+          <mat-icon>add</mat-icon> Add more files
+        </button>
+      </div>
+    </div>
+  }
+</div>

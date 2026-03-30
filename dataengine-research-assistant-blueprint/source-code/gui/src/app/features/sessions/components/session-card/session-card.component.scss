@@ -1,0 +1,58 @@
+.session-card-wrapper {
+  display: flex;
+  align-items: center;
+  position: relative;
+
+}
+
+.session-card {
+  cursor: pointer;
+  text-decoration: none;
+  display: block;
+  flex: 1;
+  min-width: 0;
+
+  &.active {
+    background: #131f39;
+  }
+
+  :hover {
+    background: #131f39a3;
+  }
+
+  .session-title {
+    padding: .75rem;
+    color: #E8EBEC;
+    font-size: .875rem;
+    font-weight: 400;
+    line-height: .8125rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.session-menu-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0 4px 0 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+
+  .mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: #8899B4;
+  }
+
+  &:hover .mat-icon {
+    color: var(--blue);
+  }
+}
