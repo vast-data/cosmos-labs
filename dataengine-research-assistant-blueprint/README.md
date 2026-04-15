@@ -1,3 +1,5 @@
+> Go here for the latest version of [Research Assistant](https://github.com/vast-data/vast-research-assistant-agent)
+
 # VAST DataEngine - Research Assistant Blueprint
 
 An Enterprise RAG-Powered Research Assistant system powered by VAST DataEngine, using NVIDIA NIM's for LLM inference, embedding, and reranking.

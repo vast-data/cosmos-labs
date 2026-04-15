@@ -1,3 +1,5 @@
+> Go here for the latest version of [Video Search and Summary](https://github.com/vast-data/vss-blueprint)
+
 # VAST DataEngine - Video VSS Blueprint
 
 - A Real-Time Video Search and Analysis system powered by [VAST DataEngine](https://www.vastdata.com/platform/dataengine), using [Nvidia NIM's](https://www.nvidia.com/en-eu/ai-data-science/products/nim-microservices/) & [Cosmos-Reason Models](https://huggingface.co/nvidia/Cosmos-Reason2-8B).

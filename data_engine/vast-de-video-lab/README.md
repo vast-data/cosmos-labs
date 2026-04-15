@@ -1,1 +1,1 @@
-Go here for the latest version of [Video Search and Summary](https://github.com/vast-data/cosmos-labs/tree/main/dataengine-vss-blueprint#vast-dataengine---video-vss-blueprint)
+> Go here for the latest version of [Video Search and Summary](https://github.com/vast-data/vss-blueprint)g
