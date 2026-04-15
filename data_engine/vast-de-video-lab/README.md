@@ -1,1 +1,1 @@
-> Go here for the latest version of [Video Search and Summary](https://github.com/vast-data/vss-blueprint)g
+> # Go here for the latest version of [Video Search and Summary](https://github.com/vast-data/vss-blueprint)

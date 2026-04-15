@@ -1,4 +1,4 @@
-> Go here for the latest version of [Research Assistant](https://github.com/vast-data/vast-research-assistant-agent)
+> # Go here for the latest version of [Research Assistant](https://github.com/vast-data/vast-research-assistant-agent)
 
 # VAST DataEngine - Research Assistant Blueprint
 
