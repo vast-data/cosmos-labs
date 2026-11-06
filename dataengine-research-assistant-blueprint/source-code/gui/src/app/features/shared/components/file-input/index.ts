@@ -1,1 +1,0 @@
-export { FileInputComponent, type FileInputConfig, type FileValidationError } from './file-input.component';
